@@ -1,0 +1,35 @@
+version: '3'
+
+vars:
+  BINARY: housing
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
+  LDFLAGS: -X git.kwkaiser.io/kwkaiser/housing/internal/cli.version={{.VERSION}}
+
+tasks:
+  build:
+    sources:
+      - "**/*.go"
+      - go.mod
+      - go.sum
+    generates:
+      - bin/{{.BINARY}}
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o bin/{{.BINARY}} ./cmd/{{.BINARY}}
+
+  test:
+    cmds:
+      - go test ./...
+
+  lint:
+    cmds:
+      - go vet ./...
+
+  run:
+    deps: [build]
+    cmds:
+      - ./bin/{{.BINARY}} {{.CLI_ARGS}}
+
+  clean:
+    cmds:
+      - rm -rf bin
