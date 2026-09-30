@@ -5,15 +5,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"slices"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/digest"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/openrouter"
 )
 
-const DefaultAssessModel = "anthropic/claude-sonnet-5.5"
+const DefaultAssessModel = "google/gemini-3.8-flash"
 
 var importanceWeights = map[Importance]float64{
 	Essential: 4,
@@ -288,8 +292,12 @@ Disregard everything in the profile's IGNORE list, and never judge furniture, de
 var assessSchema = openrouter.MustSchemaFor[modelResponse]("listing_assessment")
 
 type BatchOptions struct {
-	Force bool
-	Limit int
+	Force           bool
+	Limit           int
+	Concurrency     int
+	MaxCostUSD      float64
+	Checkpoint      func([]listing.Listing) error
+	CheckpointEvery int
 }
 
 type BatchStats struct {
@@ -298,6 +306,7 @@ type BatchStats struct {
 	Cached     int
 	NoCollages int
 	OverLimit  int
+	OverBudget int
 	CostUSD    float64
 }
 
@@ -335,27 +344,53 @@ func (a Assessor) AssessListings(
 		}
 	}
 
+	if opts.Limit > 0 && len(order) > opts.Limit {
+		for _, key := range order[opts.Limit:] {
+			stats.OverLimit += len(groups[key])
+		}
+		order = order[:opts.Limit]
+	}
+
+	var mu sync.Mutex
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(max(opts.Concurrency, 1))
 	for _, key := range order {
 		members := groups[key]
-		if opts.Limit > 0 && stats.Calls >= opts.Limit {
-			stats.OverLimit += len(members)
-			continue
-		}
-		first := out[members[0]]
-		collages, err := readCollages(first.Collages)
-		if err != nil {
-			return out, stats, err
-		}
-		result, err := a.Assess(ctx, p, refs, Candidate{Listing: first, Collages: collages})
-		if err != nil {
-			return out, stats, fmt.Errorf("assess %s/%s: %w", first.Source, first.SourceID, err)
-		}
-		stats.Calls++
-		stats.CostUSD += result.CostUSD
-		for _, i := range members {
-			out[i] = out[i].WithAssessment(p.ID, result)
-			stats.Updated++
-		}
+		g.Go(func() error {
+			mu.Lock()
+			overBudget := opts.MaxCostUSD > 0 && stats.CostUSD >= opts.MaxCostUSD
+			if overBudget {
+				stats.OverBudget += len(members)
+			}
+			first := out[members[0]]
+			mu.Unlock()
+			if overBudget || gctx.Err() != nil {
+				return nil
+			}
+
+			collages, err := readCollages(first.Collages)
+			if err != nil {
+				return err
+			}
+			result, err := a.Assess(gctx, p, refs, Candidate{Listing: first, Collages: collages})
+			if err != nil {
+				return fmt.Errorf("assess %s/%s: %w", first.Source, first.SourceID, err)
+			}
+
+			mu.Lock()
+			defer mu.Unlock()
+			stats.Calls++
+			stats.CostUSD += result.CostUSD
+			for _, i := range members {
+				out[i] = out[i].WithAssessment(p.ID, result)
+				stats.Updated++
+			}
+			if opts.Checkpoint != nil && opts.CheckpointEvery > 0 && stats.Calls%opts.CheckpointEvery == 0 {
+				return opts.Checkpoint(slices.Clone(out))
+			}
+			return nil
+		})
 	}
-	return out, stats, nil
+	err := g.Wait()
+	return out, stats, err
 }

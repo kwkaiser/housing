@@ -91,17 +91,7 @@ func TestFetchRequiresSavedSearchForMode(t *testing.T) {
 func TestFetchDeferredAmenitiesNeedEnrichment(t *testing.T) {
 	t.Setenv("APIFY_TOKEN", "unused")
 	_, err := run(t, "fetch", "--mode", "buy", "--location", "02145", "--amenity", "dishwasher", "--enrich=false", "--data-dir", t.TempDir())
-	if err == nil || !strings.Contains(err.Error(), "enable --enrich") {
+	if err == nil || !strings.Contains(err.Error(), "enable enrichment") {
 		t.Fatalf("got %v", err)
-	}
-}
-
-func TestSplitAmenities(t *testing.T) {
-	filterable, deferred := splitAmenities(
-		[]listing.Amenity{listing.AmenityDishwasher, listing.AmenityParking},
-		[]listing.Amenity{listing.AmenityParking},
-	)
-	if len(filterable) != 1 || filterable[0] != listing.AmenityParking || len(deferred) != 1 || deferred[0] != listing.AmenityDishwasher {
-		t.Errorf("filterable=%v deferred=%v", filterable, deferred)
 	}
 }

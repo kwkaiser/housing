@@ -24,6 +24,7 @@ func newRootCmd() *cobra.Command {
 		newProfileCmd(profilesDir),
 		newAssessCmd(dataDir, profilesDir),
 		newReportCmd(dataDir, profilesDir),
+		newRunCmd(dataDir, profilesDir),
 	)
 	return cmd
 }

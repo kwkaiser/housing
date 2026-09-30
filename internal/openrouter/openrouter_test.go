@@ -62,12 +62,53 @@ func TestCompleteRetriesServerErrors(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewClient("key", WithServerURL(srv.URL), WithMaxRetryTime(30*time.Second))
+	c := NewClient("key", WithServerURL(srv.URL), WithRetries(4, time.Millisecond, time.Millisecond))
 	if _, err := c.Complete(context.Background(), Request{Model: "m", User: []Part{TextPart("hi")}}); err != nil {
 		t.Fatal(err)
 	}
 	if calls.Load() != 3 {
 		t.Fatalf("calls = %d", calls.Load())
+	}
+}
+
+func TestCompleteRetriesRateLimits(t *testing.T) {
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) == 1 {
+			w.Header().Set("Retry-After", "0")
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(okBody))
+	}))
+	defer srv.Close()
+
+	c := NewClient("key", WithServerURL(srv.URL), WithRetries(4, time.Millisecond, time.Millisecond))
+	if _, err := c.Complete(context.Background(), Request{Model: "m", User: []Part{TextPart("hi")}}); err != nil {
+		t.Fatal(err)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("calls = %d, want a retry after 429", calls.Load())
+	}
+}
+
+func TestRateLimit(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(okBody))
+	}))
+	defer srv.Close()
+
+	c := NewClient("key", WithServerURL(srv.URL), WithRateLimit(20, 1))
+	start := time.Now()
+	for range 3 {
+		if _, err := c.Complete(context.Background(), Request{Model: "m", User: []Part{TextPart("hi")}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if elapsed := time.Since(start); elapsed < 90*time.Millisecond {
+		t.Errorf("3 calls at 20/s with burst 1 took %v, want >= 100ms", elapsed)
 	}
 }
 

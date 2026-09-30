@@ -5,13 +5,14 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"net/http"
 	"time"
 
 	sdk "github.com/OpenRouterTeam/go-sdk"
 	"github.com/OpenRouterTeam/go-sdk/models/components"
 	"github.com/OpenRouterTeam/go-sdk/optionalnullable"
 	"github.com/OpenRouterTeam/go-sdk/retry"
+	"github.com/hashicorp/go-retryablehttp"
+	"golang.org/x/time/rate"
 )
 
 type Completer interface {
@@ -61,52 +62,76 @@ func ImagePart(mediaType string, data []byte) Part {
 }
 
 type Client struct {
-	sdk *sdk.OpenRouter
+	sdk     *sdk.OpenRouter
+	limiter *rate.Limiter
 }
 
 var _ Completer = (*Client)(nil)
 
-type Option func(*[]sdk.SDKOption)
+type settings struct {
+	serverURL    string
+	retryMax     int
+	retryWaitMin time.Duration
+	retryWaitMax time.Duration
+	perSecond    float64
+	burst        int
+}
+
+type Option func(*settings)
 
 func WithServerURL(url string) Option {
-	return func(o *[]sdk.SDKOption) { *o = append(*o, sdk.WithServerURL(url)) }
+	return func(s *settings) { s.serverURL = url }
 }
 
-func WithHTTPClient(c *http.Client) Option {
-	return func(o *[]sdk.SDKOption) { *o = append(*o, sdk.WithClient(c)) }
+func WithRetries(max int, waitMin, waitMax time.Duration) Option {
+	return func(s *settings) { s.retryMax, s.retryWaitMin, s.retryWaitMax = max, waitMin, waitMax }
 }
 
-func WithMaxRetryTime(d time.Duration) Option {
-	return func(o *[]sdk.SDKOption) { *o = append(*o, sdk.WithRetryConfig(retryConfig(d))) }
+func WithRateLimit(perSecond float64, burst int) Option {
+	return func(s *settings) { s.perSecond, s.burst = perSecond, burst }
 }
 
 func NewClient(apiKey string, opts ...Option) *Client {
+	s := settings{
+		retryMax:     4,
+		retryWaitMin: time.Second,
+		retryWaitMax: 30 * time.Second,
+		perSecond:    4,
+		burst:        4,
+	}
+	for _, o := range opts {
+		o(&s)
+	}
+
+	httpClient := retryablehttp.NewClient()
+	httpClient.RetryMax = s.retryMax
+	httpClient.RetryWaitMin = s.retryWaitMin
+	httpClient.RetryWaitMax = s.retryWaitMax
+	httpClient.HTTPClient.Timeout = 5 * time.Minute
+	httpClient.Logger = nil
+	httpClient.ErrorHandler = retryablehttp.PassthroughErrorHandler
+
 	sdkOpts := []sdk.SDKOption{
 		sdk.WithSecurity(apiKey),
 		sdk.WithXTitle("housing"),
-		sdk.WithTimeout(5 * time.Minute),
-		sdk.WithRetryConfig(retryConfig(2 * time.Minute)),
+		sdk.WithClient(httpClient.StandardClient()),
+		sdk.WithRetryConfig(retry.Config{Strategy: "none"}),
 	}
-	for _, o := range opts {
-		o(&sdkOpts)
+	if s.serverURL != "" {
+		sdkOpts = append(sdkOpts, sdk.WithServerURL(s.serverURL))
 	}
-	return &Client{sdk: sdk.New(sdkOpts...)}
-}
 
-func retryConfig(maxElapsed time.Duration) retry.Config {
-	return retry.Config{
-		Strategy: "backoff",
-		Backoff: &retry.BackoffStrategy{
-			InitialInterval: 1000,
-			MaxInterval:     20000,
-			Exponent:        2,
-			MaxElapsedTime:  int(maxElapsed.Milliseconds()),
-		},
-		RetryConnectionErrors: true,
+	limit := rate.Inf
+	if s.perSecond > 0 {
+		limit = rate.Limit(s.perSecond)
 	}
+	return &Client{sdk: sdk.New(sdkOpts...), limiter: rate.NewLimiter(limit, max(s.burst, 1))}
 }
 
 func (c *Client) Complete(ctx context.Context, req Request) (Response, error) {
+	if err := c.limiter.Wait(ctx); err != nil {
+		return Response{}, err
+	}
 	chat := components.ChatRequest{
 		Model:    &req.Model,
 		Messages: messages(req),

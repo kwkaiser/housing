@@ -3,8 +3,11 @@ package profile
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/openrouter"
@@ -39,13 +42,34 @@ const assessReply = `{
 }`
 
 type countingCompleter struct {
-	fakeCompleter
-	calls int
+	reply string
+	cost  float64
+	fail  string
+	calls atomic.Int32
+	live  atomic.Int32
+	peak  atomic.Int32
+	delay time.Duration
 }
 
 func (c *countingCompleter) Complete(ctx context.Context, req openrouter.Request) (openrouter.Response, error) {
-	c.calls++
-	return c.fakeCompleter.Complete(ctx, req)
+	c.calls.Add(1)
+	n := c.live.Add(1)
+	defer c.live.Add(-1)
+	for {
+		p := c.peak.Load()
+		if n <= p || c.peak.CompareAndSwap(p, n) {
+			break
+		}
+	}
+	if c.delay > 0 {
+		time.Sleep(c.delay)
+	}
+	for _, part := range req.User {
+		if c.fail != "" && strings.Contains(part.Text, c.fail) {
+			return openrouter.Response{}, errors.New("boom")
+		}
+	}
+	return openrouter.Response{Model: "test/model", CostUSD: c.cost, Content: c.reply}, nil
 }
 
 func TestScore(t *testing.T) {
@@ -112,6 +136,85 @@ func TestAssess(t *testing.T) {
 	}
 }
 
+func manyListings(n int) []listing.Listing {
+	out := make([]listing.Listing, n)
+	for i := range out {
+		id := string(rune('a' + i))
+		out[i] = listing.Listing{SourceID: id, Collages: []string{id + ".jpg"}, Address: listing.Address{Formatted: "addr-" + id}}
+	}
+	return out
+}
+
+func readAny(keys []string) ([][]byte, error) { return [][]byte{{1}}, nil }
+
+func TestAssessListingsConcurrency(t *testing.T) {
+	cc := &countingCompleter{reply: assessReply, delay: 20 * time.Millisecond}
+	a := Assessor{Client: cc, Model: "test/model"}
+	out, stats, err := a.AssessListings(context.Background(), testProfile, nil, manyListings(8), readAny, BatchOptions{Concurrency: 4})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stats.Calls != 8 || stats.Updated != 8 || cc.peak.Load() != 4 {
+		t.Errorf("stats=%+v peak=%d, want 8 calls with 4 in flight", stats, cc.peak.Load())
+	}
+	for _, l := range out {
+		if _, ok := l.Assessment("attic", "test/model"); !ok {
+			t.Errorf("%s not assessed", l.SourceID)
+		}
+	}
+}
+
+func TestAssessListingsBudget(t *testing.T) {
+	cc := &countingCompleter{reply: assessReply, cost: 0.01}
+	a := Assessor{Client: cc, Model: "test/model"}
+	_, stats, err := a.AssessListings(context.Background(), testProfile, nil, manyListings(6), readAny, BatchOptions{Concurrency: 1, MaxCostUSD: 0.025})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stats.Calls != 3 || stats.OverBudget != 3 {
+		t.Errorf("stats=%+v, want calls to stop once spend reaches the cap", stats)
+	}
+}
+
+func TestAssessListingsCheckpoints(t *testing.T) {
+	a := Assessor{Client: &countingCompleter{reply: assessReply}, Model: "test/model"}
+	var saved []int
+	opts := BatchOptions{Concurrency: 2, CheckpointEvery: 2, Checkpoint: func(ls []listing.Listing) error {
+		n := 0
+		for _, l := range ls {
+			if _, ok := l.Assessment("attic", "test/model"); ok {
+				n++
+			}
+		}
+		saved = append(saved, n)
+		return nil
+	}}
+	if _, _, err := a.AssessListings(context.Background(), testProfile, nil, manyListings(5), readAny, opts); err != nil {
+		t.Fatal(err)
+	}
+	if len(saved) != 2 || saved[0] != 2 || saved[1] != 4 {
+		t.Errorf("checkpoints = %v, want progress saved after every 2 calls", saved)
+	}
+}
+
+func TestAssessListingsKeepsResultsOnError(t *testing.T) {
+	cc := &countingCompleter{reply: assessReply, fail: "addr-c"}
+	a := Assessor{Client: cc, Model: "test/model"}
+	out, stats, err := a.AssessListings(context.Background(), testProfile, nil, manyListings(6), readAny, BatchOptions{Concurrency: 1})
+	if err == nil || !strings.Contains(err.Error(), "boom") {
+		t.Fatalf("got %v", err)
+	}
+	if stats.Calls != 2 {
+		t.Errorf("stats=%+v, want the 2 calls before the failure kept", stats)
+	}
+	if _, ok := out[0].Assessment("attic", "test/model"); !ok {
+		t.Error("completed assessments should be returned alongside the error")
+	}
+	if cc.calls.Load() != 3 {
+		t.Errorf("calls = %d, want no new calls after the failure", cc.calls.Load())
+	}
+}
+
 func TestAssessRejectsEmptyReply(t *testing.T) {
 	c := Candidate{Listing: listing.Listing{Collages: []string{"x"}}, Collages: [][]byte{{1}}}
 	for _, reply := range []string{`{}`, `{"want": [], "avoid": [], "vibe": 3, "summary": ""}`, strings.Replace(assessReply, `"vibe": 2`, `"vibe": 0`, 1)} {
@@ -131,7 +234,7 @@ func TestAssessRequiresCriteria(t *testing.T) {
 }
 
 func TestAssessListings(t *testing.T) {
-	cc := &countingCompleter{fakeCompleter: fakeCompleter{reply: assessReply}}
+	cc := &countingCompleter{reply: assessReply}
 	a := Assessor{Client: cc, Model: "test/model"}
 	read := func(keys []string) ([][]byte, error) { return [][]byte{{1}}, nil }
 
@@ -147,8 +250,8 @@ func TestAssessListings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cc.calls != 2 || stats.Calls != 2 || stats.Updated != 3 || stats.OverLimit != 1 || stats.NoCollages != 1 {
-		t.Errorf("calls=%d stats=%+v", cc.calls, stats)
+	if cc.calls.Load() != 2 || stats.Calls != 2 || stats.Updated != 3 || stats.OverLimit != 1 || stats.NoCollages != 1 {
+		t.Errorf("calls=%d stats=%+v", cc.calls.Load(), stats)
 	}
 	a0, _ := out[0].Assessment("attic", "test/model")
 	a1, _ := out[1].Assessment("attic", "test/model")
@@ -166,8 +269,8 @@ func TestAssessListings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cc.calls != 3 || stats.Cached != 3 || stats.Calls != 1 {
-		t.Errorf("second run should only assess the remaining listing: calls=%d stats=%+v", cc.calls, stats)
+	if cc.calls.Load() != 3 || stats.Cached != 3 || stats.Calls != 1 {
+		t.Errorf("second run should only assess the remaining listing: calls=%d stats=%+v", cc.calls.Load(), stats)
 	}
 
 	_, stats, _ = a.AssessListings(context.Background(), testProfile, nil, out, read, BatchOptions{Force: true})
