@@ -1,0 +1,486 @@
+[
+  {
+    "addressOrUrlFromInput": "https://www.zillow.com/apartments/austin-tx/cortland-bluff-springs/CjmTsL/",
+    "zpid": "342716910",
+    "homeType": "APARTMENT",
+    "description": "With convenience to Austin's popular shopping, dining, and entertainment spots, our Bluff Springs apartment community connects you to the best of living in the heart of South Austin. Features like granite countertops and private patios and balconies will make you proud to call any of our one, two, and three-bedroom apartments in Southeast Austin home.\nConvenience to major employers like St. David's Medical Center makes your daily commute a breeze. And when you're considering your weekend (or weeknight) plans, you have plenty of options nearby. Treat yourself to some retail therapy at Southpark Meadows, go for a scenic hike or bike ride at McKinney Falls State Park, then meet up with friends for a craft beer at St. Elmo Brewing Company.",
+    "listingProvider": {
+      "contactType": "FOR_RENT",
+      "providerListingID": "1cmpjwpda4a3y",
+      "rentalApplicationsAcceptedType": "NOT_ELIGIBLE",
+      "phoneNumber": "(512) 543-4147"
+    },
+    "photoCount": 43,
+    "buildingAttributes": {
+      "hasSharedLaundry": false,
+      "airConditioning": "Central",
+      "appliances": [
+        "Dryer",
+        "Washer"
+      ],
+      "parkingTypes": [
+        "CoveredParking"
+      ],
+      "detailedParkingPolicies": [
+        {
+          "parkingType": "surfaceLot"
+        }
+      ],
+      "outdoorCommonAreas": [
+        "Garden",
+        "Trail",
+        "Deck"
+      ],
+      "hasBarbecue": true,
+      "heatingSource": "Unknown",
+      "detailedPetPolicy": {
+        "petPolicies": [
+          {
+            "allowed": true,
+            "comment": "Pets Allowed",
+            "maxNumberAllowed": 2,
+            "maxWeightAllowed": 80,
+            "monthlyFee": 25,
+            "oneTimeFee": 400,
+            "petType": "cats",
+            "restriction": "Each apartment may have a maximum of two total cats or dogs, with a weight limit of 80 pounds per pet. Certain aggressive dog breeds, including mixed breeds, are not permitted. Restricted breeds/mixes include but are not limited to: Rottweiler, Chow, Presa Canario, Doberman, Akita, Pit Bull (also known as American Staffordshire Terrier, Staffordshire Bull Terrier, or Pit Bull Terrier), Cane Corso, or any Mastiff breed. Any animals that are not cats or dogs must continually stay in a cage or tank"
+          },
+          {
+            "allowed": true,
+            "comment": "Pets Allowed",
+            "maxNumberAllowed": 2,
+            "maxWeightAllowed": 80,
+            "monthlyFee": 25,
+            "oneTimeFee": 400,
+            "petType": "dogs",
+            "restriction": "Each apartment may have a maximum of two total cats or dogs, with a weight limit of 80 pounds per pet. Certain aggressive dog breeds, including mixed breeds, are not permitted. Restricted breeds/mixes include but are not limited to: Rottweiler, Chow, Presa Canario, Doberman, Akita, Pit Bull (also known as American Staffordshire Terrier, Staffordshire Bull Terrier, or Pit Bull Terrier), Cane Corso, or any Mastiff breed. Any animals that are not cats or dogs must continually stay in a cage or tank"
+          }
+        ]
+      },
+      "petPolicies": [
+        "Cats",
+        "SmallDogs",
+        "LargeDogs"
+      ],
+      "hasElevator": true,
+      "communityRooms": [
+        "Lounge",
+        "BusinessCenter",
+        "FitnessCenter",
+        "ClubHouse"
+      ],
+      "sportsCourts": [
+        "TennisCourt"
+      ],
+      "hasPackageService": true,
+      "securityTypes": [
+        "GatedEntry"
+      ],
+      "viewType": [],
+      "hasSwimmingPool": true,
+      "hasAssistedLiving": false,
+      "hasDisabledAccess": true,
+      "floorCoverings": [
+        "Vinyl",
+        "Hardwood",
+        "Carpet"
+      ],
+      "communicationTypes": [],
+      "hasCeilingFan": true,
+      "hasPatioBalcony": true,
+      "customAmenities": "24-hour maintenance?Ceiling fan?Complimentary Coffee Bar?Controlled access?Custom Cabinetry With Designer Hardware And Tile B?Detached garage?Dining Room?Dishwasher?Electric Vehicle Charging Stations?Elevator?Energy-Efficient, Stainless Steel Appliances?Family Room?Fenced-In Yard?Fenced-in Yard *?Fire Pits?Garbage Disposal?Granite Countertops?High speed internet?Large Bedrooms?Mezzanine Courtyard?Microwave?Modern Lighting?Newly Upgraded Apartments?Online maintenance portal?Online rent payment?Outdoor Gaming Areas?Oven?Pet park?Private Garages Available?Range?Refrigerator?Spacious Walk-In Closets?Surface Lot?Two Leash-Free Bark Parks?Walkability To Fast Friends Beer Co.?Washer-dryer included?Window Coverings?Wood-Style Flooring?Yard",
+      "customPropertyAmenities": [
+        "24-hour maintenance",
+        "Ceiling fan",
+        "Complimentary Coffee Bar",
+        "Controlled access",
+        "Custom Cabinetry With Designer Hardware And Tile B",
+        "Detached garage",
+        "Dishwasher",
+        "Electric Vehicle Charging Stations",
+        "Elevator",
+        "Energy-Efficient, Stainless Steel Appliances",
+        "Fenced-In Yard",
+        "Fenced-in Yard *",
+        "Fire Pits",
+        "Garbage Disposal",
+        "Granite Countertops",
+        "High speed internet",
+        "Mezzanine Courtyard",
+        "Microwave",
+        "Modern Lighting",
+        "Newly Upgraded Apartments",
+        "Online maintenance portal",
+        "Online rent payment",
+        "Outdoor Gaming Areas",
+        "Oven",
+        "Pet park",
+        "Private Garages Available",
+        "Range",
+        "Refrigerator",
+        "Spacious Walk-In Closets",
+        "Surface Lot",
+        "Two Leash-Free Bark Parks",
+        "Walkability To Fast Friends Beer Co.",
+        "Washer-dryer included",
+        "Wood-Style Flooring"
+      ],
+      "customUnitAmenities": [
+        "Dining Room",
+        "Family Room",
+        "Large Bedrooms",
+        "Window Coverings",
+        "Yard"
+      ],
+      "communityType": "RENTAL",
+      "isSmokeFree": true,
+      "leaseTerms": [],
+      "utilitiesIncluded": []
+    },
+    "listingPrice": {
+      "currency": "USD"
+    },
+    "listingAddress": {
+      "street": "7330 Bluff Springs Rd",
+      "city": "Austin",
+      "state": "TX",
+      "zipCode": "78744",
+      "county": "Travis County",
+      "country": "USA",
+      "neighborhood": "Bluff Springs",
+      "communityName": "Cortland Bluff Springs",
+      "timeZone": "America/Chicago",
+      "full": "7330 Bluff Springs Rd, Austin, TX 78744"
+    },
+    "coordinates": {
+      "latitude": 30.181016,
+      "longitude": -97.773137
+    },
+    "listingStatus": "forRent",
+    "propertyUrl": "https://www.zillow.com/apartments/austin-tx/cortland-bluff-springs/CjmTsL/",
+    "mainImage": {
+      "medium": "https://photos.zillowstatic.com/fp/882925b511d2c4ae1dfd5b88dc447967-p_d.jpg",
+      "hiRes": "https://photos.zillowstatic.com/fp/882925b511d2c4ae1dfd5b88dc447967-uncropped_scaled_within_1536_1152.jpg"
+    },
+    "staticMapUrl": "https://maps.googleapis.com/maps/api/staticmap?center=30.181015740618,-97.773137470744&zoom=17&size=768x576&maptype=roadmap&key=AIzaSyD3b0WRWC4TBB4y3ksMtwpyV6FABvaIF7c&signature=Z-pzr4h3Cmq0vE1CACQ3sXYDMiE=",
+    "propertyFeatures": {
+      "appliances": [],
+      "heating": [],
+      "cooling": [],
+      "flooring": [],
+      "exteriorFeatures": [],
+      "interiorFeatures": [],
+      "view": [],
+      "waterSource": [],
+      "sewer": [],
+      "utilities": [],
+      "constructionMaterials": []
+    },
+    "atAGlanceFacts": [],
+    "specialOffers": [
+      {
+        "description": "Now offering up to 6 weeks Free on select homes! Call or visit us for details."
+      }
+    ],
+    "listingFloorPlans": [
+      {
+        "name": "SoCo",
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "livingArea": 750,
+        "minPrice": 1419,
+        "maxPrice": 1464,
+        "availableFrom": "2026-09-08T07:00:00.000Z",
+        "leaseTerm": "12 Months",
+        "units": [
+          {
+            "unitNumber": "Unit 6316",
+            "zpid": "2053141628",
+            "price": 1419,
+            "livingArea": 750,
+            "availableFrom": "2026-11-20T08:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 3203",
+            "zpid": "456026460",
+            "price": 1419,
+            "livingArea": 750,
+            "availableFrom": "2026-10-16T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 5310",
+            "zpid": "2053135787",
+            "price": 1434,
+            "livingArea": 750,
+            "availableFrom": "2026-11-21T08:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 3303",
+            "zpid": "350277272",
+            "price": 1434,
+            "livingArea": 750,
+            "availableFrom": "2026-09-08T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 4104",
+            "zpid": "2055047864",
+            "price": 1459,
+            "livingArea": 750,
+            "availableFrom": "2026-09-08T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 4110",
+            "zpid": "452803565",
+            "price": 1459,
+            "livingArea": 750,
+            "availableFrom": "2026-10-27T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 2115",
+            "zpid": "350422549",
+            "price": 1464,
+            "livingArea": 750,
+            "availableFrom": "2026-12-05T08:00:00.000Z"
+          }
+        ]
+      },
+      {
+        "name": "Duval",
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "livingArea": 850,
+        "minPrice": 1519,
+        "maxPrice": 1524,
+        "leaseTerm": "12 Months",
+        "units": [
+          {
+            "unitNumber": "Unit 3202",
+            "zpid": "459923730",
+            "price": 1519,
+            "livingArea": 850
+          },
+          {
+            "unitNumber": "Unit 6302",
+            "zpid": "342716910",
+            "price": 1524,
+            "livingArea": 850,
+            "availableFrom": "2026-11-19T08:00:00.000Z"
+          }
+        ]
+      },
+      {
+        "name": "Barton Springs",
+        "bedrooms": 2,
+        "bathrooms": 2,
+        "livingArea": 1100,
+        "minPrice": 1575,
+        "maxPrice": 1850,
+        "availableFrom": "2026-09-09T07:00:00.000Z",
+        "leaseTerm": "12 Months",
+        "units": [
+          {
+            "unitNumber": "Unit 3309",
+            "zpid": "2086801086",
+            "price": 1575,
+            "livingArea": 1100,
+            "availableFrom": "2026-09-09T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 4303",
+            "zpid": "2087344759",
+            "price": 1700,
+            "livingArea": 1100,
+            "availableFrom": "2026-09-23T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 1201",
+            "zpid": "453889442",
+            "price": 1705,
+            "livingArea": 1100,
+            "availableFrom": "2026-09-26T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 3312",
+            "zpid": "2052948871",
+            "price": 1725,
+            "livingArea": 1100,
+            "availableFrom": "2026-11-07T08:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 4317",
+            "zpid": "348733807",
+            "price": 1725,
+            "livingArea": 1100,
+            "availableFrom": "2026-10-14T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 4102",
+            "zpid": "2055047860",
+            "price": 1745,
+            "livingArea": 1100,
+            "availableFrom": "2026-10-20T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 1210",
+            "zpid": "2054488153",
+            "price": 1755,
+            "livingArea": 1100,
+            "availableFrom": "2026-10-05T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 1312",
+            "zpid": "452803559",
+            "price": 1770,
+            "livingArea": 1100,
+            "availableFrom": "2026-09-26T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 3111",
+            "zpid": "2086900065",
+            "price": 1850,
+            "livingArea": 1100,
+            "availableFrom": "2026-10-30T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 3112",
+            "zpid": "452803569",
+            "price": 1850,
+            "livingArea": 1100,
+            "availableFrom": "2026-10-27T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 6106",
+            "zpid": "2055041242",
+            "price": 1850,
+            "livingArea": 1100,
+            "availableFrom": "2026-10-07T07:00:00.000Z"
+          }
+        ]
+      },
+      {
+        "name": "6th Street",
+        "bedrooms": 2,
+        "bathrooms": 2,
+        "livingArea": 1200,
+        "minPrice": 1710,
+        "maxPrice": 1925,
+        "availableFrom": "2026-09-08T07:00:00.000Z",
+        "leaseTerm": "12 Months",
+        "units": [
+          {
+            "unitNumber": "Unit 2211",
+            "zpid": "2087344765",
+            "price": 1710,
+            "livingArea": 1200,
+            "availableFrom": "2026-09-23T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 2212",
+            "zpid": "2053059834",
+            "price": 1765,
+            "livingArea": 1200,
+            "availableFrom": "2026-09-08T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 2203",
+            "zpid": "2054344708",
+            "price": 1780,
+            "livingArea": 1200,
+            "availableFrom": "2026-10-10T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 5105",
+            "zpid": "2086945599",
+            "price": 1925,
+            "livingArea": 1200,
+            "availableFrom": "2026-10-15T07:00:00.000Z"
+          }
+        ]
+      },
+      {
+        "name": "Rainey Street",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "livingArea": 1350,
+        "minPrice": 1772,
+        "maxPrice": 2002,
+        "leaseTerm": "12 Months",
+        "units": [
+          {
+            "unitNumber": "Unit 3308",
+            "zpid": "2086480037",
+            "price": 1772,
+            "livingArea": 1350
+          },
+          {
+            "unitNumber": "Unit 3316",
+            "zpid": "452803564",
+            "price": 1852,
+            "livingArea": 1350,
+            "availableFrom": "2026-09-08T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 6401",
+            "zpid": "465502512",
+            "price": 1907,
+            "livingArea": 1350,
+            "availableFrom": "2026-11-07T08:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 1106",
+            "zpid": "2086165422",
+            "price": 1972,
+            "livingArea": 1350,
+            "availableFrom": "2026-10-27T07:00:00.000Z"
+          },
+          {
+            "unitNumber": "Unit 6101",
+            "zpid": "2087344731",
+            "price": 2002,
+            "livingArea": 1350,
+            "availableFrom": "2026-09-25T07:00:00.000Z"
+          }
+        ]
+      },
+      {
+        "name": "South Lamar",
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "livingArea": 1350,
+        "minPrice": 1877,
+        "maxPrice": 1977,
+        "leaseTerm": "12 Months",
+        "units": [
+          {
+            "unitNumber": "Unit 5316",
+            "zpid": "2052973699",
+            "price": 1877,
+            "livingArea": 1350
+          },
+          {
+            "unitNumber": "Unit 5208",
+            "zpid": "459190321",
+            "price": 1912,
+            "livingArea": 1350
+          },
+          {
+            "unitNumber": "Unit 2316",
+            "zpid": "2055047844",
+            "price": 1977,
+            "livingArea": 1350
+          }
+        ]
+      }
+    ],
+    "listingPhotos": [
+      {
+        "url": "https://photos.zillowstatic.com/fp/882925b511d2c4ae1dfd5b88dc447967-uncropped_scaled_within_1536_1152.jpg"
+      },
+      {
+        "url": "https://photos.zillowstatic.com/fp/48d6e2e39b0a0c2c46423531f70b8e27-uncropped_scaled_within_1536_1152.jpg"
+      }
+    ],
+    "isValid": true,
+    "scrapedAt": "2026-09-30T00:32:38.115Z"
+  }
+]

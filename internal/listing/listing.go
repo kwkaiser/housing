@@ -28,7 +28,6 @@ const (
 	AmenityDishwasher      Amenity = "dishwasher"
 	AmenityParking         Amenity = "parking"
 	AmenityAirConditioning Amenity = "air_conditioning"
-	AmenityPetsAllowed     Amenity = "pets_allowed"
 )
 
 type Money struct {

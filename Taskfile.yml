@@ -23,6 +23,12 @@ tasks:
     cmds:
       - go test ./...
 
+  test:integration:
+    env:
+      HOUSING_DATA_DIR: '{{.ROOT_DIR}}/data'
+    cmds:
+      - go test -tags integration -count=1 -v ./...
+
   lint:
     cmds:
       - go vet ./...

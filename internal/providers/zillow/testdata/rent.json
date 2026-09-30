@@ -1,0 +1,120 @@
+[
+  {
+    "zpid": "29398895",
+    "zestimate": 849300,
+    "has3DModel": true,
+    "hasVideo": false,
+    "hasImage": true,
+    "isZillowOwned": false,
+    "listingPrice": {
+      "amount": 6450,
+      "currency": "USD",
+      "formatted": "$6,450/mo"
+    },
+    "listingAddress": {
+      "street": "504 W 35th St",
+      "city": "Austin",
+      "state": "TX",
+      "zipCode": "78705",
+      "country": "USA",
+      "full": "504 W 35th St, Austin, TX 78705"
+    },
+    "coordinates": {
+      "latitude": 30.301035,
+      "longitude": -97.73829
+    },
+    "listingStatus": "forRent",
+    "propertyUrl": "https://www.zillow.com/homedetails/504-W-35th-St-Austin-TX-78705/29398895_zpid/",
+    "cardType": "home",
+    "homeType": "SINGLE_FAMILY",
+    "bedrooms": 6,
+    "bathrooms": 3,
+    "livingArea": 2436,
+    "livingAreaUnit": "sqft",
+    "daysOnZillow": 0,
+    "rentZestimate": 5851,
+    "taxAssessedValue": 686461,
+    "mainImage": "https://photos.zillowstatic.com/fp/be169933916a65ad72428ca2bb07437a-p_e.jpg",
+    "listingPhotos": [
+      {
+        "url": "https://photos.zillowstatic.com/fp/be169933916a65ad72428ca2bb07437a-p_e.jpg"
+      },
+      {
+        "url": "https://photos.zillowstatic.com/fp/bbf9e76e89f6f75a693ef1e2a3d21b7d-p_e.jpg"
+      }
+    ],
+    "photoCount": 25,
+    "sourceSearchUrl": "https://www.zillow.com/homes/for_rent/?searchQueryState=%7B%22mapBounds%22%3A%7B%22south%22%3A30.0985133%2C%22north%22%3A30.5166255%2C%22west%22%3A-97.9367663%2C%22east%22%3A-97.5605288%7D%2C%22filterState%22%3A%7B%22sort%22%3A%7B%22value%22%3A%22days%22%7D%2C%22fr%22%3A%7B%22value%22%3Atrue%7D%2C%22fsba%22%3A%7B%22value%22%3Afalse%7D%2C%22fsbo%22%3A%7B%22value%22%3Afalse%7D%2C%22nc%22%3A%7B%22value%22%3Afalse%7D%2C%22cmsn%22%3A%7B%22value%22%3Afalse%7D%2C%22auc%22%3A%7B%22value%22%3Afalse%7D%2C%22fore%22%3A%7B%22value%22%3Afalse%7D%2C%22doz%22%3A%7B%22value%22%3A%227%22%7D%7D%2C%22isListVisible%22%3Atrue%2C%22isMapVisible%22%3Atrue%7D",
+    "factsAndFeatures": {
+      "halfBathroomCount": 0,
+      "fullBathroomCount": 3,
+      "hasFireplace": false,
+      "hasAirConditioning": false,
+      "hasSpa": false,
+      "hasPool": false
+    },
+    "marketingTreatments": [],
+    "priceIncludesMonthlyFees": false,
+    "isRentalWithBasePrice": false,
+    "availabilityDate": "2027-08-10 00:00:00",
+    "scrapedAt": "2026-09-30T00:08:39.846Z",
+    "isValid": true
+  },
+  {
+    "zpid": "30.255857--97.76304",
+    "has3DModel": true,
+    "hasImage": true,
+    "listingAddress": {
+      "street": "1100 S  Lamar Blvd Apt 1253",
+      "city": "Austin",
+      "state": "TX",
+      "zipCode": "78704",
+      "full": "1100 S Lamar Blvd, Austin, TX"
+    },
+    "coordinates": {
+      "latitude": 30.255857,
+      "longitude": -97.76304
+    },
+    "listingStatus": "forRent",
+    "propertyUrl": "https://www.zillow.com/apartments/austin-tx/lamar-union/5fSxLV/",
+    "cardType": "apartmentBuilding",
+    "mainImage": "https://photos.zillowstatic.com/fp/2e079ee99db109a5ad4dc0e81c9526f6-p_e.jpg",
+    "listingPhotos": [
+      {
+        "url": "https://photos.zillowstatic.com/fp/2e079ee99db109a5ad4dc0e81c9526f6-p_e.jpg"
+      },
+      {
+        "url": "https://photos.zillowstatic.com/fp/fd6882ab80e343ae7c748ccd585896a5-p_e.jpg"
+      }
+    ],
+    "photoCount": 83,
+    "sourceSearchUrl": "https://www.zillow.com/homes/for_rent/?searchQueryState=%7B%22mapBounds%22%3A%7B%22south%22%3A30.0985133%2C%22north%22%3A30.5166255%2C%22west%22%3A-97.9367663%2C%22east%22%3A-97.5605288%7D%2C%22filterState%22%3A%7B%22sort%22%3A%7B%22value%22%3A%22days%22%7D%2C%22fr%22%3A%7B%22value%22%3Atrue%7D%2C%22fsba%22%3A%7B%22value%22%3Afalse%7D%2C%22fsbo%22%3A%7B%22value%22%3Afalse%7D%2C%22nc%22%3A%7B%22value%22%3Afalse%7D%2C%22cmsn%22%3A%7B%22value%22%3Afalse%7D%2C%22auc%22%3A%7B%22value%22%3Afalse%7D%2C%22fore%22%3A%7B%22value%22%3Afalse%7D%2C%22doz%22%3A%7B%22value%22%3A%227%22%7D%7D%2C%22isListVisible%22%3Atrue%2C%22isMapVisible%22%3Atrue%7D",
+    "marketingTreatments": [
+      "trustedListing",
+      "paid",
+      "multiFamilySalesListing",
+      "paidOrUnpaidMultifamily",
+      "paidMultifamily"
+    ],
+    "priceIncludesMonthlyFees": false,
+    "units": [
+      {
+        "price": "$1,149+",
+        "beds": "0",
+        "roomForRent": false
+      },
+      {
+        "price": "$2,000+",
+        "beds": "1",
+        "roomForRent": false
+      },
+      {
+        "price": "$2,667+",
+        "beds": "2",
+        "roomForRent": false
+      }
+    ],
+    "scrapedAt": "2026-09-30T00:08:39.846Z",
+    "isValid": true
+  }
+]

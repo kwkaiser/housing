@@ -1,0 +1,193 @@
+[
+  {
+    "addressOrUrlFromInput": "https://www.zillow.com/homedetails/504-W-35th-St-Austin-TX-78705/29398895_zpid/",
+    "zpid": 29398895,
+    "homeType": "SINGLE_FAMILY",
+    "bedrooms": 6,
+    "bathrooms": 3,
+    "livingArea": 2436,
+    "yearBuilt": 1955,
+    "daysOnZillow": 0,
+    "description": "This North Campus Giant, 6 Bedroom 3 Bath house is available for an August 2027-2028 Pre-Lease. Option to lease the house next door (506 W 35th) together! Updated and upgraded - you have a huge kitchen with granite countertops, stainless steel appliances, custom mosaic tile backsplash and new cabinetry. The perfect house to share, with similar sized bedrooms and bathrooms with double vanities. 3 car garage in the back for storage or an outside hangout space. Towering pecan trees surrounding. Washer/Dryer included.",
+    "zestimate": 849300,
+    "rentZestimate": 5851,
+    "listingProvider": {
+      "title": "Listing Provided by",
+      "logos": [],
+      "showNoContactInfoMessage": false,
+      "agentName": "Anna Battles",
+      "postingWebsiteLinkText": "Tower Realty Austin",
+      "postingGroupName": "Tower Realty Austin",
+      "sourceText": "Source: Unlock MLS"
+    },
+    "photoCount": 25,
+    "parcelId": "212591",
+    "isZillowOwned": false,
+    "listingPrice": {
+      "amount": 6450,
+      "currency": "USD",
+      "formatted": "$6,450"
+    },
+    "listingAddress": {
+      "street": "504 W 35th St",
+      "city": "Austin",
+      "state": "TX",
+      "zipCode": "78705",
+      "county": "Travis County",
+      "country": "USA",
+      "neighborhood": "North University",
+      "timeZone": "America/Chicago",
+      "full": "504 W 35th St, Austin, TX 78705"
+    },
+    "coordinates": {
+      "latitude": 30.301035,
+      "longitude": -97.73829
+    },
+    "listingStatus": "forRent",
+    "propertyUrl": "https://www.zillow.com/homedetails/504-W-35th-St-Austin-TX-78705/29398895_zpid/",
+    "listingType": {
+      "isFSBA": false,
+      "isFSBO": false,
+      "isComingSoon": false,
+      "isPending": false,
+      "isOpenHouse": false,
+      "isNewHome": false,
+      "isForAuction": false,
+      "isForeclosure": false,
+      "isBankOwned": false
+    },
+    "bathroomsDetail": {
+      "full": 3,
+      "half": 0
+    },
+    "lotArea": {
+      "unit": "sqft"
+    },
+    "pricePerSquareFoot": 3,
+    "onMarketDate": "2026-09-29T00:00:00.000Z",
+    "parking": {
+      "totalSpaces": 3,
+      "hasGarage": true,
+      "features": [
+        "Garage",
+        "Open"
+      ]
+    },
+    "agent": {
+      "name": "Anna Battles"
+    },
+    "broker": {
+      "name": "Tower Realty Austin"
+    },
+    "mls": {
+      "id": "6417008",
+      "name": "Unlock MLS"
+    },
+    "mainImage": {
+      "thumbnail": "https://photos.zillowstatic.com/fp/be169933916a65ad72428ca2bb07437a-p_a.jpg",
+      "hiRes": "https://photos.zillowstatic.com/fp/be169933916a65ad72428ca2bb07437a-p_h.jpg"
+    },
+    "staticMapUrl": "https://maps.googleapis.com/maps/api/staticmap?center=30.301035,-97.73829&zoom=13&size=192x144&maptype=roadmap&key=AIzaSyARFMLB1na-BBWf7_R3-5YOQQaHqEJf6RQ&signature=pjPIF1zs75_jwJZpgatB51ivZIY=",
+    "virtualTourUrl": "https://tour.giraffe360.com/ab36b5a76c4643dfb3c3eab0dc884714/",
+    "propertyFeatures": {
+      "appliances": [
+        "Dishwasher",
+        "Dryer",
+        "Free-Standing Range",
+        "Garbage Disposal",
+        "Refrigerator",
+        "Washer"
+      ],
+      "heating": [
+        "Central",
+        "Natural Gas"
+      ],
+      "cooling": [
+        "Air Conditioner",
+        "Central Air"
+      ],
+      "flooring": [
+        "Carpet",
+        "Tile",
+        "Vinyl"
+      ],
+      "exteriorFeatures": [
+        "Alley Access",
+        "Interior Steps",
+        "Multiple Living Areas",
+        "Primary Bedroom On Main",
+        "Trees-Large (over 40 Ft)",
+        "Trees-Sparse"
+      ],
+      "interiorFeatures": [
+        "Bar",
+        "Breakfast Bar",
+        "Interior Steps",
+        "Multiple Living Areas",
+        "Primary Bedroom on Main"
+      ],
+      "view": [
+        "None"
+      ],
+      "waterSource": [],
+      "sewer": [],
+      "utilities": [],
+      "constructionMaterials": [],
+      "roofType": "Composition",
+      "stories": 2
+    },
+    "atAGlanceFacts": [
+      {
+        "factLabel": "Date available",
+        "factValue": "Tue Aug 10 2027"
+      },
+      {
+        "factLabel": "Type",
+        "factValue": "SingleFamily"
+      },
+      {
+        "factLabel": "Cooling",
+        "factValue": "Air Conditioner, Central Air"
+      },
+      {
+        "factLabel": "Heating",
+        "factValue": "Central, Natural Gas"
+      },
+      {
+        "factLabel": "Pets"
+      },
+      {
+        "factLabel": "Parking",
+        "factValue": "3 Garage spaces"
+      },
+      {
+        "factLabel": "Laundry",
+        "factValue": "In Unit, None"
+      },
+      {
+        "factLabel": "Deposit & fees",
+        "factValue": "$6,450"
+      },
+      {
+        "factLabel": "One-time fees",
+        "factValue": "$6,450"
+      }
+    ],
+    "hoa": {
+      "hasAssociation": true,
+      "feeFrequency": "$6,450"
+    },
+    "specialOffers": [],
+    "listingFloorPlans": [],
+    "listingPhotos": [
+      {
+        "url": "https://photos.zillowstatic.com/fp/be169933916a65ad72428ca2bb07437a-uncropped_scaled_within_1536_1152.jpg"
+      },
+      {
+        "url": "https://photos.zillowstatic.com/fp/bbf9e76e89f6f75a693ef1e2a3d21b7d-uncropped_scaled_within_1536_1152.jpg"
+      }
+    ],
+    "isValid": true,
+    "scrapedAt": "2026-09-30T00:32:01.489Z"
+  }
+]
