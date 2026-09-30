@@ -40,13 +40,24 @@ func (r run) finished() bool {
 	return false
 }
 
+type RunInput struct {
+	Input    any
+	MaxItems int
+}
+
 func (c *Client) Run(ctx context.Context, actorID string, input any) ([]json.RawMessage, error) {
+	q := url.Values{"waitForFinish": {"60"}}
+	if ri, ok := input.(RunInput); ok {
+		input = ri.Input
+		if ri.MaxItems > 0 {
+			q.Set("maxItems", strconv.Itoa(ri.MaxItems))
+		}
+	}
 	body, err := json.Marshal(input)
 	if err != nil {
 		return nil, fmt.Errorf("encode input: %w", err)
 	}
 
-	q := url.Values{"waitForFinish": {"60"}}
 	if c.MaxTotalChargeUSD > 0 {
 		q.Set("maxTotalChargeUsd", strconv.FormatFloat(c.MaxTotalChargeUSD, 'f', -1, 64))
 	}

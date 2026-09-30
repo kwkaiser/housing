@@ -1,0 +1,269 @@
+[
+  {
+    "id": "1071136835630251",
+    "marketplace_listing_title": "2 Beds 1 Bath - Apartment",
+    "custom_title": "2 beds · 1 bath",
+    "listing_price": {
+      "amount": "2350.00",
+      "currency": "USD",
+      "formatted_amount": "$2,350"
+    },
+    "creation_time": 1790735658,
+    "location": {
+      "latitude": 42.35336,
+      "longitude": -71.12713,
+      "reverse_geocode_detailed": {
+        "city": "Allston",
+        "state": "MA",
+        "postal_code": "02134-2202"
+      },
+      "reverse_geocode": {
+        "city": "Allston",
+        "state": "MA",
+        "postal_code": "02134-2202"
+      }
+    },
+    "home_address": {
+      "street": "75 Gardner St"
+    },
+    "unit_room_info": "2 beds · 1 bath",
+    "unit_area_info": null,
+    "redacted_description": {
+      "text": "Perfect location, very convenient. Get 2 months free rent with 12 months lease term. "
+    },
+    "listingUrl": "https://www.facebook.com/marketplace/item/1071136835630251",
+    "marketplace_listing_category_id": "1468271819871448",
+    "primary_listing_photo_url": "https://scontent-mia5-2.xx.fbcdn.net/v/t39.30808-6/829937826_28778842575043111_5374861373846723925_n.jpg?stp=c0.168.1270.1270a_dst-jpg_tt6&cstp=mx1270x1270&ctp=s565x565&_nc_cat=100&ccb=1-7&_nc_sid=454cf4&_nc_ohc=Wq2IhMNQVAgQ7kNvwHb6NSD&_nc_oc=Adrz1O28HRecV4e-3g1DDtJyoOlrHM9EV154EPqHMsDsE8dfElLUNHvvc1OFveylCQ4&_nc_zt=23&_nc_ht=scontent-mia5-2.xx&_nc_gid=d2h36r9EGbqKHSrmo1asnA&_nc_ss=7f289&oh=00_AQNUBbYAVWrS7gvUg1yXyf9kHq6JVL2ZvDJaZkAWR0-Evg&oe=6AC24778",
+    "primary_listing_photo": {
+      "image": {
+        "uri": "https://scontent-mia5-2.xx.fbcdn.net/v/t39.30808-6/829937826_28778842575043111_5374861373846723925_n.jpg?stp=c0.168.1270.1270a_dst-jpg_tt6&cstp=mx1270x1270&ctp=s565x565&_nc_cat=100&ccb=1-7&_nc_sid=454cf4&_nc_ohc=Wq2IhMNQVAgQ7kNvwHb6NSD&_nc_oc=Adrz1O28HRecV4e-3g1DDtJyoOlrHM9EV154EPqHMsDsE8dfElLUNHvvc1OFveylCQ4&_nc_zt=23&_nc_ht=scontent-mia5-2.xx&_nc_gid=d2h36r9EGbqKHSrmo1asnA&_nc_ss=7f289&oh=00_AQNUBbYAVWrS7gvUg1yXyf9kHq6JVL2ZvDJaZkAWR0-Evg&oe=6AC24778"
+      },
+      "id": "28778842531709782"
+    },
+    "listing_photos": [
+      {
+        "accessibility_caption": "No photo description available.",
+        "image": {
+          "height": 960,
+          "width": 686,
+          "uri": "https://scontent.fagc1-2.fna.fbcdn.net/v/t39.30808-6/829937826_28778842575043111_5374861373846723925_n.jpg?stp=dst-jpg_tt6&cstp=mx1270x1778&ctp=s960x960&_nc_cat=100&ccb=1-7&_nc_sid=454cf4&_nc_ohc=Wq2IhMNQVAgQ7kNvwEfhE9H&_nc_oc=AdoU3DB5uDuRZp9uhFul7RV6s7rQ9Yk_rUmg3z_10N49pUHMn7C0jo7guw-rqm1CLo4&_nc_zt=23&_nc_ht=scontent.fagc1-2.fna&_nc_gid=7_EqXluQCbKnShJusn4qcQ&_nc_ss=7f180&oh=00_AQO7ywJVDihx3igua6Dx7zD0zLsajIxQSSJfDMCqm6jIaQ&oe=6AC24778"
+        },
+        "id": "28778842531709782"
+      },
+      {
+        "accessibility_caption": "May be an image of indoors",
+        "image": {
+          "height": 960,
+          "width": 686,
+          "uri": "https://scontent.fagc1-2.fna.fbcdn.net/v/t39.30808-6/825286810_28778811455046223_1134117117696641794_n.jpg?stp=dst-jpg_tt6&cstp=mx1259x1763&ctp=s960x960&_nc_cat=109&ccb=1-7&_nc_sid=946e27&_nc_ohc=8HexdO6TvrYQ7kNvwGPSPn-&_nc_oc=AdpJWu9VuM8JUt7x4IpQPT3jwgGIFsoJzRXIGoLY1itGPiRL3q5ZbmDjG9FhoaQdaJ8&_nc_zt=23&_nc_ht=scontent.fagc1-2.fna&_nc_gid=7_EqXluQCbKnShJusn4qcQ&_nc_ss=7f180&oh=00_AQNVuWOOkjJ86BLYr6DUyFHKyZJpyRfN0Q1Z8TCdHjY6Cw&oe=6AC23A47"
+        },
+        "id": "28778811415046227"
+      },
+      {
+        "accessibility_caption": "No photo description available.",
+        "image": {
+          "height": 960,
+          "width": 686,
+          "uri": "https://scontent.fagc1-1.fna.fbcdn.net/v/t39.30808-6/825328450_28778811385046230_5417706002638853390_n.jpg?stp=dst-jpg_tt6&cstp=mx1282x1795&ctp=s960x960&_nc_cat=102&ccb=1-7&_nc_sid=946e27&_nc_ohc=lhxTzVwo4QMQ7kNvwGst5qd&_nc_oc=AdqfZ7znLftySFSDLveXEOe3d9zoFmBzrw9gtv-4dtzgVWHvXaPh682qDOosx3148dY&_nc_zt=23&_nc_ht=scontent.fagc1-1.fna&_nc_gid=7_EqXluQCbKnShJusn4qcQ&_nc_ss=7f180&oh=00_AQO3YbEQBjMEL_1hys-gIgcQIk3MiaXrWNeUP-yMP4WibA&oe=6AC25FBF"
+        },
+        "id": "28778811361712899"
+      },
+      {
+        "accessibility_caption": "No photo description available.",
+        "image": {
+          "height": 960,
+          "width": 677,
+          "uri": "https://scontent.fagc1-1.fna.fbcdn.net/v/t39.30808-6/825328472_28778811308379571_3519875131219069094_n.jpg?stp=dst-jpg_tt6&cstp=mx1258x1783&ctp=s960x960&_nc_cat=105&ccb=1-7&_nc_sid=946e27&_nc_ohc=zzPdgMzF54EQ7kNvwHGkP54&_nc_oc=Adru4sUxmtlDieDSk5yKDmK3yR9Zt1-UMJFWC5pp198j8t8TAOAUR76zOHBxPz_m03w&_nc_zt=23&_nc_ht=scontent.fagc1-1.fna&_nc_gid=7_EqXluQCbKnShJusn4qcQ&_nc_ss=7f180&oh=00_AQP2NZMmOVrILaSFScLoMUUGX7bEnFUHQboYmMlKAa3V2g&oe=6AC23043"
+        },
+        "id": "28778811285046240"
+      }
+    ]
+  },
+  {
+    "id": "1146320321403911",
+    "marketplace_listing_title": "Private room for rent",
+    "custom_title": "Private Room",
+    "listing_price": {
+      "amount": "1495.00",
+      "currency": "USD",
+      "formatted_amount": "$1,495"
+    },
+    "creation_time": 1790726771,
+    "location": {
+      "latitude": 42.38706,
+      "longitude": -71.0796,
+      "reverse_geocode_detailed": {
+        "city": "Somerville",
+        "state": "MA",
+        "postal_code": "02145-2235"
+      },
+      "reverse_geocode": {
+        "city": "Somerville",
+        "state": "MA",
+        "postal_code": "02145-2235"
+      }
+    },
+    "home_address": {
+      "street": null
+    },
+    "unit_room_info": "1 bed · 1 bath",
+    "unit_area_info": null,
+    "redacted_description": {
+      "text": "The full property is fully furnish. Comes with two kitchens, two washer & dryers. The price above you see is for a room/utilities, and you have cleaners that clean every two weeks. You have a shared bath with two other roommates, if you want better photos of the house. Here’s the website ￼￼ https://www.roostup.com/boston/roommates-18-benedict-street-1-boston-ma"
+    },
+    "listingUrl": "https://www.facebook.com/marketplace/item/1146320321403911",
+    "marketplace_listing_category_id": "1468271819871448",
+    "primary_listing_photo_url": "https://scontent-mia5-2.xx.fbcdn.net/v/t39.30808-6/828895980_29219473390992860_3760390658587165387_n.jpg?stp=c0.342.884.884a_dst-jpg_tt6&cstp=mx884x884&ctp=s565x565&_nc_cat=100&ccb=1-7&_nc_sid=454cf4&_nc_ohc=hO92VTPJ4ygQ7kNvwGPuUJY&_nc_oc=AdqMEFyoizoy35-ow8fCUfokUHLjmmhP3UVZmIdsaTZMCIj32AShXccK3KXsSzia7AY&_nc_zt=23&_nc_ht=scontent-mia5-2.xx&_nc_gid=d2h36r9EGbqKHSrmo1asnA&_nc_ss=7f289&oh=00_AQMFUWxuLZCz5Mt_QXFwWh8aZLnz_p6lHdtAFZlFS7cS2g&oe=6AC2486C",
+    "primary_listing_photo": {
+      "image": {
+        "uri": "https://scontent-mia5-2.xx.fbcdn.net/v/t39.30808-6/828895980_29219473390992860_3760390658587165387_n.jpg?stp=c0.342.884.884a_dst-jpg_tt6&cstp=mx884x884&ctp=s565x565&_nc_cat=100&ccb=1-7&_nc_sid=454cf4&_nc_ohc=hO92VTPJ4ygQ7kNvwGPuUJY&_nc_oc=AdqMEFyoizoy35-ow8fCUfokUHLjmmhP3UVZmIdsaTZMCIj32AShXccK3KXsSzia7AY&_nc_zt=23&_nc_ht=scontent-mia5-2.xx&_nc_gid=d2h36r9EGbqKHSrmo1asnA&_nc_ss=7f289&oh=00_AQMFUWxuLZCz5Mt_QXFwWh8aZLnz_p6lHdtAFZlFS7cS2g&oe=6AC2486C"
+      },
+      "id": "29219473350992864"
+    },
+    "listing_photos": [
+      {
+        "accessibility_caption": "May be an image of towel rack and indoors",
+        "image": {
+          "height": 960,
+          "width": 442,
+          "uri": "https://scontent-bos5-1.xx.fbcdn.net/v/t39.30808-6/828895980_29219473390992860_3760390658587165387_n.jpg?stp=dst-jpg_tt6&cstp=mx884x1920&ctp=s960x960&_nc_cat=100&ccb=1-7&_nc_sid=454cf4&_nc_ohc=hO92VTPJ4ygQ7kNvwEIzuN2&_nc_oc=Adobv6K1gtPTsO6QXmvMKYrlfwuR9QcxXQOSxhg65vGLOOle4g-m2xJJhxFHWHjNkv4&_nc_zt=23&_nc_ht=scontent-bos5-1.xx&_nc_gid=WlURTtAt_ziBdaJuZFiUTA&_nc_ss=7f180&oh=00_AQNmoVhmfMCc-E2vilzvy0pok1hsZSYdZVuzXUzNN0pDmA&oe=6AC2486C"
+        },
+        "id": "29219473350992864"
+      },
+      {
+        "accessibility_caption": "May be an image of laundromat",
+        "image": {
+          "height": 960,
+          "width": 442,
+          "uri": "https://scontent-bos5-1.xx.fbcdn.net/v/t39.30808-6/825266968_29219389877667878_2537951005314086711_n.jpg?stp=dst-jpg_tt6&cstp=mx884x1920&ctp=s960x960&_nc_cat=110&ccb=1-7&_nc_sid=946e27&_nc_ohc=Lfb_D9CJK1UQ7kNvwGCDVMY&_nc_oc=AdpIpYKkRJl5lHWrKRfrfnJC0RKCTqQt2b7IkAPRt8ZvDaNPRvLlNKnsg5OZU059o_s&_nc_zt=23&_nc_ht=scontent-bos5-1.xx&_nc_gid=WlURTtAt_ziBdaJuZFiUTA&_nc_ss=7f180&oh=00_AQPu33hN2GhidjutecH_WXMcp4gmVU2QEh8l-WoZiCLzeA&oe=6AC243FE"
+        },
+        "id": "29219389851001214"
+      },
+      {
+        "accessibility_caption": "May be an image of indoors and sliding door",
+        "image": {
+          "height": 960,
+          "width": 442,
+          "uri": "https://scontent-bos5-1.xx.fbcdn.net/v/t39.30808-6/825267013_29219389864334546_4657121110203031597_n.jpg?stp=dst-jpg_tt6&cstp=mx884x1920&ctp=s960x960&_nc_cat=109&ccb=1-7&_nc_sid=946e27&_nc_ohc=OWsEYDIVxSUQ7kNvwGkH02j&_nc_oc=AdqJRQMTPUqCTMzBCnkNTp8Zn3C97Z1bhLQYESBDSmArCP6nADKQQ1Ps-7cmo4dpeAQ&_nc_zt=23&_nc_ht=scontent-bos5-1.xx&_nc_gid=WlURTtAt_ziBdaJuZFiUTA&_nc_ss=7f180&oh=00_AQPv6GbrNctvKT6bvUfnnSYeEir-1Ct0vzp03RVmiSqtpQ&oe=6AC230E1"
+        },
+        "id": "29219389844334548"
+      }
+    ]
+  },
+  {
+    "id": "2642401882860144",
+    "marketplace_listing_title": "2 habitaciones 1 baño - Casa",
+    "custom_title": "2 beds · 1 bath",
+    "listing_price": {
+      "amount": "2400.00",
+      "currency": "USD",
+      "formatted_amount": "$2,400"
+    },
+    "creation_time": 1790720327,
+    "location": {
+      "latitude": 42.71678,
+      "longitude": -71.16593,
+      "reverse_geocode_detailed": {
+        "city": "Lawrence",
+        "state": "MA",
+        "postal_code": "01841-1741"
+      },
+      "reverse_geocode": {
+        "city": "Lawrence",
+        "state": "MA",
+        "postal_code": "01841-1741"
+      }
+    },
+    "home_address": {
+      "street": "Lawrence St"
+    },
+    "unit_room_info": "2 beds · 1 bath",
+    "unit_area_info": null,
+    "redacted_description": {
+      "text": "Es una casa está cerca de la Lawrence St "
+    },
+    "listingUrl": "https://www.facebook.com/marketplace/item/2642401882860144",
+    "marketplace_listing_category_id": "1468271819871448",
+    "primary_listing_photo_url": "https://scontent-mia5-1.xx.fbcdn.net/v/t39.30808-6/825281955_28957661733853922_7344497474769528679_n.jpg?stp=c57.0.1199.1199a_dst-jpg_tt6&cstp=mx1199x1199&ctp=s565x565&_nc_cat=104&ccb=1-7&_nc_sid=454cf4&_nc_ohc=GlNVWtR2IYkQ7kNvwHakmVD&_nc_oc=AdpKB9NbXUr3yeReTJFq_ArHbCOKdyu5nMv4Zb9J0tkM847lg4aCjNFOR58WmvbAR1U&_nc_zt=23&_nc_ht=scontent-mia5-1.xx&_nc_gid=d2h36r9EGbqKHSrmo1asnA&_nc_ss=7f289&oh=00_AQP6C7xiRZBLQLEKfxRgf-F5ZmtQb5MqdMTI4NHuNIBwdA&oe=6AC25EDB",
+    "primary_listing_photo": {
+      "image": {
+        "uri": "https://scontent-mia5-1.xx.fbcdn.net/v/t39.30808-6/825281955_28957661733853922_7344497474769528679_n.jpg?stp=c57.0.1199.1199a_dst-jpg_tt6&cstp=mx1199x1199&ctp=s565x565&_nc_cat=104&ccb=1-7&_nc_sid=454cf4&_nc_ohc=GlNVWtR2IYkQ7kNvwHakmVD&_nc_oc=AdpKB9NbXUr3yeReTJFq_ArHbCOKdyu5nMv4Zb9J0tkM847lg4aCjNFOR58WmvbAR1U&_nc_zt=23&_nc_ht=scontent-mia5-1.xx&_nc_gid=d2h36r9EGbqKHSrmo1asnA&_nc_ss=7f289&oh=00_AQP6C7xiRZBLQLEKfxRgf-F5ZmtQb5MqdMTI4NHuNIBwdA&oe=6AC25EDB"
+      },
+      "id": "28957661633853932"
+    },
+    "listing_photos": [
+      {
+        "accessibility_caption": "May be an image of text",
+        "image": {
+          "height": 877,
+          "width": 960,
+          "uri": "https://scontent-lga3-3.xx.fbcdn.net/v/t39.30808-6/825281955_28957661733853922_7344497474769528679_n.jpg?stp=dst-jpg_tt6&cstp=mx1312x1199&ctp=s960x960&_nc_cat=104&ccb=1-7&_nc_sid=454cf4&_nc_ohc=GlNVWtR2IYkQ7kNvwFTaBmM&_nc_oc=Adqg-Pwx3KU9X5XHAMUsFEyXfwrgcKu098Olj1xC3P5or8eYWN4g0ZhKhkzpuLUlRvv19uvDQwlfaiDPDUYBuztW&_nc_zt=23&_nc_ht=scontent-lga3-3.xx&_nc_gid=Z6Z8JKxZcwUaWk9_l2FLEg&_nc_ss=7f180&oh=00_AQMufNOTi0e8x7-tMiRZKY3rels2Uk1pCJX7I0U-apdccw&oe=6AC25EDB"
+        },
+        "id": "28957661633853932"
+      },
+      {
+        "accessibility_caption": "May be an image of indoors",
+        "image": {
+          "height": 960,
+          "width": 720,
+          "uri": "https://scontent-lga3-1.xx.fbcdn.net/v/t39.30808-6/825350988_28957578133862282_1157970656982012564_n.jpg?stp=dst-jpg_tt6&cstp=mx1152x1536&ctp=s960x960&_nc_cat=109&ccb=1-7&_nc_sid=946e27&_nc_ohc=WXrW3GuthNAQ7kNvwGeF9nL&_nc_oc=Adog3MeNL1hcfCYioR1hWwE7nhwbeF_VzmfnGi4SxVpGWYt00EEa3Hc7MU7h0suFOwDiYZebUDcr6y-C8y-aTd4n&_nc_zt=23&_nc_ht=scontent-lga3-1.xx&_nc_gid=Z6Z8JKxZcwUaWk9_l2FLEg&_nc_ss=7f180&oh=00_AQO9oYxbGSofI1miCSYt_anOmoGd4c-Q1cQfJR_IsgoFtQ&oe=6AC2358F"
+        },
+        "id": "28957578100528952"
+      },
+      {
+        "accessibility_caption": "May be an image of indoors",
+        "image": {
+          "height": 960,
+          "width": 720,
+          "uri": "https://scontent-lga3-3.xx.fbcdn.net/v/t39.30808-6/825266953_28957578080528954_8328268573250800698_n.jpg?stp=dst-jpg_tt6&cstp=mx1152x1536&ctp=s960x960&_nc_cat=108&ccb=1-7&_nc_sid=946e27&_nc_ohc=fouQYFur5FUQ7kNvwEZ5v4p&_nc_oc=Ado68wN98FZs6k2SoSV6qH4Ms1e5WsUSYLjCv4CN7a7BD6wNlBLKu0zOaVHXT6rfcfmG0F8XXsxEEchVIsbT4F-o&_nc_zt=23&_nc_ht=scontent-lga3-3.xx&_nc_gid=Z6Z8JKxZcwUaWk9_l2FLEg&_nc_ss=7f180&oh=00_AQPh4gJacqjoS0SttAy7XKV3sx5aUj8xpPaKczKExTtUVg&oe=6AC24A88"
+        },
+        "id": "28957578033862292"
+      },
+      {
+        "accessibility_caption": "May be an image of indoors",
+        "image": {
+          "height": 960,
+          "width": 720,
+          "uri": "https://scontent-lga3-1.xx.fbcdn.net/v/t39.30808-6/825267198_28957578093862286_1607305129501395134_n.jpg?stp=dst-jpg_tt6&cstp=mx1152x1536&ctp=s960x960&_nc_cat=109&ccb=1-7&_nc_sid=946e27&_nc_ohc=o4Xv-37UergQ7kNvwFgHYg4&_nc_oc=Adr5jhIQTi56xSEEvyihNq-QvmZ7idWX8yKZiZ3HkgqNOT9bY1_aAOqRE48cKwVLBx2cUCz3wn4CdP5z-P14lAf1&_nc_zt=23&_nc_ht=scontent-lga3-1.xx&_nc_gid=Z6Z8JKxZcwUaWk9_l2FLEg&_nc_ss=7f180&oh=00_AQPrf9Y9eC7aEqnwTNGYXG6b0O7qh_XHxQHhcN4wMHBS9w&oe=6AC2418A"
+        },
+        "id": "28957578073862288"
+      }
+    ]
+  },
+  {
+    "id": "1711690079891733",
+    "marketplace_listing_title": "ACL Parking",
+    "custom_title": null,
+    "listing_price": {
+      "formatted_amount": "$65",
+      "amount_with_offset_in_currency": "6500",
+      "amount": "65.00",
+      "amount_with_offset": "6500"
+    },
+    "creation_time": 1790714355,
+    "location": {
+      "reverse_geocode": {
+        "city": "Austin",
+        "state": "TX",
+        "city_page": {
+          "display_name": "Austin, Texas",
+          "id": "106224666074625"
+        }
+      }
+    },
+    "home_address": null,
+    "unit_room_info": null,
+    "unit_area_info": null,
+    "redacted_description": null,
+    "listingUrl": "https://www.facebook.com/marketplace/item/1711690079891733",
+    "marketplace_listing_category_id": "895487550471874",
+    "primary_listing_photo_url": "https://scontent-lga3-1.xx.fbcdn.net/v/t39.84726-6/825329365_1582005206313091_4463875890725340596_n.jpg?stp=c138.0.540.540a_dst-jpg_p180x540_tt6&_nc_cat=109&ccb=1-7&_nc_sid=92e707&_nc_ohc=o38CdG2-1xUQ7kNvwF5-cYA&_nc_oc=AdqXMlAX4sZgu_PnGUl_sWFw6m9QP1ePTYyb65cUfETu7i663sIezDWVEDrE2_QuzPexl9TlboYKAtueeDh_8zFi&_nc_zt=14&_nc_ht=scontent-lga3-1.xx&_nc_gid=eos8_WpY_S1mnrt3N5ThBA&_nc_ss=7f289&oh=00_AQO5lVvUroHgWtxm-2Z8iLjEc7wARnTPcUxKCjbnk4ayxw&oe=6AC251E2",
+    "primary_listing_photo": {
+      "image": {
+        "uri": "https://scontent-lga3-1.xx.fbcdn.net/v/t39.84726-6/825329365_1582005206313091_4463875890725340596_n.jpg?stp=c138.0.540.540a_dst-jpg_p180x540_tt6&_nc_cat=109&ccb=1-7&_nc_sid=92e707&_nc_ohc=o38CdG2-1xUQ7kNvwF5-cYA&_nc_oc=AdqXMlAX4sZgu_PnGUl_sWFw6m9QP1ePTYyb65cUfETu7i663sIezDWVEDrE2_QuzPexl9TlboYKAtueeDh_8zFi&_nc_zt=14&_nc_ht=scontent-lga3-1.xx&_nc_gid=eos8_WpY_S1mnrt3N5ThBA&_nc_ss=7f289&oh=00_AQO5lVvUroHgWtxm-2Z8iLjEc7wARnTPcUxKCjbnk4ayxw&oe=6AC251E2"
+      },
+      "id": "1582005202979758"
+    },
+    "listing_photos": []
+  }
+]

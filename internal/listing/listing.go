@@ -12,6 +12,7 @@ const (
 	SourceRedfin     Source = "redfin"
 	SourceRealtor    Source = "realtor"
 	SourceCraigslist Source = "craigslist"
+	SourceFacebook   Source = "facebook"
 )
 
 type OfferType string

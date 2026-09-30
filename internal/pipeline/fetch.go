@@ -13,6 +13,8 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
+	"git.kwkaiser.io/kwkaiser/housing/internal/providers/craigslist"
+	"git.kwkaiser.io/kwkaiser/housing/internal/providers/facebook"
 	"git.kwkaiser.io/kwkaiser/housing/internal/providers/redfin"
 	"git.kwkaiser.io/kwkaiser/housing/internal/providers/zillow"
 )
@@ -177,6 +179,10 @@ func NewProvider(source listing.Source, runner apify.Runner) (listing.Provider, 
 		return zillow.New(runner, zillow.NewAutocomplete()), nil
 	case listing.SourceRedfin:
 		return redfin.New(runner, zillow.NewAutocomplete()), nil
+	case listing.SourceCraigslist:
+		return craigslist.New(runner, zillow.NewAutocomplete()), nil
+	case listing.SourceFacebook:
+		return facebook.New(runner, zillow.NewAutocomplete()), nil
 	}
 	return nil, fmt.Errorf("unsupported source %q", source)
 }
