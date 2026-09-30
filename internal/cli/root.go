@@ -13,7 +13,8 @@ func newRootCmd() *cobra.Command {
 		Version:      version,
 		SilenceUsage: true,
 	}
-	cmd.AddCommand(newVersionCmd())
+	dataDir := cmd.PersistentFlags().String("data-dir", "data", "directory for stored listings and images")
+	cmd.AddCommand(newVersionCmd(), newFetchCmd(dataDir), newCollageCmd(dataDir))
 	return cmd
 }
 
