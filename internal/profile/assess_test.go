@@ -197,21 +197,49 @@ func TestAssessListingsCheckpoints(t *testing.T) {
 	}
 }
 
-func TestAssessListingsKeepsResultsOnError(t *testing.T) {
+func TestAssessListingsContinuesPastFailures(t *testing.T) {
 	cc := &countingCompleter{reply: assessReply, fail: "addr-c"}
 	a := Assessor{Client: cc, Model: "test/model"}
-	out, stats, err := a.AssessListings(context.Background(), testProfile, nil, manyListings(6), readAny, BatchOptions{Concurrency: 1})
-	if err == nil || !strings.Contains(err.Error(), "boom") {
+	out, stats, err := a.AssessListings(context.Background(), testProfile, nil, manyListings(6), readAny, BatchOptions{Concurrency: 2})
+	if err == nil || !strings.Contains(err.Error(), "boom") || !strings.Contains(err.Error(), "/c") {
 		t.Fatalf("got %v", err)
 	}
-	if stats.Calls != 2 {
-		t.Errorf("stats=%+v, want the 2 calls before the failure kept", stats)
+	if stats.Calls != 5 || stats.Failed != 1 || stats.Updated != 5 {
+		t.Errorf("stats=%+v, want the other 5 listings assessed", stats)
 	}
-	if _, ok := out[0].Assessment("attic", "test/model"); !ok {
-		t.Error("completed assessments should be returned alongside the error")
+	if _, ok := out[2].Assessment("attic", "test/model"); ok {
+		t.Error("failed listing should have no assessment")
 	}
-	if cc.calls.Load() != 3 {
-		t.Errorf("calls = %d, want no new calls after the failure", cc.calls.Load())
+	if _, ok := out[5].Assessment("attic", "test/model"); !ok {
+		t.Error("listings after the failure should still be assessed")
+	}
+}
+
+type flakyCompleter struct {
+	replies []string
+	calls   atomic.Int32
+}
+
+func (f *flakyCompleter) Complete(context.Context, openrouter.Request) (openrouter.Response, error) {
+	i := int(f.calls.Add(1)) - 1
+	return openrouter.Response{Model: "m", CostUSD: 0.01, Content: f.replies[min(i, len(f.replies)-1)]}, nil
+}
+
+func TestAssessRetriesUnusableOutput(t *testing.T) {
+	c := Candidate{Listing: listing.Listing{Collages: []string{"x"}}, Collages: [][]byte{{1}}}
+	fc := &flakyCompleter{replies: []string{"", "{}", assessReply}}
+	a := Assessor{Client: fc, Model: "m", Attempts: 3}
+	got, err := a.Assess(context.Background(), testProfile, nil, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fc.calls.Load() != 3 || got.CostUSD != 0.03 {
+		t.Errorf("calls=%d cost=%v, want 3 attempts with their cost summed", fc.calls.Load(), got.CostUSD)
+	}
+
+	always := &flakyCompleter{replies: []string{""}}
+	if _, err := (Assessor{Client: always, Model: "m", Attempts: 2}).Assess(context.Background(), testProfile, nil, c); err == nil || always.calls.Load() != 2 {
+		t.Errorf("err=%v calls=%d, want failure after 2 attempts", err, always.calls.Load())
 	}
 }
 

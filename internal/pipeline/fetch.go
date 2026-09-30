@@ -13,6 +13,7 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
+	"git.kwkaiser.io/kwkaiser/housing/internal/providers/redfin"
 	"git.kwkaiser.io/kwkaiser/housing/internal/providers/zillow"
 )
 
@@ -76,10 +77,15 @@ func (e *Env) Fetch(ctx context.Context, o FetchOptions) ([]listing.Listing, err
 			return nil, err
 		}
 		if _, deferred := SplitAmenities(q.Amenities, p.SupportedAmenities(q.Offer)); len(deferred) > 0 {
-			if _, ok := p.(listing.Enricher); !ok || !o.Enrich {
+			_, canEnrich := p.(listing.Enricher)
+			switch {
+			case canEnrich && !o.Enrich:
 				return nil, fmt.Errorf("%s cannot filter %s listings by %s; enable enrichment to filter on listing details instead", source, o.Mode, joinAmenities(deferred))
+			case canEnrich:
+				e.printf("%s: amenities checked after enrichment: %s\n", source, joinAmenities(deferred))
+			default:
+				e.printf("%s: amenities checked against search results: %s\n", source, joinAmenities(deferred))
 			}
-			e.printf("%s: amenities checked after enrichment: %s\n", source, joinAmenities(deferred))
 		}
 		providers[i] = p
 	}
@@ -109,11 +115,37 @@ func (e *Env) Fetch(ctx context.Context, o FetchOptions) ([]listing.Listing, err
 		e.printf("photos: downloaded\n")
 	}
 
+	stored, err := e.persister().Load(ctx, e.DataDir)
+	if err != nil {
+		return nil, err
+	}
+	listings = CarryOver(stored, listings)
+
 	if err := e.persister().Persist(ctx, e.DataDir, listings); err != nil {
 		return nil, err
 	}
 	e.printf("stored: %d listings in %s\n", len(listings), e.DataDir)
 	return listings, nil
+}
+
+func CarryOver(stored, fresh []listing.Listing) []listing.Listing {
+	byKey := make(map[string]listing.Listing, len(stored))
+	for _, l := range stored {
+		byKey[string(l.Source)+"/"+l.SourceID] = l
+	}
+	out := make([]listing.Listing, len(fresh))
+	for i, l := range fresh {
+		if prev, ok := byKey[string(l.Source)+"/"+l.SourceID]; ok {
+			if l.Assessments == nil {
+				l.Assessments = prev.Assessments
+			}
+			if l.Collages == nil {
+				l.Collages = prev.Collages
+			}
+		}
+		out[i] = l
+	}
+	return out
 }
 
 func (e *Env) fetchOne(ctx context.Context, p listing.Provider, q listing.Query, o FetchOptions) ([]listing.Listing, error) {
@@ -126,16 +158,16 @@ func (e *Env) fetchOne(ctx context.Context, p listing.Provider, q listing.Query,
 	}
 	e.printf("%s search (%s): %d listings\n", p.Source(), o.Mode, len(listings))
 
-	enricher, ok := p.(listing.Enricher)
-	if !ok || !o.Enrich || len(listings) == 0 {
-		return listings, nil
+	stage := "search"
+	if enricher, ok := p.(listing.Enricher); ok && o.Enrich && len(listings) > 0 {
+		if listings, err = enricher.Enrich(ctx, listings); err != nil {
+			return nil, err
+		}
+		stage = "enrich"
 	}
-	enriched, err := enricher.Enrich(ctx, listings)
-	if err != nil {
-		return nil, err
-	}
-	matching := slices.DeleteFunc(enriched, func(l listing.Listing) bool { return !q.Matches(l) })
-	e.printf("%s enrich: %d of %d listings match\n", p.Source(), len(matching), len(enriched))
+	total := len(listings)
+	matching := slices.DeleteFunc(listings, func(l listing.Listing) bool { return !q.Matches(l) })
+	e.printf("%s %s: %d of %d listings match\n", p.Source(), stage, len(matching), total)
 	return matching, nil
 }
 
@@ -143,6 +175,8 @@ func NewProvider(source listing.Source, runner apify.Runner) (listing.Provider, 
 	switch source {
 	case listing.SourceZillow:
 		return zillow.New(runner, zillow.NewAutocomplete()), nil
+	case listing.SourceRedfin:
+		return redfin.New(runner, zillow.NewAutocomplete()), nil
 	}
 	return nil, fmt.Errorf("unsupported source %q", source)
 }

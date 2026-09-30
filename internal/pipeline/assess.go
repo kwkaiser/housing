@@ -63,7 +63,7 @@ func (e *Env) Assess(ctx context.Context, o AssessOptions, listings []listing.Li
 
 	images := e.images()
 	checkpoint := func(ls []listing.Listing) error { return e.persister().Persist(ctx, e.DataDir, ls) }
-	assessor := profile.Assessor{Client: openrouter.NewClient(key), Model: o.Model}
+	assessor := profile.Assessor{Client: openrouter.NewClient(key), Model: o.Model, Attempts: profile.DefaultAssessAttempts}
 	assessed, stats, assessErr := assessor.AssessListings(ctx, p, refs, selected,
 		func(keys []string) ([][]byte, error) { return profile.ReadCollages(images, keys) },
 		profile.BatchOptions{
@@ -81,7 +81,7 @@ func (e *Env) Assess(ctx context.Context, o AssessOptions, listings []listing.Li
 		}
 	}
 
-	e.printf("assess (%s): %d model calls ($%.4f), %d listings updated, %d already current, %d without collages, %d over limit, %d over budget\n",
-		o.Model, stats.Calls, stats.CostUSD, stats.Updated, stats.Cached, stats.NoCollages, stats.OverLimit, stats.OverBudget)
+	e.printf("assess (%s): %d model calls ($%.4f), %d listings updated, %d already current, %d failed, %d without collages, %d over limit, %d over budget\n",
+		o.Model, stats.Calls, stats.CostUSD, stats.Updated, stats.Cached, stats.Failed, stats.NoCollages, stats.OverLimit, stats.OverBudget)
 	return p, assessed, stats, assessErr
 }

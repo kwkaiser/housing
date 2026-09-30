@@ -1,0 +1,470 @@
+[{
+  "mlsId": {
+    "label": "MLS#",
+    "value": "73583920"
+  },
+  "showMlsId": false,
+  "mlsStatus": "New",
+  "showDatasourceLogo": false,
+  "price": {
+    "value": 739000,
+    "level": 1
+  },
+  "hideSalePrice": false,
+  "hoa": {
+    "level": 1
+  },
+  "isHoaFrequencyKnown": true,
+  "sqFt": {
+    "value": 1049,
+    "level": 1
+  },
+  "pricePerSqFt": {
+    "value": 704,
+    "level": 1
+  },
+  "lotSize": {
+    "value": 1987,
+    "level": 1
+  },
+  "beds": 3,
+  "baths": 1,
+  "fullBaths": 1,
+  "location": {
+    "value": "Winter Hill",
+    "level": 1
+  },
+  "latLong": {
+    "value": {
+      "latitude": 42.3956668,
+      "longitude": -71.0962647
+    },
+    "level": 1
+  },
+  "streetLine": {
+    "value": "91 Heath St",
+    "level": 1
+  },
+  "unitNumber": {
+    "level": 1
+  },
+  "city": "Somerville",
+  "state": "MA",
+  "zip": "02145",
+  "postalCode": {
+    "value": "02145",
+    "level": 1
+  },
+  "countryCode": "US",
+  "showAddressOnMap": true,
+  "soldDate": 1734336000000,
+  "searchStatus": 1,
+  "propertyType": 6,
+  "uiPropertyType": 1,
+  "listingType": 1,
+  "propertyId": 8714201,
+  "listingId": 223949805,
+  "dataSourceId": 52,
+  "isEarlyAccess": false,
+  "marketId": 4,
+  "yearBuilt": {
+    "value": 1920,
+    "level": 1
+  },
+  "dom": {
+    "value": 1,
+    "level": 1
+  },
+  "timeOnRedfin": {
+    "value": 30679554,
+    "level": 1
+  },
+  "originalTimeOnRedfin": {
+    "value": 30679558,
+    "level": 1
+  },
+  "timeZone": "US/Eastern",
+  "primaryPhotoDisplayLevel": 1,
+  "photos": {
+    "value": "0-35:0",
+    "level": 1
+  },
+  "numPictures": 36,
+  "additionalPhotosInfo": [],
+  "photoFormat": "webp",
+  "url": "https://www.redfin.com/MA/Somerville/91-Heath-St-02145/home/8714201",
+  "hasInsight": false,
+  "sashes": [
+    {
+      "sashType": 7,
+      "sashTypeId": 7,
+      "sashTypeName": "New",
+      "sashTypeColor": "#2E7E36",
+      "isRedfin": false,
+      "isActiveKeyListing": false,
+      "timeOnRedfin": 30679554,
+      "openHouseText": "",
+      "lastSaleDate": "",
+      "lastSalePrice": ""
+    }
+  ],
+  "keyFacts": [
+    {
+      "description": "Private deck",
+      "rank": 0
+    },
+    {
+      "description": "Eat in kitchen",
+      "rank": 1
+    },
+    {
+      "description": "Bosch appliances",
+      "rank": 2
+    }
+  ],
+  "listingTags": [
+    "THREE SEASON PORCH",
+    "PRIVATE DECK",
+    "BACKYARD",
+    "EAT IN KITCHEN",
+    "BOSCH APPLIANCES",
+    "FORNO RANGE"
+  ],
+  "isHot": false,
+  "hasVirtualTour": false,
+  "hasVideoTour": false,
+  "has3DTour": false,
+  "hasInteractiveFloorplan": false,
+  "newConstructionCommunityInfo": {},
+  "isRedfin": false,
+  "isNewConstruction": false,
+  "listingRemarks": "Welcome to 91 Heath Street, a beautifully updated single-family home in Somerville’s desirable Winter Hill neighborhood. Offering three bedrooms, one full bath, approx 1,050 square feet of living space, and two off-street parking spaces, this inviting home combines thoughtful updates with the space and convenience of a true single-family residence. A bright three-season porch welcomes you into the home, while a second three-season porch off the kitchen by a charming Dutch door extends the living space and leads to a private deck and backyard—an ideal setting for morning coffee, summer dinners, or entertaining. At the heart of the home is a stunning eat-in chef’s kitchen, b",
+  "remarksAccessLevel": 1,
+  "businessMarketId": 18,
+  "isShortlisted": false,
+  "isViewedListing": false,
+  "skGarageSpaces": 0,
+  "skParkingSpaces": 2,
+  "skPoolType": 5,
+  "offerType": "sale",
+  "zoomQuadrantSequence": [],
+  "resultIndex": 1,
+  "foundFromSearchUrl": "https://www.redfin.com/zipcode/02144/filter/min-beds=2,max-price=900k,viewport=42.4185:42.3727:-71.0725:-71.1345,no-outline"
+},
+{
+  "mlsId": {
+    "label": "Listing #",
+    "value": "120942"
+  },
+  "showMlsId": false,
+  "mlsStatus": "Coming Soon",
+  "showDatasourceLogo": false,
+  "price": {
+    "value": 724900,
+    "level": 1
+  },
+  "hideSalePrice": false,
+  "hoa": {
+    "value": 566,
+    "level": 1
+  },
+  "isHoaFrequencyKnown": true,
+  "sqFt": {
+    "value": 1193,
+    "level": 1
+  },
+  "pricePerSqFt": {
+    "value": 608,
+    "level": 1
+  },
+  "lotSize": {
+    "level": 1
+  },
+  "beds": 2,
+  "baths": 2,
+  "location": {
+    "value": "Medford",
+    "level": 1
+  },
+  "latLong": {
+    "value": {
+      "latitude": 42.4131981,
+      "longitude": -71.10025
+    },
+    "level": 1
+  },
+  "streetLine": {
+    "value": "20 Ship Ave #34",
+    "level": 1
+  },
+  "unitNumber": {
+    "value": "#34",
+    "level": 1
+  },
+  "city": "Medford",
+  "state": "MA",
+  "zip": "02155",
+  "postalCode": {
+    "value": "02155",
+    "level": 1
+  },
+  "countryCode": "US",
+  "showAddressOnMap": true,
+  "soldDate": 1674028800000,
+  "searchStatus": 8,
+  "propertyType": 3,
+  "uiPropertyType": 2,
+  "listingType": 6,
+  "propertyId": 11794405,
+  "listingId": 223920158,
+  "dataSourceId": 223,
+  "isEarlyAccess": true,
+  "earlyAccessType": "REDFIN_EARLY_ACCESS",
+  "marketId": 4,
+  "yearBuilt": {
+    "value": 1987,
+    "level": 1
+  },
+  "dom": {
+    "value": 1,
+    "level": 1
+  },
+  "timeOnRedfin": {
+    "value": 116636765,
+    "level": 1
+  },
+  "timeZone": "US/Eastern",
+  "primaryPhotoDisplayLevel": 1,
+  "photos": {
+    "level": 1
+  },
+  "alternatePhotosInfo": {
+    "mediaListType": "1",
+    "mediaListIndex": 0,
+    "groupCode": "1280292_JPG",
+    "positionSpec": [
+      1,
+      2,
+      3
+    ],
+    "type": 1
+  },
+  "additionalPhotosInfo": [],
+  "photoFormat": "webp",
+  "listingAgent": {
+    "name": "Nancy McLaughlin",
+    "redfinAgentId": 2358
+  },
+  "url": "https://www.redfin.com/MA/Medford/20-Ship-Ave-02155/unit-34/home/11794405",
+  "hasInsight": false,
+  "sashes": [
+    {
+      "sashType": 46,
+      "sashTypeId": 46,
+      "sashTypeName": "EARLY ACCESS",
+      "sashTypeColor": "#131313",
+      "isRedfin": false,
+      "isActiveKeyListing": false,
+      "openHouseText": "",
+      "lastSaleDate": "",
+      "lastSalePrice": ""
+    },
+    {
+      "sashType": 48,
+      "sashTypeId": 48,
+      "sashTypeName": "REDFIN COMING SOON",
+      "sashTypeColor": "#DE3341",
+      "isRedfin": true,
+      "isActiveKeyListing": false,
+      "openHouseText": "",
+      "lastSaleDate": "",
+      "lastSalePrice": ""
+    }
+  ],
+  "keyFacts": [
+    {
+      "description": "Corner unit",
+      "rank": 0
+    },
+    {
+      "description": "Built in murphy bed",
+      "rank": 1
+    },
+    {
+      "description": "$566 HOA",
+      "rank": 2
+    }
+  ],
+  "listingTags": [
+    "CORNER UNIT",
+    "GARDEN STYLE RESIDENCE",
+    "DIRECT ACCESS TO BIKE PATH",
+    "PRIVATE OVERSIZED PATIO",
+    "ABUNDANT CLOSET SPACE",
+    "BUILT IN MURPHY BED"
+  ],
+  "isHot": false,
+  "hasVirtualTour": false,
+  "hasVideoTour": false,
+  "has3DTour": false,
+  "hasInteractiveFloorplan": false,
+  "newConstructionCommunityInfo": {},
+  "isRedfin": true,
+  "isConcierge": false,
+  "isNewConstruction": false,
+  "listingRemarks": "Remarkable living at this corner unit  &  garden style residence with direct access to the Clippership Connector Bike Path from your private oversized patio! This move in ready quiet home is on the Mystic River. Primary en suite has abundant closet space while bedroom 2 has slider to 2nd outdoor private space  &  built in murphy bed. A special opportunity for affordable home ownership 4 miles from Boston. A commuter’s dream location with quick access to RT I-93  &  Wellington T Station  &  the express bus to Boston. Lovely, sunny corner unit with private entrance, in unit laundry, sunken open concept living  &  dining room with wood burning fireplace  &  slider",
+  "remarksAccessLevel": 1,
+  "businessMarketId": 18,
+  "buildingId": 80623,
+  "isShortlisted": false,
+  "isViewedListing": false,
+  "offerType": "sale",
+  "zoomQuadrantSequence": [],
+  "resultIndex": 2,
+  "foundFromSearchUrl": "https://www.redfin.com/zipcode/02144/filter/min-beds=2,max-price=900k,viewport=42.4185:42.3727:-71.0725:-71.1345,no-outline"
+},
+{
+  "mlsId": {
+    "label": "MLS#",
+    "value": "2200414394766808409"
+  },
+  "showMlsId": false,
+  "mlsStatus": "Coming Soon",
+  "showDatasourceLogo": false,
+  "price": {
+    "value": 774900,
+    "level": 1
+  },
+  "hideSalePrice": false,
+  "hoa": {
+    "level": 1
+  },
+  "isHoaFrequencyKnown": true,
+  "sqFt": {
+    "value": 1727,
+    "level": 1
+  },
+  "pricePerSqFt": {
+    "value": 449,
+    "level": 1
+  },
+  "lotSize": {
+    "value": 2060,
+    "level": 1
+  },
+  "beds": 3,
+  "baths": 2,
+  "location": {
+    "value": "East Somerville",
+    "level": 1
+  },
+  "latLong": {
+    "value": {
+      "latitude": 42.3882778,
+      "longitude": -71.086421
+    },
+    "level": 1
+  },
+  "streetLine": {
+    "value": "9 Cross St",
+    "level": 1
+  },
+  "unitNumber": {
+    "level": 1
+  },
+  "city": "Somerville",
+  "state": "MA",
+  "zip": "02145",
+  "postalCode": {
+    "value": "02145",
+    "level": 1
+  },
+  "countryCode": "US",
+  "showAddressOnMap": true,
+  "soldDate": 1683615600000,
+  "searchStatus": 8,
+  "propertyType": 6,
+  "uiPropertyType": 1,
+  "listingType": 1,
+  "propertyId": 8735308,
+  "listingId": 223758537,
+  "dataSourceId": 641,
+  "isEarlyAccess": true,
+  "earlyAccessType": "COMPASS_EARLY_ACCESS",
+  "marketId": 4,
+  "yearBuilt": {
+    "value": 1890,
+    "level": 1
+  },
+  "dom": {
+    "value": 6,
+    "level": 1
+  },
+  "timeOnRedfin": {
+    "value": 526159002,
+    "level": 1
+  },
+  "timeZone": "US/Eastern",
+  "primaryPhotoDisplayLevel": 1,
+  "photos": {
+    "value": "0-29:0",
+    "level": 1
+  },
+  "numPictures": 30,
+  "additionalPhotosInfo": [],
+  "photoFormat": "webp",
+  "url": "https://www.redfin.com/MA/Somerville/9-Cross-St-02145/home/8735308",
+  "hasInsight": false,
+  "sashes": [
+    {
+      "sashType": 46,
+      "sashTypeId": 46,
+      "sashTypeName": "EARLY ACCESS",
+      "sashTypeColor": "#131313",
+      "isRedfin": false,
+      "isActiveKeyListing": false,
+      "openHouseText": "",
+      "lastSaleDate": "",
+      "lastSalePrice": ""
+    },
+    {
+      "sashType": 47,
+      "sashTypeId": 47,
+      "sashTypeName": "COMPASS COMING SOON",
+      "sashTypeColor": "#FEFEFE",
+      "isRedfin": false,
+      "isActiveKeyListing": false,
+      "openHouseText": "",
+      "lastSaleDate": "",
+      "lastSalePrice": ""
+    }
+  ],
+  "keyFacts": [
+    {
+      "description": "2,060 sq ft lot",
+      "rank": 0
+    },
+    {
+      "description": "Built 1890",
+      "rank": 1
+    }
+  ],
+  "isHot": false,
+  "hasVirtualTour": false,
+  "hasVideoTour": false,
+  "has3DTour": false,
+  "hasInteractiveFloorplan": true,
+  "newConstructionCommunityInfo": {},
+  "isRedfin": false,
+  "isNewConstruction": false,
+  "listingRemarks": "9 Cross Street offers something increasingly hard to find in Somerville: a single-family home with space, character, flexibility, and so much opportunity to make it your own. The first floor features a designer kitchen with stainless steel appliances, quartz countertops, a center island, and a comfortable dining nook. A dedicated dining room flows into the living room with an accent wall, while a convenient half bath rounds out the main level. Out back, a rear deck overlooks a small city backyard—just enough outdoor space without giving up your entire weekend to yard work. Upstairs, you'll find a versatile family room or home office, three bedrooms, and an updated full bath. A walk-up",
+  "remarksAccessLevel": 1,
+  "businessMarketId": 18,
+  "isShortlisted": false,
+  "isViewedListing": false,
+  "skPoolType": 5,
+  "offerType": "sale",
+  "zoomQuadrantSequence": [],
+  "resultIndex": 3,
+  "foundFromSearchUrl": "https://www.redfin.com/zipcode/02144/filter/min-beds=2,max-price=900k,viewport=42.4185:42.3727:-71.0725:-71.1345,no-outline"
+}]

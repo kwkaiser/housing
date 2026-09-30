@@ -55,3 +55,19 @@ func TestSavedSearch(t *testing.T) {
 		t.Error("missing saved search should fail")
 	}
 }
+
+func TestCarryOver(t *testing.T) {
+	prev := listing.Listing{Source: listing.SourceZillow, SourceID: "1", Collages: []string{"c/0.jpg"}}
+	prev = prev.WithAssessment("attic", listing.Assessment{Model: "m", Score: 42})
+	fresh := []listing.Listing{
+		{Source: listing.SourceZillow, SourceID: "1", Description: "updated"},
+		{Source: listing.SourceRedfin, SourceID: "1"},
+	}
+	got := CarryOver([]listing.Listing{prev}, fresh)
+	if a, ok := got[0].Assessment("attic", "m"); !ok || a.Score != 42 || got[0].Collages[0] != "c/0.jpg" || got[0].Description != "updated" {
+		t.Errorf("re-fetched listing should keep prior assessments and collages: %+v", got[0])
+	}
+	if got[1].Assessments != nil {
+		t.Error("carry over must match on source as well as id")
+	}
+}

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -20,7 +21,9 @@ func newRunCmd(dataDir, profilesDir *string) *cobra.Command {
 		Short: "Fetch, collage, assess and report in one pass",
 		Long: "Run the whole pipeline for a profile's saved search: fetch listings from every source in parallel,\n" +
 			"download photos, build collages, grade the fetched listings in parallel, then report on every\n" +
-			"assessed listing for the profile and mode. Each stage saves its results before the next starts.",
+			"assessed listing for the profile and mode. Each stage saves its results before the next starts.\n\n" +
+			"The report is printed and also written as Markdown to <data-dir>/reports/<profile>-<mode>.md\n" +
+			"unless --output is given.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
@@ -55,13 +58,25 @@ func newRunCmd(dataDir, profilesDir *string) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				if _, _, _, err := env.Assess(ctx, assess.options(fetch.profileID, fetchOpts.Mode, nil), collaged); err != nil {
-					return err
+				_, _, stats, err := env.Assess(ctx, assess.options(fetch.profileID, fetchOpts.Mode, nil), collaged)
+				if err != nil {
+					if ctx.Err() != nil || stats.Updated == 0 && stats.Failed == 0 {
+						return err
+					}
+					fmt.Fprintf(env.Out, "warning: %d listings could not be assessed; continuing to the report\n%v\n", stats.Failed, err)
 				}
 			}
 
 			reportOpts := rep.options(fetch.profileID, fetchOpts.Mode)
 			reportOpts.Report.Model = assess.model
+			if reportOpts.Output != "" {
+				return env.Report(ctx, reportOpts)
+			}
+			if err := env.Report(ctx, reportOpts); err != nil {
+				return err
+			}
+			reportOpts.Format = "markdown"
+			reportOpts.Output = filepath.Join(env.DataDir, "reports", fmt.Sprintf("%s-%s.md", fetch.profileID, fetchOpts.Mode))
 			return env.Report(ctx, reportOpts)
 		},
 	}

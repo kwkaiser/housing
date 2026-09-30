@@ -39,15 +39,19 @@ type Schema struct {
 }
 
 type Response struct {
-	Model   string
-	Content string
-	CostUSD float64
+	Model        string
+	Content      string
+	CostUSD      float64
+	FinishReason string
 }
 
 var ErrEmptyResponse = errors.New("openrouter returned no content")
 
 func (r Response) Text() (string, error) {
 	if r.Content == "" {
+		if r.FinishReason != "" {
+			return "", fmt.Errorf("%w (finish reason %q)", ErrEmptyResponse, r.FinishReason)
+		}
 		return "", ErrEmptyResponse
 	}
 	return r.Content, nil
@@ -201,6 +205,9 @@ func toResponse(r components.ChatResult) Response {
 	}
 	if len(r.Choices) == 0 {
 		return out
+	}
+	if fr := r.Choices[0].FinishReason; fr != nil {
+		out.FinishReason = string(*fr)
 	}
 	content, ok := r.Choices[0].Message.Content.GetOrZero()
 	if !ok {

@@ -3,6 +3,7 @@ package profile
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"slices"
@@ -54,9 +55,12 @@ type Candidate struct {
 }
 
 type Assessor struct {
-	Client openrouter.Completer
-	Model  string
+	Client   openrouter.Completer
+	Model    string
+	Attempts int
 }
+
+const DefaultAssessAttempts = 3
 
 type modelResponse struct {
 	Want    []listing.CriterionResult `json:"want"`
@@ -100,28 +104,26 @@ func (a Assessor) Assess(ctx context.Context, p Profile, refs []ReferenceInput, 
 		)
 	}
 
-	temperature := 0.0
-	resp, err := a.Client.Complete(ctx, openrouter.Request{
-		Model:       a.Model,
-		System:      assessSystemPrompt,
-		User:        content,
-		Schema:      assessSchema,
-		Temperature: &temperature,
-	})
+	var (
+		resp openrouter.Response
+		mr   modelResponse
+		cost float64
+		err  error
+	)
+	for attempt := range max(a.Attempts, 1) {
+		if attempt > 0 && ctx.Err() != nil {
+			return listing.Assessment{}, ctx.Err()
+		}
+		resp, mr, err = a.complete(ctx, p, content)
+		cost += resp.CostUSD
+		if err == nil || !errors.Is(err, errUnusable) {
+			break
+		}
+	}
 	if err != nil {
 		return listing.Assessment{}, err
 	}
-	text, err := resp.Text()
-	if err != nil {
-		return listing.Assessment{}, err
-	}
-	var mr modelResponse
-	if err := json.Unmarshal([]byte(text), &mr); err != nil {
-		return listing.Assessment{}, fmt.Errorf("decode assessment: %w", err)
-	}
-	if err := checkResponse(p, mr); err != nil {
-		return listing.Assessment{}, fmt.Errorf("%s returned an unusable assessment: %w: %.200s", a.Model, err, text)
-	}
+	resp.CostUSD = cost
 
 	out := listing.Assessment{
 		ProfileHash: p.Hash(),
@@ -136,6 +138,34 @@ func (a Assessor) Assess(ctx context.Context, p Profile, refs []ReferenceInput, 
 	}
 	Score(p, &out)
 	return out, nil
+}
+
+var errUnusable = errors.New("unusable model output")
+
+func (a Assessor) complete(ctx context.Context, p Profile, content []openrouter.Part) (openrouter.Response, modelResponse, error) {
+	temperature := 0.0
+	resp, err := a.Client.Complete(ctx, openrouter.Request{
+		Model:       a.Model,
+		System:      assessSystemPrompt,
+		User:        content,
+		Schema:      assessSchema,
+		Temperature: &temperature,
+	})
+	if err != nil {
+		return resp, modelResponse{}, err
+	}
+	text, err := resp.Text()
+	if err != nil {
+		return resp, modelResponse{}, fmt.Errorf("%w: %w", errUnusable, err)
+	}
+	var mr modelResponse
+	if err := json.Unmarshal([]byte(text), &mr); err != nil {
+		return resp, modelResponse{}, fmt.Errorf("%w: decode assessment: %w", errUnusable, err)
+	}
+	if err := checkResponse(p, mr); err != nil {
+		return resp, modelResponse{}, fmt.Errorf("%w: %s returned an unusable assessment: %w: %.200s", errUnusable, a.Model, err, text)
+	}
+	return resp, mr, nil
 }
 
 func checkResponse(p Profile, mr modelResponse) error {
@@ -307,6 +337,7 @@ type BatchStats struct {
 	NoCollages int
 	OverLimit  int
 	OverBudget int
+	Failed     int
 	CostUSD    float64
 }
 
@@ -351,8 +382,11 @@ func (a Assessor) AssessListings(
 		order = order[:opts.Limit]
 	}
 
-	var mu sync.Mutex
-	g, gctx := errgroup.WithContext(ctx)
+	var (
+		mu   sync.Mutex
+		errs []error
+		g    errgroup.Group
+	)
 	g.SetLimit(max(opts.Concurrency, 1))
 	for _, key := range order {
 		members := groups[key]
@@ -364,33 +398,44 @@ func (a Assessor) AssessListings(
 			}
 			first := out[members[0]]
 			mu.Unlock()
-			if overBudget || gctx.Err() != nil {
+			if overBudget || ctx.Err() != nil {
 				return nil
 			}
 
-			collages, err := readCollages(first.Collages)
-			if err != nil {
-				return err
-			}
-			result, err := a.Assess(gctx, p, refs, Candidate{Listing: first, Collages: collages})
-			if err != nil {
-				return fmt.Errorf("assess %s/%s: %w", first.Source, first.SourceID, err)
-			}
+			result, err := a.assessOne(ctx, p, refs, first, readCollages)
 
 			mu.Lock()
 			defer mu.Unlock()
-			stats.Calls++
 			stats.CostUSD += result.CostUSD
+			if err != nil {
+				stats.Failed += len(members)
+				errs = append(errs, fmt.Errorf("assess %s/%s: %w", first.Source, first.SourceID, err))
+				return nil
+			}
+			stats.Calls++
 			for _, i := range members {
 				out[i] = out[i].WithAssessment(p.ID, result)
 				stats.Updated++
 			}
 			if opts.Checkpoint != nil && opts.CheckpointEvery > 0 && stats.Calls%opts.CheckpointEvery == 0 {
-				return opts.Checkpoint(slices.Clone(out))
+				if err := opts.Checkpoint(slices.Clone(out)); err != nil {
+					errs = append(errs, fmt.Errorf("checkpoint: %w", err))
+				}
 			}
 			return nil
 		})
 	}
-	err := g.Wait()
-	return out, stats, err
+	g.Wait()
+	if err := ctx.Err(); err != nil {
+		errs = append(errs, err)
+	}
+	return out, stats, errors.Join(errs...)
+}
+
+func (a Assessor) assessOne(ctx context.Context, p Profile, refs []ReferenceInput, l listing.Listing, readCollages func([]string) ([][]byte, error)) (listing.Assessment, error) {
+	collages, err := readCollages(l.Collages)
+	if err != nil {
+		return listing.Assessment{}, err
+	}
+	return a.Assess(ctx, p, refs, Candidate{Listing: l, Collages: collages})
 }

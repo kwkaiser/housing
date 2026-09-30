@@ -1,0 +1,307 @@
+[{
+  "propertyId": "8694910",
+  "url": "https://www.redfin.com/MA/Somerville/119-College-Ave-02144/apartment/8694910",
+  "propertyType": 5,
+  "photosInfo": {
+    "photoRanges": [
+      {
+        "startPos": 0,
+        "endPos": 9,
+        "version": "5"
+      },
+      {
+        "startPos": 10,
+        "endPos": 19,
+        "version": "4"
+      },
+      {
+        "startPos": 20,
+        "endPos": 65,
+        "version": "5"
+      },
+      {
+        "startPos": 66,
+        "endPos": 79,
+        "version": "6"
+      },
+      {
+        "startPos": 80,
+        "endPos": 83,
+        "version": "5"
+      },
+      {
+        "startPos": 84,
+        "endPos": 86,
+        "version": "6"
+      }
+    ]
+  },
+  "sashes": [
+    {
+      "sashTypeId": 35,
+      "sashTypeName": "DEAL",
+      "sashTypeColor": "#E96727"
+    }
+  ],
+  "staticMapUrl": "https://maps.google.com/maps/api/staticmap?sensor=false&style=feature%3Aadministrative.land_parcel%7Cvisibility%3Aoff&style=feature%3Alandscape.man_made%7Cvisibility%3Aoff&style=feature%3Atransit.station%7Chue%3A0xffa200&center=42.3999285%2C-71.1176778&channel=seekers-search_map&size=200x200&format=jpg&scale=1&zoom=11&key=AIzaSyA_29QNQgZnWV-qXu1LyNzrLuiHCDGCJGU&signature=-3_oqfIH-9qRXW8nV9B7ndbt64Q=",
+  "hasAttFiber": false,
+  "addressInfo": {
+    "centroid": {
+      "centroid": {
+        "latitude": 42.3999285,
+        "longitude": -71.1176778
+      }
+    },
+    "formattedStreetLine": "119 College Ave",
+    "city": "Somerville",
+    "state": "MA",
+    "zip": "02144",
+    "streetlineDisplayLevel": 1,
+    "unitNumberDisplayLevel": 1,
+    "locationDisplayLevel": 1,
+    "countryCode": 1,
+    "postalCodeDisplayLevel": 1
+  },
+  "rentalId": "1bcb9204-7ae9-45a0-b607-8f6eaa071e07",
+  "bedRange": {
+    "min": 1,
+    "max": 1
+  },
+  "bathRange": {
+    "min": 1,
+    "max": 1
+  },
+  "sqftRange": {
+    "min": 553,
+    "max": 577
+  },
+  "rentPriceRange": {
+    "min": 2600,
+    "max": 2775
+  },
+  "lastUpdated": "2026-09-29T13:00:31.938327Z",
+  "numAvailableUnits": 2,
+  "status": 1,
+  "rentalDetailsPageType": 6,
+  "searchRankScore": 1,
+  "freshnessTimestamp": "2026-09-01T13:35:25.066Z",
+  "description": "Welcome to 119 College Ave, a well-located apartment building in the heart of Somerville offering a variety of thoughtfully designed layouts. With options ranging from studios to one- and two-bedroom...",
+  "revenuePerLead": 11,
+  "feedSourceInternalId": "lc6610023",
+  "isCommercialPaid": true,
+  "feedOriginalSource": "ZILLOW",
+  "mlsAgentEmail": "stop@rent.com",
+  "desktopPhone": "6176908219",
+  "mobileWebPhone": "6176908219",
+  "mobileAppPhone": "6176908219",
+  "keyFacts": [
+    {
+      "description": "13 units available",
+      "rank": 0
+    },
+    {
+      "description": "Pets welcome",
+      "rank": 1
+    },
+    {
+      "description": "Walker's paradise",
+      "rank": 8
+    }
+  ],
+  "feedSource": "RentPath",
+  "feedExternalId": "4mr2suhs5w2ve",
+  "leadRequiresMoveInDate": true,
+  "paidPhone": "6176908220",
+  "isTotalPrice": false,
+  "isInTotalPriceState": true,
+  "isIncomeRestricted": false,
+  "isSeniorLiving": false,
+  "isStudent": false,
+  "isMilitary": false,
+  "offerType": "rent",
+  "zoomQuadrantSequence": [],
+  "resultIndex": 1,
+  "foundFromSearchUrl": "https://www.redfin.com/zipcode/02144/apartments-for-rent/filter/max-price=4000,min-beds=1"
+},
+{
+  "propertyId": "8686162",
+  "url": "https://www.redfin.com/MA/Somerville/101-North-St-02144/home/8686162",
+  "propertyType": 4,
+  "photosInfo": {
+    "photoRanges": [
+      {
+        "startPos": 0,
+        "endPos": 14,
+        "version": "3"
+      },
+      {
+        "startPos": 15,
+        "endPos": 19,
+        "version": "1"
+      }
+    ]
+  },
+  "staticMapUrl": "https://maps.google.com/maps/api/staticmap?sensor=false&style=feature%3Aadministrative.land_parcel%7Cvisibility%3Aoff&style=feature%3Alandscape.man_made%7Cvisibility%3Aoff&style=feature%3Atransit.station%7Chue%3A0xffa200&center=42.4089036%2C-71.1290362&channel=seekers-search_map&size=200x200&format=jpg&scale=1&zoom=11&key=AIzaSyA_29QNQgZnWV-qXu1LyNzrLuiHCDGCJGU&signature=NoGznUqSTf2X37YrYxrHCzwe7yI=",
+  "hasAttFiber": false,
+  "addressInfo": {
+    "centroid": {
+      "centroid": {
+        "latitude": 42.4089036,
+        "longitude": -71.1290362
+      }
+    },
+    "formattedStreetLine": "101 North St",
+    "city": "Somerville",
+    "state": "MA",
+    "zip": "02144",
+    "streetlineDisplayLevel": 1,
+    "unitNumberDisplayLevel": 1,
+    "locationDisplayLevel": 1,
+    "countryCode": 1,
+    "postalCodeDisplayLevel": 1
+  },
+  "rentalId": "3046d1e6-b7ad-4fc6-9410-12d0458ba0f6",
+  "bedRange": {
+    "min": 2,
+    "max": 2
+  },
+  "bathRange": {
+    "min": 1,
+    "max": 1
+  },
+  "sqftRange": {
+    "min": 950,
+    "max": 950
+  },
+  "rentPriceRange": {
+    "min": 2800,
+    "max": 2800
+  },
+  "lastUpdated": "2026-09-15T10:00:18.273051Z",
+  "numAvailableUnits": 1,
+  "status": 1,
+  "rentalDetailsPageType": 6,
+  "searchRankScore": 2,
+  "freshnessTimestamp": "2026-09-06T00:14:19.254Z",
+  "description": "This charming first-floor unit in a classic Somerville two-family offers generous living space, character-filled details, and a private outdoor oasis — all just minutes from Tufts University,...",
+  "feedSourceInternalId": "rf-diy-155777",
+  "isCommercialPaid": false,
+  "feedOriginalSource": "REDFIN",
+  "mlsAgentEmail": "anne.faber22@gmail.com",
+  "desktopPhone": "7812489130",
+  "mobileWebPhone": "7812489130",
+  "mobileAppPhone": "7812489130",
+  "keyFacts": [
+    {
+      "description": "Pets welcome",
+      "rank": 1
+    },
+    {
+      "description": "Laundry in unit",
+      "rank": 3
+    },
+    {
+      "description": "A/C",
+      "rank": 5
+    }
+  ],
+  "feedSource": "REDFIN_DIY",
+  "leadRequiresMoveInDate": true,
+  "isTotalPrice": false,
+  "isInTotalPriceState": true,
+  "isIncomeRestricted": false,
+  "isSeniorLiving": false,
+  "isStudent": false,
+  "isMilitary": false,
+  "offerType": "rent",
+  "zoomQuadrantSequence": [],
+  "resultIndex": 2,
+  "foundFromSearchUrl": "https://www.redfin.com/zipcode/02144/apartments-for-rent/filter/max-price=4000,min-beds=1"
+},
+{
+  "propertyId": "178268007",
+  "url": "https://www.redfin.com/MA/Somerville/296-Highland-Ave-02144/unit-2/apartment/178268007",
+  "propertyType": 5,
+  "photosInfo": {
+    "photoRanges": [
+      {
+        "startPos": 0,
+        "endPos": 12,
+        "version": "1"
+      }
+    ]
+  },
+  "staticMapUrl": "https://maps.google.com/maps/api/staticmap?sensor=false&style=feature%3Aadministrative.land_parcel%7Cvisibility%3Aoff&style=feature%3Alandscape.man_made%7Cvisibility%3Aoff&style=feature%3Atransit.station%7Chue%3A0xffa200&center=42.3923577%2C-71.1131396&channel=seekers-search_map&size=200x200&format=jpg&scale=1&zoom=11&key=AIzaSyA_29QNQgZnWV-qXu1LyNzrLuiHCDGCJGU&signature=dp4rybMjYQjzh8-4lAgTUsgq55s=",
+  "hasAttFiber": false,
+  "addressInfo": {
+    "centroid": {
+      "centroid": {
+        "latitude": 42.3923577,
+        "longitude": -71.1131396
+      }
+    },
+    "formattedStreetLine": "296 Highland Ave Unit 2",
+    "city": "Somerville",
+    "state": "MA",
+    "zip": "02144",
+    "unitNumber": "Unit 2",
+    "streetlineDisplayLevel": 1,
+    "unitNumberDisplayLevel": 1,
+    "locationDisplayLevel": 1,
+    "countryCode": 1,
+    "postalCodeDisplayLevel": 1
+  },
+  "rentalId": "b05022c7-6bca-442c-b2c8-d92521486b78",
+  "bedRange": {
+    "min": 3,
+    "max": 3
+  },
+  "bathRange": {
+    "min": 1,
+    "max": 1
+  },
+  "rentPriceRange": {
+    "min": 3800,
+    "max": 3800
+  },
+  "lastUpdated": "2026-03-27T09:11:11.890899Z",
+  "numAvailableUnits": 1,
+  "status": 1,
+  "rentalDetailsPageType": 6,
+  "searchRankScore": 3,
+  "freshnessTimestamp": "2026-03-26T18:26:15.092Z",
+  "description": "Very conveniently located bright and spacious 3 bedroom. Walk to Porter or Davis Square.\n\nAvailable 9/1/2026. $3800 plus utilities\n\nLink to 3 D Tour...",
+  "feedSourceInternalId": "rf-diy-129659",
+  "isCommercialPaid": false,
+  "feedOriginalSource": "REDFIN",
+  "mlsAgentEmail": "estiaproperties@yahoo.com",
+  "desktopPhone": "6179532375",
+  "mobileWebPhone": "6179532375",
+  "mobileAppPhone": "6179532375",
+  "keyFacts": [
+    {
+      "description": "Cats welcome",
+      "rank": 1
+    },
+    {
+      "description": "Dishwasher",
+      "rank": 6
+    },
+    {
+      "description": "Walker's paradise",
+      "rank": 8
+    }
+  ],
+  "feedSource": "REDFIN_DIY",
+  "leadRequiresMoveInDate": true,
+  "isTotalPrice": false,
+  "isInTotalPriceState": true,
+  "isIncomeRestricted": false,
+  "isSeniorLiving": false,
+  "isStudent": false,
+  "isMilitary": false,
+  "offerType": "rent",
+  "zoomQuadrantSequence": [],
+  "resultIndex": 3,
+  "foundFromSearchUrl": "https://www.redfin.com/zipcode/02144/apartments-for-rent/filter/max-price=4000,min-beds=1"
+}]

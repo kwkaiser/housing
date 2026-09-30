@@ -1,0 +1,532 @@
+[
+  {
+    "scraperInput": "https://www.redfin.com/MA/Somerville/296-Highland-Ave-02144/unit-2/apartment/178268007",
+    "addressSectionInfo": {
+      "source": "Public Records",
+      "status": {
+        "displayValue": "Off Market"
+      },
+      "priceInfo": {
+        "label": "Last Sold Price",
+        "displayLevel": 1
+      },
+      "latestPriceInfo": {
+        "label": "Last Sold Price",
+        "displayLevel": 1
+      },
+      "sqFt": {
+        "displayLevel": 1
+      },
+      "streetAddress": {
+        "streetNumber": "296",
+        "directionalPrefix": "",
+        "streetName": "Highland",
+        "streetType": "Ave",
+        "directionalSuffix": "",
+        "unitType": "Unit",
+        "unitValue": "2",
+        "addressDisplayLevel": {
+          "displayLevel": 1,
+          "displayText": "",
+          "dataSourceId": 7
+        },
+        "assembledAddress": "296 Highland Ave Unit 2",
+        "includeStreetNumber": true,
+        "includeUnitNumber": true,
+        "includeStreetName": true
+      },
+      "latLong": {
+        "latitude": 42.3923577,
+        "longitude": -71.1131396
+      },
+      "city": "Somerville",
+      "state": "MA",
+      "zip": "02144",
+      "countryCode": "US",
+      "soldDateTimeZone": "US/Eastern",
+      "fips": "25017",
+      "hasOpen": false,
+      "hasAgc": false,
+      "isRedfin": false,
+      "isHot": false,
+      "avmInfo": {
+        "displayLevel": 1,
+        "propertyId": 178268007
+      },
+      "searchStatus": 32,
+      "propertyType": 5,
+      "isMappable": true,
+      "userCanShare": true,
+      "riftDataSource": "public_records",
+      "homeStatusLabel": "Off Market",
+      "staticMapUrl": "https://maps.google.com/maps/api/staticmap?sensor=false&style=feature%3Aadministrative.land_parcel%7Cvisibility%3Aoff&style=feature%3Alandscape.man_made%7Cvisibility%3Aoff&style=feature%3Atransit.station%7Chue%3A0xffa200&center=42.3923577%2C-71.1131396&size=200x200&scale=1&format=jpg&zoom=11&key=AIzaSyCYdhC4WGiwjUA8uZOKo_48q0U31RFEEl8&signature=i1Ll4NDFbnS7oOR5slvB8j-YZNc=",
+      "largeStaticMapUrl": "https://maps.google.com/maps/api/staticmap?sensor=false&style=feature%3Aadministrative.land_parcel%7Cvisibility%3Aoff&style=feature%3Alandscape.man_made%7Cvisibility%3Aoff&style=feature%3Atransit.station%7Chue%3A0xffa200&center=42.3923577%2C-71.1131396&size=500x500&scale=1&format=jpg&style=feature%3Alandscape.man_made%7Cvisibility%3Aon&zoom=14&key=AIzaSyCYdhC4WGiwjUA8uZOKo_48q0U31RFEEl8&signature=HBS7kuh5_8ufEoNPFu1s9is-CXM=",
+      "url": "/MA/Somerville/296-Highland-Ave-02144/unit-2/home/178268007"
+    },
+    "mediaBrowserInfo": {
+      "photos": [],
+      "scans": [],
+      "sashes": [
+        {
+          "sashType": 14,
+          "sashTypeId": 14,
+          "sashTypeName": "Off Market",
+          "sashTypeColor": "#5D8ACB",
+          "isRedfin": false,
+          "isActiveKeyListing": false,
+          "openHouseText": "",
+          "lastSaleDate": "",
+          "lastSalePrice": ""
+        }
+      ],
+      "videos": [],
+      "isHot": false,
+      "streetView": {
+        "latLong": {
+          "latitude": 42.3923577,
+          "longitude": -71.1131396
+        },
+        "streetViewUrl": "https://maps.googleapis.com/maps/api/streetview?channel=mb-pdp-publicrecord&location=296+Highland+Ave+Unit+2%2C+Somerville%2C+MA+02144&size=1072x488&source=outdoor&key=AIzaSyCYdhC4WGiwjUA8uZOKo_48q0U31RFEEl8&signature=3ajeHAhOroTc2y5xmxnrTJ2uFQ4=",
+        "displayLevel": 1,
+        "dataSourceId": 7,
+        "streetViewAvailable": true
+      },
+      "altTextForImage": "296 Highland Ave Unit 2, Somerville, MA 02144",
+      "assembledAddress": "296 Highland Ave Unit 2",
+      "previousListingPhotosCount": 0,
+      "displayType": 2
+    },
+    "regionName": "02144",
+    "assembledAddress": "296 Highland Ave Unit 2"
+  },
+  {
+    "scraperInput": "https://www.redfin.com/MA/Somerville/119-College-Ave-02144/apartment/8694910",
+    "addressSectionInfo": {
+      "source": "Public Records",
+      "status": {
+        "displayValue": "Off Market"
+      },
+      "priceInfo": {
+        "label": "Last Sold Price",
+        "displayLevel": 1
+      },
+      "latestPriceInfo": {
+        "label": "Last Sold Price",
+        "displayLevel": 1
+      },
+      "sqFt": {
+        "displayLevel": 1,
+        "value": 35322
+      },
+      "streetAddress": {
+        "streetNumber": "119",
+        "directionalPrefix": "",
+        "streetName": "College",
+        "streetType": "Ave",
+        "directionalSuffix": "",
+        "unitType": "",
+        "unitValue": "",
+        "addressDisplayLevel": {
+          "displayLevel": 1,
+          "displayText": "",
+          "dataSourceId": 231
+        },
+        "assembledAddress": "119 College Ave",
+        "includeStreetNumber": true,
+        "includeUnitNumber": true,
+        "includeStreetName": true
+      },
+      "latLong": {
+        "latitude": 42.3999285,
+        "longitude": -71.1176778
+      },
+      "yearBuilt": 1927,
+      "city": "Somerville",
+      "state": "MA",
+      "zip": "02144",
+      "countryCode": "US",
+      "soldDateTimeZone": "US/Eastern",
+      "lotSize": 13068,
+      "fips": "25017",
+      "apn": "749914",
+      "hasOpen": false,
+      "hasAgc": false,
+      "isRedfin": false,
+      "isHot": false,
+      "avmInfo": {
+        "displayLevel": 1,
+        "propertyId": 8694910
+      },
+      "searchStatus": 32,
+      "propertyType": 5,
+      "isMappable": true,
+      "userCanShare": true,
+      "riftDataSource": "public_records",
+      "homeStatusLabel": "Off Market",
+      "staticMapUrl": "https://maps.google.com/maps/api/staticmap?sensor=false&style=feature%3Aadministrative.land_parcel%7Cvisibility%3Aoff&style=feature%3Alandscape.man_made%7Cvisibility%3Aoff&style=feature%3Atransit.station%7Chue%3A0xffa200&center=42.3999285%2C-71.1176778&size=200x200&scale=1&format=jpg&zoom=11&key=AIzaSyCYdhC4WGiwjUA8uZOKo_48q0U31RFEEl8&signature=zBHp4AMVGVC2vDALIsoawGGJvwk=",
+      "largeStaticMapUrl": "https://maps.google.com/maps/api/staticmap?sensor=false&style=feature%3Aadministrative.land_parcel%7Cvisibility%3Aoff&style=feature%3Alandscape.man_made%7Cvisibility%3Aoff&style=feature%3Atransit.station%7Chue%3A0xffa200&center=42.3999285%2C-71.1176778&size=500x500&scale=1&format=jpg&style=feature%3Alandscape.man_made%7Cvisibility%3Aon&zoom=14&key=AIzaSyCYdhC4WGiwjUA8uZOKo_48q0U31RFEEl8&signature=Y4vTWkSodxOkVR2K434A44ZOzP8=",
+      "url": "/MA/Somerville/119-College-Ave-02144/home/8694910"
+    },
+    "mediaBrowserInfo": {
+      "photos": [],
+      "scans": [],
+      "sashes": [
+        {
+          "sashType": 14,
+          "sashTypeId": 14,
+          "sashTypeName": "Off Market",
+          "sashTypeColor": "#5D8ACB",
+          "isRedfin": false,
+          "isActiveKeyListing": false,
+          "openHouseText": "",
+          "lastSaleDate": "",
+          "lastSalePrice": ""
+        }
+      ],
+      "videos": [],
+      "isHot": false,
+      "streetView": {
+        "latLong": {
+          "latitude": 42.3999285,
+          "longitude": -71.1176778
+        },
+        "streetViewUrl": "https://maps.googleapis.com/maps/api/streetview?channel=mb-pdp-publicrecord&location=119+College+Ave%2C+Somerville%2C+MA+02144&size=1072x488&source=outdoor&key=AIzaSyCYdhC4WGiwjUA8uZOKo_48q0U31RFEEl8&signature=0zZlWdv6Ddz2sG5hpOzaaK9i1Gc=",
+        "displayLevel": 1,
+        "dataSourceId": 231,
+        "streetViewAvailable": true
+      },
+      "altTextForImage": "119 College Ave, Somerville, MA 02144",
+      "assembledAddress": "119 College Ave",
+      "previousListingPhotosCount": 0,
+      "displayType": 2
+    },
+    "regionName": "02144",
+    "assembledAddress": "119 College Ave"
+  },
+  {
+    "scraperInput": "https://www.redfin.com/MA/Somerville/91-Heath-St-02145/home/8714201",
+    "addressSectionInfo": {
+      "status": {
+        "displayValue": "New",
+        "definition": "This is a new home listing for sale, and has been active for less than a week.",
+        "longerDefinitionToken": "active"
+      },
+      "priceInfo": {
+        "amount": 739000,
+        "label": "Price",
+        "displayLevel": 1,
+        "dataSourceId": 52
+      },
+      "latestPriceInfo": {
+        "amount": 739000,
+        "label": "Price",
+        "displayLevel": 1,
+        "dataSourceId": 52
+      },
+      "sqFt": {
+        "displayLevel": 1,
+        "value": 1049
+      },
+      "pricePerSqFt": 704,
+      "streetAddress": {
+        "streetNumber": "91",
+        "directionalPrefix": "",
+        "streetName": "Heath",
+        "streetType": "St",
+        "directionalSuffix": "",
+        "unitType": "",
+        "unitValue": "",
+        "addressDisplayLevel": {
+          "displayLevel": 1,
+          "displayText": "",
+          "dataSourceId": 52
+        },
+        "assembledAddress": "91 Heath St",
+        "includeStreetNumber": true,
+        "includeUnitNumber": true,
+        "includeStreetName": true
+      },
+      "latLong": {
+        "latitude": 42.3956668,
+        "longitude": -71.0962647
+      },
+      "beds": 3,
+      "baths": 1,
+      "yearBuilt": 1920,
+      "city": "Somerville",
+      "state": "MA",
+      "zip": "02145",
+      "countryCode": "US",
+      "soldDate": 1734336000000,
+      "soldDateTimeZone": "US/Eastern",
+      "lotSize": 1987,
+      "fips": "25017",
+      "apn": "754518",
+      "timeOnRedfin": 31297246,
+      "cumulativeDaysOnMarket": 1,
+      "daysOnMarketLabel": "Cumulative",
+      "hasOpen": false,
+      "hasAgc": false,
+      "isRedfin": false,
+      "isHot": false,
+      "avmInfo": {
+        "displayLevel": 1,
+        "propertyId": 8714201,
+        "predictedValue": 737107.64
+      },
+      "searchStatus": 1,
+      "propertyType": 6,
+      "listingType": 1,
+      "isMappable": true,
+      "userCanShare": true,
+      "numFullBaths": 1,
+      "staticMapUrl": "https://maps.google.com/maps/api/staticmap?sensor=false&style=feature%3Aadministrative.land_parcel%7Cvisibility%3Aoff&style=feature%3Alandscape.man_made%7Cvisibility%3Aoff&style=feature%3Atransit.station%7Chue%3A0xffa200&center=42.3956668%2C-71.0962647&size=200x200&scale=1&format=jpg&zoom=11&key=AIzaSyCYdhC4WGiwjUA8uZOKo_48q0U31RFEEl8&signature=Ch_W1460xgqTEQEMQ7Abc3exFZ4=",
+      "largeStaticMapUrl": "https://maps.google.com/maps/api/staticmap?sensor=false&style=feature%3Aadministrative.land_parcel%7Cvisibility%3Aoff&style=feature%3Alandscape.man_made%7Cvisibility%3Aoff&style=feature%3Atransit.station%7Chue%3A0xffa200&center=42.3956668%2C-71.0962647&size=500x500&scale=1&format=jpg&style=feature%3Alandscape.man_made%7Cvisibility%3Aon&zoom=14&key=AIzaSyCYdhC4WGiwjUA8uZOKo_48q0U31RFEEl8&signature=tz2XDUTH67fQ-P5AapnAJUGSzys=",
+      "url": "/MA/Somerville/91-Heath-St-02145/home/8714201",
+      "primaryPhotoUrl": "https://ssl.cdn-redfin.com/photo/52/bigphoto/920/73583920_0.jpg",
+      "rawHalfBaths": 0,
+      "rawFullBaths": 1
+    },
+    "mediaBrowserInfo": {
+      "photos": [
+        {
+          "photoUrls": {
+            "nonFullScreenPhotoUrlCompressed": "https://ssl.cdn-redfin.com/photo/52/mbphotov3/920/genMid.73583920_0.jpg",
+            "nonFullScreenPhotoUrl": "https://ssl.cdn-redfin.com/photo/52/mbpaddedwide/920/genMid.73583920_0.jpg",
+            "fullScreenPhotoUrl": "https://ssl.cdn-redfin.com/photo/52/bigphoto/920/73583920_0.jpg",
+            "lightboxListUrl": "https://ssl.cdn-redfin.com/photo/52/bcsphoto/920/genBcs.73583920_0.jpg"
+          },
+          "thumbnailData": {
+            "thumbnailUrl": "https://ssl.cdn-redfin.com/photo/52/tmbphoto/920/genTmb.73583920_0.jpg"
+          },
+          "displayLevel": 1,
+          "dataSourceId": 52,
+          "photoType": "SPRITED",
+          "subdirectory": "920",
+          "fileName": "73583920_0.jpg",
+          "height": 1365,
+          "width": 2048,
+          "photoId": 3414116479
+        },
+        {
+          "photoUrls": {
+            "nonFullScreenPhotoUrlCompressed": "https://ssl.cdn-redfin.com/photo/52/mbphotov3/920/genMid.73583920_1_0.jpg",
+            "nonFullScreenPhotoUrl": "https://ssl.cdn-redfin.com/photo/52/mbpaddedwide/920/genMid.73583920_1_0.jpg",
+            "fullScreenPhotoUrl": "https://ssl.cdn-redfin.com/photo/52/bigphoto/920/73583920_1_0.jpg",
+            "lightboxListUrl": "https://ssl.cdn-redfin.com/photo/52/bcsphoto/920/genBcs.73583920_1_0.jpg"
+          },
+          "thumbnailData": {
+            "thumbnailUrl": "https://ssl.cdn-redfin.com/photo/52/tmbphoto/920/genTmb.73583920_1_0.jpg"
+          },
+          "displayLevel": 1,
+          "dataSourceId": 52,
+          "photoType": "SPRITED",
+          "subdirectory": "920",
+          "fileName": "73583920_1_0.jpg",
+          "height": 1365,
+          "width": 2048,
+          "photoId": 3414116480
+        },
+        {
+          "photoUrls": {
+            "nonFullScreenPhotoUrlCompressed": "https://ssl.cdn-redfin.com/photo/52/mbphotov3/920/genMid.73583920_2_0.jpg",
+            "nonFullScreenPhotoUrl": "https://ssl.cdn-redfin.com/photo/52/mbpaddedwide/920/genMid.73583920_2_0.jpg",
+            "fullScreenPhotoUrl": "https://ssl.cdn-redfin.com/photo/52/bigphoto/920/73583920_2_0.jpg",
+            "lightboxListUrl": "https://ssl.cdn-redfin.com/photo/52/bcsphoto/920/genBcs.73583920_2_0.jpg"
+          },
+          "thumbnailData": {
+            "thumbnailUrl": "https://ssl.cdn-redfin.com/photo/52/tmbphoto/920/genTmb.73583920_2_0.jpg"
+          },
+          "displayLevel": 1,
+          "dataSourceId": 52,
+          "photoType": "SPRITED",
+          "subdirectory": "920",
+          "fileName": "73583920_2_0.jpg",
+          "height": 1365,
+          "width": 2048,
+          "photoId": 3414116481
+        }
+      ],
+      "scans": [],
+      "sashes": [
+        {
+          "sashType": 7,
+          "sashTypeId": 7,
+          "sashTypeName": "New",
+          "sashTypeColor": "#2E7E36",
+          "isRedfin": false,
+          "isActiveKeyListing": false,
+          "timeOnRedfin": 31297260,
+          "openHouseText": "",
+          "lastSaleDate": "",
+          "lastSalePrice": ""
+        }
+      ],
+      "videos": [],
+      "isHot": false,
+      "streetView": {
+        "latLong": {
+          "latitude": 42.3956668,
+          "longitude": -71.0962647
+        },
+        "streetViewUrl": "https://maps.googleapis.com/maps/api/streetview?channel=mb-ldp-publicrecord&location=91+Heath+St%2C+Somerville%2C+MA+02145&size=1072x488&source=outdoor&key=AIzaSyCYdhC4WGiwjUA8uZOKo_48q0U31RFEEl8&signature=tLOGP5VAxPXYgH4AOoSWfnOgTmU=",
+        "displayLevel": 1,
+        "dataSourceId": 52,
+        "staticMapUrl": "https://maps.google.com/maps/api/staticmap?sensor=false&style=feature%3Aadministrative.land_parcel%7Cvisibility%3Aoff&style=feature%3Alandscape.man_made%7Cvisibility%3Aoff&style=feature%3Atransit.station%7Chue%3A0xffa200&center=42.3956668%2C-71.0962647&channel=mediabrowser-map&size=370x161&scale=1&format=jpg&zoom=16&key=AIzaSyCYdhC4WGiwjUA8uZOKo_48q0U31RFEEl8&signature=WjFNjQL-dnPuJcMgxZDsxRkZZf0=",
+        "streetViewAvailable": true
+      },
+      "altTextForImage": "91 Heath St, Somerville, MA 02145",
+      "dataSourceId": 52,
+      "assembledAddress": "91 Heath St",
+      "previousListingPhotosCount": 0,
+      "displayType": 1
+    },
+    "mainHouseInfo": {
+      "listingId": 223949805,
+      "openHousesDisplayLevel": 1,
+      "videoOpenHouses": [],
+      "hotnessInfo": {
+        "isHot": false,
+        "hotnessMessageInfoWithTourLink": {
+          "hotnessMessageAction": "go tour it now"
+        }
+      },
+      "source": {
+        "dataSourceId": 52,
+        "dataSourceDescription": "Multiple Listing Service Property Information Network (MLSPIN) - Boston Area MLS",
+        "dataSourceName": "MLS PIN",
+        "shouldShowLargerLogo": false
+      },
+      "listingAgents": [
+        {
+          "agentInfo": {
+            "agentName": "The Bohlin Group",
+            "isAgentNameBlank": false,
+            "isRedfinAgent": false,
+            "isPartnerAgent": false,
+            "isExternalAgent": false
+          },
+          "brokerName": "Compass",
+          "isOpendoor": false
+        },
+        {
+          "agentInfo": {
+            "agentName": "Listing Agent",
+            "isAgentNameBlank": true,
+            "isRedfinAgent": false,
+            "isPartnerAgent": false,
+            "isExternalAgent": false
+          },
+          "brokerName": "Compass",
+          "isOpendoor": false
+        }
+      ],
+      "buyingAgents": [],
+      "lastCheckedDate": 1790735783802,
+      "lastUpdatedDate": 1790704518085,
+      "remarksDisplayLevel": 1,
+      "marketingRemarks": [
+        {
+          "marketingRemark": "Welcome to 91 Heath Street, a beautifully updated single-family home in Somerville&rsquo;s desirable Winter Hill neighborhood. Offering three bedrooms, one full bath, approx 1,050 square feet of living space, and two off-street parking spaces, this inviting home combines thoughtful updates with the space and convenience of a true single-family residence. A bright three-season porch welcomes you into the home, while a second three-season porch off the kitchen by a charming Dutch door extends the living space and leads to a private deck and backyardan ideal setting for morning coffee, summer dinners, or entertaining. At the heart of the home is a stunning eat-in chef&rsquo;s kitchen, beautifully renovated with Bosch appliances, a Forno range, apron-front sink, Moen faucet, statement hood, and new hardwood flooring. The front-facing living room offers a comfortable space to relax, while upstairs, custom built-ins add character and organization. The unfinished walkout basement provides excellent storage. The location is equally compelling, with the Green Line T approximately a 10-minute walk away and convenient bus access to both the Orange and Red Lines. Fantastic walkability for everyday conveniences. Assembly Row and Bow Market are just minutes away by car, with downtown Boston approximately 15 minutes. 91 Heath Street offers an exceptional opportunity to enjoy the best of Somerville living in a welcoming single-family home. Skip the HOAs and settle on in to this private urban oasis! ",
+          "displayLevel": 1
+        }
+      ],
+      "selectedAmenities": [
+        {
+          "header": "Style",
+          "content": "Cottage"
+        },
+        {
+          "header": "Community",
+          "content": "Winter Hill",
+          "displayLevel": 1
+        },
+        {
+          "header": "County",
+          "content": "Middlesex",
+          "url": "/county/1342/MA/Middlesex-County"
+        },
+        {
+          "header": "MLS#",
+          "content": "73583920"
+        },
+        {
+          "header": "Built",
+          "content": "1920"
+        },
+        {
+          "header": "Lot Size",
+          "content": "1,987 sq ft"
+        },
+        {
+          "header": "Property Type",
+          "content": "Single-family"
+        },
+        {
+          "header": "Laundry",
+          "content": "In-unit laundry (washer and dryer)"
+        },
+        {
+          "header": "Parking",
+          "content": "2 spaces"
+        }
+      ],
+      "url": "/MA/Somerville/91-Heath-St-02145/home/8714201",
+      "timezone": "US/Eastern",
+      "streetAddress": "91 Heath St",
+      "fullStreetAddress": "91 Heath St, Somerville, MA 02145",
+      "mlsId": "73583920",
+      "mlsIdDisplayLevel": 1,
+      "mapNearbyHomesUrl": "/zipcode/02155/filter/viewport=42.40017291114502:42.39116068885498:-71.09025655180665:-71.10227284819337,no-outline",
+      "searchStatus": 1,
+      "mlsStatusDisplay": {
+        "displayValue": "New",
+        "definition": "This is a new home listing for sale, and has been active for less than a week.",
+        "longerDefinitionToken": "active"
+      },
+      "showPriceHomeLink": false,
+      "showClaimHomeLink": true,
+      "alwaysShowAgentAttribution": true,
+      "showOffMarketWarning": false,
+      "propertyAddress": {
+        "streetNumber": "91",
+        "directionalPrefix": "",
+        "streetName": "Heath",
+        "streetType": "St",
+        "directionalSuffix": "",
+        "unitType": "",
+        "unitValue": "",
+        "city": "Somerville",
+        "stateOrProvinceCode": "MA",
+        "postalCode": "02145",
+        "countryCode": "US"
+      },
+      "propertyIsActivish": true,
+      "isComingSoonListing": false,
+      "hasOfferDeadlineInEffect": false,
+      "isOpendoorEligible": false,
+      "isBDXEligible": false,
+      "isAiChatEligible": true,
+      "isDirectNewConstruction": false,
+      "isRedesignEligible": false,
+      "isNewConstruction": false,
+      "isFMLS": false,
+      "propertyIsPremier": false,
+      "doNotElevatePremierAgentCard": false,
+      "customerAgentIsPremier": false,
+      "customerAgentStatus": 1,
+      "isLikelyUnderContractOrRecentlySold": false,
+      "isKeyListingEligible": false,
+      "showKeyListing": false,
+      "isRedfinDirectSaleEligible": false,
+      "isRedfinDirectSaleListing": false
+    },
+    "openHouseInfo": {
+      "openHouseList": [],
+      "openHouseConfirmationIdMap": {},
+      "openHouseCalendarInformationMap": {}
+    },
+    "regionName": "02145",
+    "assembledAddress": "91 Heath St"
+  }
+]
