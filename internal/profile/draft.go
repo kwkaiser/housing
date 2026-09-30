@@ -151,14 +151,15 @@ const draftSystemPrompt = `You turn a person's favorite apartment into a reusabl
 
 Rules:
 - Every note the person wrote must become a "want" criterion. Emphasis such as "!!" or "really" means importance "essential"; other notes are "high".
-- You may add up to 4 extra "want" criteria that you clearly see in the reference and that fit the person's taste. Mark them "medium" or "low". Do not add things the person did not ask for if they are merely amenities (appliances, laundry, parking).
+- You may add up to 4 extra "want" criteria that you clearly see in the reference and that fit the person's taste. Mark them "medium" or "low". Do not add things the person did not ask for if they are merely amenities (appliances, laundry, parking). An extra criterion must not overlap an existing one: if a trait is already covered (e.g. dormers are part of sloped ceilings), fold it into that criterion's "look_for" instead.
+- Every criterion, want or avoid, must judge a distinct trait so no single feature of a listing is counted twice.
 - Criteria describe the dwelling itself: architecture, materials, light, layout, outdoor space, building age and character, location within the building. Never furniture, decor, paint colors, plants, or tenant belongings.
 - "look_for": what a reviewer should see in photos or read in text to mark it present.
 - "not_this": common lookalikes that should NOT count (e.g. vinyl plank that imitates hardwood). Use an empty string if none.
-- "keywords": short lowercase phrases likely to appear in listing descriptions. Empty array if the criterion is only visual.
+- "keywords": short lowercase phrases that would distinguish a matching listing from a typical one. Exclude generic marketing words that appear in most listings regardless of the trait (e.g. "charming", "character", "classic", "bright", "stunning", "must see"). Empty array if the criterion is only visual or no distinctive phrase exists.
 - "evidence": "photos" if only visible, "description" if only stated in text, "either" otherwise.
-- "avoid": 2 to 5 traits that would clearly clash with this profile (e.g. basement units, drop ceilings, wall-to-wall carpet), with importance reflecting how badly they clash.
-- "ignore": things a reviewer should disregard when judging listings for this person.
+- "avoid": 2 to 5 traits that would clearly clash with this profile, with importance reflecting how badly they clash. An avoid criterion must NOT be the absence or opposite of a want criterion (e.g. if "natural light" is a want, "dark rooms" is not an avoid; if "solid wood floors" is a want, "vinyl plank" belongs in its "not_this", not in an avoid). Avoid criteria cover independent dealbreakers such as basement units, drop ceilings, or a unit facing a highway.
+- "ignore": things a reviewer should disregard when judging listings for this person. Never list anything that a want or avoid criterion depends on (e.g. do not ignore kitchen fixtures when butcher block counters are wanted). Do not repeat furniture, decor, paint colors, tenant belongings, or photo staging; those are already ignored.
 - ids are short unique snake_case strings.
 - "name" is a short title for the profile; "summary" is one or two sentences describing the overall vibe.`
 
