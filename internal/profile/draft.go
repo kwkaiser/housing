@@ -23,6 +23,7 @@ var DefaultIgnore = []string{
 type ReferenceInput struct {
 	Listing  listing.Listing
 	Collages [][]byte
+	Avoid    bool
 }
 
 type Draft struct {
@@ -38,12 +39,16 @@ type Drafter struct {
 	Model  string
 }
 
-func (d Drafter) Draft(ctx context.Context, notes []string, refs []ReferenceInput) (Draft, Drafted, error) {
+func (d Drafter) Draft(ctx context.Context, kind Kind, notes []string, refs []ReferenceInput) (Draft, Drafted, error) {
 	if len(refs) == 0 {
 		return Draft{}, Drafted{}, fmt.Errorf("drafting needs at least one reference listing")
 	}
 
-	content := []openrouter.Part{openrouter.TextPart(draftRequestText(notes))}
+	system, request := draftSystemPrompt, draftRequestText(notes)
+	if kind == KindAvoid {
+		system, request = draftAvoidSystemPrompt, draftAvoidRequestText(notes)
+	}
+	content := []openrouter.Part{openrouter.TextPart(request)}
 	for i, ref := range refs {
 		content = append(content, openrouter.TextPart(referenceText(i+1, ref.Listing)))
 		for j, c := range ref.Collages {
@@ -56,13 +61,11 @@ func (d Drafter) Draft(ctx context.Context, notes []string, refs []ReferenceInpu
 
 	temperature := 0.2
 	resp, err := d.Client.Complete(ctx, openrouter.Request{
-		Model: d.Model,
-		Messages: []openrouter.Message{
-			{Role: "system", Content: []openrouter.Part{openrouter.TextPart(draftSystemPrompt)}},
-			{Role: "user", Content: content},
-		},
-		ResponseFormat: openrouter.JSONSchemaFormat("housing_profile", draftSchema),
-		Temperature:    &temperature,
+		Model:       d.Model,
+		System:      system,
+		User:        content,
+		Schema:      draftSchema,
+		Temperature: &temperature,
 	})
 	if err != nil {
 		return Draft{}, Drafted{}, err
@@ -76,7 +79,7 @@ func (d Drafter) Draft(ctx context.Context, notes []string, refs []ReferenceInpu
 	if err := json.Unmarshal([]byte(text), &draft); err != nil {
 		return Draft{}, Drafted{}, fmt.Errorf("decode draft: %w", err)
 	}
-	meta := Drafted{Model: resp.Model, At: time.Now().UTC(), CostUSD: resp.Usage.Cost}
+	meta := Drafted{Model: resp.Model, At: time.Now().UTC(), CostUSD: resp.CostUSD}
 	if meta.Model == "" {
 		meta.Model = d.Model
 	}
@@ -91,6 +94,10 @@ func (p *Profile) Apply(d Draft, meta Drafted) error {
 	next.Summary = d.Summary
 	next.Want = d.Want
 	next.Avoid = d.Avoid
+	if next.IsAvoid() {
+		next.Want = nil
+		next.Avoid = append(append([]Criterion{}, d.Avoid...), d.Want...)
+	}
 	next.Ignore = mergeIgnore(DefaultIgnore, d.Ignore)
 	next.Drafted = &meta
 	if err := next.Validate(); err != nil {
@@ -119,6 +126,19 @@ func draftRequestText(notes []string) string {
 	var b strings.Builder
 	b.WriteString("Build a housing preference profile from the reference listing(s) below.\n\n")
 	b.WriteString("What I love about the reference listing(s), in my own words:\n")
+	if len(notes) == 0 {
+		b.WriteString("- (no notes given; infer from the photos and description)\n")
+	}
+	for _, n := range notes {
+		b.WriteString("- " + n + "\n")
+	}
+	return b.String()
+}
+
+func draftAvoidRequestText(notes []string) string {
+	var b strings.Builder
+	b.WriteString("Build AVOID criteria from the example listing(s) below, which show a kind of housing I dislike.\n\n")
+	b.WriteString("What I dislike about it, in my own words:\n")
 	if len(notes) == 0 {
 		b.WriteString("- (no notes given; infer from the photos and description)\n")
 	}
@@ -163,30 +183,20 @@ Rules:
 - ids are short unique snake_case strings.
 - "name" is a short title for the profile; "summary" is one or two sentences describing the overall vibe.`
 
-var criterionSchema = `{
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["id", "label", "look_for", "not_this", "keywords", "importance", "evidence"],
-  "properties": {
-    "id": {"type": "string"},
-    "label": {"type": "string"},
-    "look_for": {"type": "string"},
-    "not_this": {"type": "string"},
-    "keywords": {"type": "array", "items": {"type": "string"}},
-    "importance": {"type": "string", "enum": ["essential", "high", "medium", "low"]},
-    "evidence": {"type": "string", "enum": ["photos", "description", "either"]}
-  }
-}`
+const draftAvoidSystemPrompt = `You turn an example of housing a person DISLIKES into reusable AVOID criteria. The criteria will be checked against every listing the person considers, by a vision model looking at photo collages and descriptions, to flag listings that fall into this disliked category. Every criterion must be concrete, checkable, and phrased generally (never "like photo 4").
 
-var draftSchema = json.RawMessage(`{
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["name", "summary", "want", "avoid", "ignore"],
-  "properties": {
-    "name": {"type": "string"},
-    "summary": {"type": "string"},
-    "want": {"type": "array", "items": ` + criterionSchema + `},
-    "avoid": {"type": "array", "items": ` + criterionSchema + `},
-    "ignore": {"type": "array", "items": {"type": "string"}}
-  }
-}`)
+Rules:
+- Put every criterion in "avoid". "want" must be an empty array.
+- Every note the person wrote must become a criterion. Emphasis such as "!!" or "hate" means importance "essential" (a dealbreaker on its own); other notes are "high".
+- You may add up to 4 extra criteria that clearly define this disliked category in the example. Mark them "medium" or "low".
+- Each criterion must judge a distinct trait so no single feature of a listing is counted twice.
+- Criteria describe the building and unit: scale, ownership and management style, architecture, materials, finishes, amenity packages, surroundings. Never furniture, decor, or staging.
+- "look_for": what a reviewer should see in photos or read in text to flag it.
+- "not_this": similar-looking things that should NOT be flagged (e.g. a small older building with a renovated modern kitchen is not a corporate complex). Use an empty string if none.
+- "keywords": short lowercase phrases typical of listing text in this category that would be unusual elsewhere. Exclude generic marketing words. Empty array if none.
+- "evidence": "photos" if only visible, "description" if only stated in text, "either" otherwise.
+- "ignore": things a reviewer should disregard when applying these criteria; do not repeat furniture, decor, paint colors, tenant belongings, or photo staging.
+- ids are short unique snake_case strings.
+- "name" is a short title for the disliked category; "summary" is one or two sentences describing it.`
+
+var draftSchema = openrouter.MustSchemaFor[Draft]("housing_profile")

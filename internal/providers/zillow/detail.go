@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"net/url"
 	"strings"
 	"time"
@@ -22,23 +21,10 @@ type detailInput struct {
 }
 
 type detailItem struct {
-	Error          string        `json:"error"`
-	InputURL       string        `json:"addressOrUrlFromInput"`
-	PropertyURL    string        `json:"propertyUrl"`
-	ZPID           flexID        `json:"zpid"`
-	ListingStatus  string        `json:"listingStatus"`
-	ListingPrice   *zPrice       `json:"listingPrice"`
-	ListingAddress zAddress      `json:"listingAddress"`
-	Coordinates    *zCoordinates `json:"coordinates"`
-	Description    string        `json:"description"`
-	ScrapedAt      time.Time     `json:"scrapedAt"`
-	Bedrooms       *float64      `json:"bedrooms"`
-	Bathrooms      *float64      `json:"bathrooms"`
-	LivingArea     *float64      `json:"livingArea"`
-	OnMarketDate   *time.Time    `json:"onMarketDate"`
-	ListingPhotos  []struct {
-		URL string `json:"url"`
-	} `json:"listingPhotos"`
+	zListing
+	InputURL       string     `json:"addressOrUrlFromInput"`
+	Description    string     `json:"description"`
+	OnMarketDate   *time.Time `json:"onMarketDate"`
 	AtAGlanceFacts []struct {
 		Label string `json:"factLabel"`
 		Value string `json:"factValue"`
@@ -85,7 +71,7 @@ func (p *Provider) Enrich(ctx context.Context, listings []listing.Listing) ([]li
 		urlsByOffer[l.Offer] = append(urlsByOffer[l.Offer], l.URL)
 	}
 
-	details := map[string]detailResult{}
+	details := map[string][]detailResult{}
 	for offer, urls := range urlsByOffer {
 		status, units := "FOR_SALE", "for_sale"
 		if offer == listing.OfferRent {
@@ -107,37 +93,51 @@ func (p *Provider) Enrich(ctx context.Context, listings []listing.Listing) ([]li
 			if d.Error != "" {
 				continue
 			}
-			key := d.InputURL
-			if key == "" {
-				key = d.PropertyURL
-			}
-			details[key] = detailResult{item: d, raw: raw}
+			key, unit, isUnit := strings.Cut(cmp.Or(d.InputURL, d.PropertyURL), buildingUnitMarker)
+			key = strings.TrimSpace(key)
+			details[key] = append(details[key], detailResult{item: d, raw: raw, buildingUnit: isUnit && unit != ""})
 		}
 	}
 
 	var out []listing.Listing
 	expanded := map[string]bool{}
 	for _, l := range listings {
-		d, ok := details[l.URL]
+		ds, ok := details[l.URL]
 		if l.Source != listing.SourceZillow || !ok {
 			out = append(out, l)
 			continue
 		}
-		if len(d.item.FloorPlans) == 0 {
-			out = append(out, enrichHome(l, d))
+		if len(ds) == 1 && !ds[0].buildingUnit && len(ds[0].item.FloorPlans) == 0 {
+			out = append(out, enrichHome(l, ds[0]))
 			continue
 		}
-		if !expanded[l.URL] {
-			expanded[l.URL] = true
-			out = append(out, expandBuilding(l, d)...)
+		if expanded[l.URL] {
+			continue
+		}
+		expanded[l.URL] = true
+		for _, d := range ds {
+			if len(d.item.FloorPlans) > 0 {
+				out = append(out, expandBuilding(l, d)...)
+				continue
+			}
+			unit := d.item.base(l.Offer, l.URL, d.raw)
+			unit.Amenities = l.Amenities
+			if d.item.ListingPrice == nil || d.item.ListingPrice.Amount == 0 {
+				continue
+			}
+			unit.Price = money(d.item.ListingPrice.Amount, d.item.ListingPrice.Currency)
+			out = append(out, enrichHome(unit, d))
 		}
 	}
 	return out, nil
 }
 
+const buildingUnitMarker = "--building->"
+
 type detailResult struct {
-	item detailItem
-	raw  json.RawMessage
+	item         detailItem
+	raw          json.RawMessage
+	buildingUnit bool
 }
 
 func enrichHome(l listing.Listing, d detailResult) listing.Listing {
@@ -158,10 +158,10 @@ func enrichHome(l listing.Listing, d detailResult) listing.Listing {
 	if it.Description != "" {
 		l.Description = it.Description
 	}
-	if ps := detailPhotos(it); len(ps) > 0 {
+	if ps := it.photoURLs(); len(ps) > 0 {
 		l.Photos = ps
 	}
-	l.Amenities = mergeAmenities(l.Amenities, homeAmenities(it))
+	l.Amenities = mergeAmenities(l.Amenities, homeAmenities(it), listing.AmenitiesFromText(it.Description))
 	l.Raw = d.raw
 	return l
 }
@@ -170,10 +170,10 @@ func expandBuilding(base listing.Listing, d detailResult) []listing.Listing {
 	it := d.item
 	base.Address.Unit = ""
 	base.Baths, base.SqFt, base.ListedAt = nil, nil, nil
-	if ps := detailPhotos(it); len(ps) > 0 {
+	if ps := it.photoURLs(); len(ps) > 0 {
 		base.Photos = ps
 	}
-	base.Amenities = mergeAmenities(base.Amenities, buildingAmenities(it))
+	base.Amenities = mergeAmenities(base.Amenities, buildingAmenities(it), listing.AmenitiesFromText(it.Description))
 	if it.Description != "" {
 		base.Description = it.Description
 	}
@@ -228,16 +228,6 @@ func expandBuilding(base listing.Listing, d detailResult) []listing.Listing {
 	return out
 }
 
-func detailPhotos(it detailItem) []string {
-	var out []string
-	for _, p := range it.ListingPhotos {
-		if p.URL != "" {
-			out = append(out, p.URL)
-		}
-	}
-	return out
-}
-
 func homeAmenities(it detailItem) map[listing.Amenity]bool {
 	out := map[listing.Amenity]bool{}
 	appliances := it.PropertyFeatures.Appliances
@@ -286,39 +276,6 @@ func buildingAmenities(it detailItem) map[listing.Amenity]bool {
 		out[listing.AmenityParking] = true
 	}
 	return out
-}
-
-func mergeAmenities(a, b map[listing.Amenity]bool) map[listing.Amenity]bool {
-	out := maps.Clone(a)
-	if out == nil {
-		out = map[listing.Amenity]bool{}
-	}
-	maps.Copy(out, b)
-	if len(out) == 0 {
-		return nil
-	}
-	return out
-}
-
-func hasFold(ss []string, want string) bool {
-	for _, s := range ss {
-		if strings.EqualFold(strings.TrimSpace(s), want) {
-			return true
-		}
-	}
-	return false
-}
-
-func containsFold(ss []string, subs ...string) bool {
-	for _, s := range ss {
-		lower := strings.ToLower(s)
-		for _, sub := range subs {
-			if strings.Contains(lower, sub) {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 type rawFloorPlan struct {
@@ -378,15 +335,7 @@ func (p *Provider) Lookup(ctx context.Context, rawURL string) (listing.Listing, 
 		if d.Error != "" || d.ZPID == "" {
 			continue
 		}
-		base := listing.Listing{
-			Source:      listing.SourceZillow,
-			SourceID:    string(d.ZPID),
-			URL:         cmp.Or(d.PropertyURL, u.String()),
-			Offer:       offer(d.ListingStatus, ""),
-			Address:     address(d.ListingAddress),
-			Coordinates: d.Coordinates.toListing(),
-			ObservedAt:  cmp.Or(d.ScrapedAt, time.Now().UTC()),
-		}
+		base := d.base("", u.String(), raw)
 		if d.ListingPrice != nil && d.ListingPrice.Amount > 0 {
 			base.Price = money(d.ListingPrice.Amount, d.ListingPrice.Currency)
 		}

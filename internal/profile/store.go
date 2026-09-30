@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,6 +9,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/google/renameio/v2"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing/jsonfile"
@@ -68,45 +71,95 @@ func (s Store) Save(p Profile) error {
 	if err := os.MkdirAll(s.Dir(p.ID), 0o755); err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp(s.Dir(p.ID), "profile.*.tmp")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmp.Name())
-	if _, err := tmp.Write(append(b, '\n')); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	if err := os.Chmod(tmp.Name(), 0o644); err != nil {
-		return err
-	}
-	return os.Rename(tmp.Name(), s.path(p.ID))
+	return renameio.WriteFile(s.path(p.ID), append(b, '\n'), 0o644)
 }
 
-func (s Store) References(ctx context.Context, p Profile) ([]ReferenceInput, error) {
-	listings, err := (jsonfile.Persister{}).Load(ctx, s.ListingsDir(p.ID))
+func (s Store) List() ([]Profile, error) {
+	entries, err := os.ReadDir(s.Root)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
-	byID := map[string]listing.Listing{}
-	for _, l := range listings {
-		byID[string(l.Source)+"/"+l.SourceID] = l
-	}
-
-	var refs []ReferenceInput
-	for _, r := range p.References {
-		l, ok := byID[string(r.Source)+"/"+r.SourceID]
-		if !ok {
-			return nil, fmt.Errorf("reference %s/%s missing from %s", r.Source, r.SourceID, s.ListingsDir(p.ID))
+	var out []Profile
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
 		}
-		collages, err := ReadCollages(s.Media(p.ID), r.Collages)
+		ok, err := s.Exists(e.Name())
 		if err != nil {
 			return nil, err
 		}
-		refs = append(refs, ReferenceInput{Listing: l, Collages: collages})
+		if !ok {
+			continue
+		}
+		p, err := s.Load(e.Name())
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, nil
+}
+
+func (s Store) Effective(id string) (Profile, error) {
+	p, err := s.Load(id)
+	if err != nil {
+		return Profile{}, err
+	}
+	if p.IsAvoid() {
+		return Profile{}, fmt.Errorf("%q is an avoid profile; it is applied automatically when assessing against a want profile", id)
+	}
+	all, err := s.List()
+	if err != nil {
+		return Profile{}, err
+	}
+
+	p.Avoid = append([]Criterion{}, p.Avoid...)
+	p.References = append([]Reference{}, p.References...)
+	for _, ap := range all {
+		if !ap.IsAvoid() || len(ap.Avoid) == 0 {
+			continue
+		}
+		for _, c := range ap.Avoid {
+			c.ID = ap.ID + "." + c.ID
+			p.Avoid = append(p.Avoid, c)
+		}
+		for _, r := range ap.References {
+			r.Profile, r.Avoid = ap.ID, true
+			p.References = append(p.References, r)
+		}
+	}
+	return p, p.Validate()
+}
+
+func (s Store) References(ctx context.Context, p Profile) ([]ReferenceInput, error) {
+	listingsByProfile := map[string]map[string]listing.Listing{}
+	var refs []ReferenceInput
+	for _, r := range p.References {
+		owner := cmp.Or(r.Profile, p.ID)
+		byID, ok := listingsByProfile[owner]
+		if !ok {
+			listings, err := (jsonfile.Persister{}).Load(ctx, s.ListingsDir(owner))
+			if err != nil {
+				return nil, err
+			}
+			byID = map[string]listing.Listing{}
+			for _, l := range listings {
+				byID[string(l.Source)+"/"+l.SourceID] = l
+			}
+			listingsByProfile[owner] = byID
+		}
+		l, ok := byID[string(r.Source)+"/"+r.SourceID]
+		if !ok {
+			return nil, fmt.Errorf("reference %s/%s missing from %s", r.Source, r.SourceID, s.ListingsDir(owner))
+		}
+		collages, err := ReadCollages(s.Media(owner), r.Collages)
+		if err != nil {
+			return nil, err
+		}
+		refs = append(refs, ReferenceInput{Listing: l, Collages: collages, Avoid: r.Avoid})
 	}
 	return refs, nil
 }

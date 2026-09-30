@@ -2,14 +2,13 @@ package profile
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math"
 	"strings"
 	"time"
 
+	"git.kwkaiser.io/kwkaiser/housing/internal/digest"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/openrouter"
 )
@@ -38,11 +37,11 @@ func (p Profile) Hash() string {
 		Ignore     []string
 		References []Reference
 	}{p.Summary, p.Want, p.Avoid, p.Ignore, p.References})
-	return hashHex(b)
+	return digest.Hex(b)
 }
 
 func InputHash(l listing.Listing) string {
-	return hashHex([]byte(strings.Join(l.Collages, "\n") + "\n\n" + l.Description))
+	return digest.String(strings.Join(l.Collages, "\n") + "\n\n" + l.Description)
 }
 
 type Candidate struct {
@@ -58,11 +57,14 @@ type Assessor struct {
 type modelResponse struct {
 	Want    []listing.CriterionResult `json:"want"`
 	Avoid   []listing.CriterionResult `json:"avoid"`
-	Vibe    int                       `json:"vibe"`
+	Vibe    int                       `json:"vibe" jsonschema:"description=1 to 5"`
 	Summary string                    `json:"summary"`
 }
 
 func (a Assessor) Assess(ctx context.Context, p Profile, refs []ReferenceInput, c Candidate) (listing.Assessment, error) {
+	if p.IsAvoid() {
+		return listing.Assessment{}, fmt.Errorf("%q is an avoid profile and cannot be assessed against directly", p.ID)
+	}
 	if len(p.Want) == 0 {
 		return listing.Assessment{}, fmt.Errorf("profile %q has no criteria; run `housing profile draft %s` first", p.ID, p.ID)
 	}
@@ -71,8 +73,17 @@ func (a Assessor) Assess(ctx context.Context, p Profile, refs []ReferenceInput, 
 	}
 
 	content := []openrouter.Part{openrouter.TextPart(profileText(p))}
-	for i, ref := range refs {
-		content = append(content, openrouter.TextPart(fmt.Sprintf("REFERENCE listing %d (the person's favorite, shown for calibration only; do not grade it):", i+1)))
+	wantN, avoidN := 0, 0
+	for _, ref := range refs {
+		label := ""
+		if ref.Avoid {
+			avoidN++
+			label = fmt.Sprintf("AVOID EXAMPLE %d (a listing the person dislikes, shown for calibrating the AVOID criteria; do not grade it):", avoidN)
+		} else {
+			wantN++
+			label = fmt.Sprintf("REFERENCE listing %d (the person's favorite, shown for calibration only; do not grade it):", wantN)
+		}
+		content = append(content, openrouter.TextPart(label))
 		for _, img := range ref.Collages {
 			content = append(content, openrouter.ImagePart("image/jpeg", img))
 		}
@@ -87,13 +98,11 @@ func (a Assessor) Assess(ctx context.Context, p Profile, refs []ReferenceInput, 
 
 	temperature := 0.0
 	resp, err := a.Client.Complete(ctx, openrouter.Request{
-		Model: a.Model,
-		Messages: []openrouter.Message{
-			{Role: "system", Content: []openrouter.Part{openrouter.TextPart(assessSystemPrompt)}},
-			{Role: "user", Content: content},
-		},
-		ResponseFormat: openrouter.JSONSchemaFormat("listing_assessment", assessSchema),
-		Temperature:    &temperature,
+		Model:       a.Model,
+		System:      assessSystemPrompt,
+		User:        content,
+		Schema:      assessSchema,
+		Temperature: &temperature,
 	})
 	if err != nil {
 		return listing.Assessment{}, err
@@ -119,7 +128,7 @@ func (a Assessor) Assess(ctx context.Context, p Profile, refs []ReferenceInput, 
 		Want:        align(p.Want, mr.Want),
 		Avoid:       align(p.Avoid, mr.Avoid),
 		AssessedAt:  time.Now().UTC(),
-		CostUSD:     resp.Usage.Cost,
+		CostUSD:     resp.CostUSD,
 	}
 	Score(p, &out)
 	return out, nil
@@ -166,7 +175,7 @@ func align(criteria []Criterion, results []listing.CriterionResult) []listing.Cr
 
 func Score(p Profile, a *listing.Assessment) {
 	var total, earned, known float64
-	a.MissingEssentials, a.AvoidsHit = nil, nil
+	a.MissingEssentials, a.AvoidsHit, a.Dealbreakers = nil, nil, nil
 	for i, c := range p.Want {
 		w := importanceWeights[c.Importance]
 		r := a.Want[i]
@@ -188,6 +197,9 @@ func Score(p Profile, a *listing.Assessment) {
 		if v > 0 {
 			a.AvoidsHit = append(a.AvoidsHit, c.ID)
 		}
+		if c.Importance == Essential && r.Verdict == listing.VerdictPresent {
+			a.Dealbreakers = append(a.Dealbreakers, c.ID)
+		}
 	}
 
 	if total == 0 {
@@ -200,11 +212,6 @@ func Score(p Profile, a *listing.Assessment) {
 
 func round1(f float64) float64 {
 	return math.Round(f*10) / 10
-}
-
-func hashHex(b []byte) string {
-	sum := sha256.Sum256(b)
-	return hex.EncodeToString(sum[:])
 }
 
 func profileText(p Profile) string {
@@ -261,9 +268,9 @@ func candidateText(l listing.Listing) string {
 	return b.String()
 }
 
-const assessSystemPrompt = `You grade a rental or for-sale listing against a person's housing profile. You will receive the profile's criteria, collages of the person's REFERENCE listing (for calibrating what they mean, never to be graded), and then the CANDIDATE listing's facts, description and numbered photo collages.
+const assessSystemPrompt = `You grade a rental or for-sale listing against a person's housing profile. You will receive the profile's criteria, collages of the person's REFERENCE listing (for calibrating what they want, never to be graded), possibly collages of AVOID EXAMPLES (listings the person dislikes, for calibrating the AVOID criteria, never to be graded), and then the CANDIDATE listing's facts, description and numbered photo collages.
 
-Grade only the CANDIDATE, only from its own photos and text. Never credit the candidate with something you saw in the reference.
+Grade only the CANDIDATE, only from its own photos and text. Never credit or penalize the candidate for something you saw in a reference or avoid example.
 
 For every WANT and every AVOID criterion return exactly one result with the criterion's id:
 - "present": clearly visible in candidate photos or explicitly stated in its description, and not one of the criterion's "not_this" lookalikes.
@@ -278,30 +285,7 @@ Respect each criterion's "evidence" field: "photos" criteria need visual evidenc
 
 Disregard everything in the profile's IGNORE list, and never judge furniture, decor, paint colors or tenant belongings.`
 
-var resultSchema = `{
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["id", "verdict", "confidence", "photos", "evidence"],
-  "properties": {
-    "id": {"type": "string"},
-    "verdict": {"type": "string", "enum": ["present", "partial", "absent", "unknown"]},
-    "confidence": {"type": "string", "enum": ["low", "medium", "high"]},
-    "photos": {"type": "array", "items": {"type": "integer"}},
-    "evidence": {"type": "string"}
-  }
-}`
-
-var assessSchema = json.RawMessage(`{
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["want", "avoid", "vibe", "summary"],
-  "properties": {
-    "want": {"type": "array", "items": ` + resultSchema + `},
-    "avoid": {"type": "array", "items": ` + resultSchema + `},
-    "vibe": {"type": "integer", "description": "1 to 5"},
-    "summary": {"type": "string"}
-  }
-}`)
+var assessSchema = openrouter.MustSchemaFor[modelResponse]("listing_assessment")
 
 type BatchOptions struct {
 	Force bool

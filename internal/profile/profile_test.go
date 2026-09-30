@@ -18,10 +18,7 @@ type fakeCompleter struct {
 
 func (f *fakeCompleter) Complete(_ context.Context, req openrouter.Request) (openrouter.Response, error) {
 	f.req = req
-	resp := openrouter.Response{Model: "test/model", Usage: openrouter.Usage{Cost: 0.02}}
-	resp.Choices = []openrouter.Choice{{}}
-	resp.Choices[0].Message.Content = f.reply
-	return resp, nil
+	return openrouter.Response{Model: "test/model", CostUSD: 0.02, Content: f.reply}, nil
 }
 
 const reply = `{
@@ -46,7 +43,7 @@ func TestDraftAndApply(t *testing.T) {
 		Collages: [][]byte{{1}, {2}},
 	}}
 
-	draft, meta, err := d.Draft(context.Background(), []string{"skylights!!", "wood floors"}, refs)
+	draft, meta, err := d.Draft(context.Background(), KindWant, []string{"skylights!!", "wood floors"}, refs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,8 +58,8 @@ func TestDraftAndApply(t *testing.T) {
 		}
 	}
 	images := 0
-	for _, p := range fc.req.Messages[1].Content {
-		if p.ImageURL != nil {
+	for _, p := range fc.req.User {
+		if p.Data != nil {
 			images++
 		}
 	}

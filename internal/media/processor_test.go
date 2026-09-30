@@ -182,7 +182,7 @@ func TestHTTPFetcherRetries(t *testing.T) {
 	defer srv.Close()
 
 	f := NewHTTPFetcher()
-	f.Backoff = time.Millisecond
+	f.Client.RetryWaitMin, f.Client.RetryWaitMax = time.Millisecond, time.Millisecond
 	body, err := f.Fetch(context.Background(), srv.URL)
 	if err != nil {
 		t.Fatal(err)

@@ -102,8 +102,8 @@ func TestAssess(t *testing.T) {
 		}
 	}
 	images := 0
-	for _, p := range fc.req.Messages[1].Content {
-		if p.ImageURL != nil {
+	for _, p := range fc.req.User {
+		if p.Data != nil {
 			images++
 		}
 	}

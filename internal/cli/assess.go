@@ -1,12 +1,9 @@
 package cli
 
 import (
-	"cmp"
 	"fmt"
-	"io"
 	"slices"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
@@ -16,39 +13,40 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/openrouter"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
+	"git.kwkaiser.io/kwkaiser/housing/internal/report"
 )
 
 type assessOptions struct {
-	profileID   string
-	profilesDir string
-	ids         []string
-	model       string
-	limit       int
-	force       bool
+	profileID string
+	ids       []string
+	model     string
+	limit     int
+	force     bool
+	mode      string
 }
 
-func newAssessCmd(dataDir *string) *cobra.Command {
+func newAssessCmd(dataDir, profilesDir *string) *cobra.Command {
 	var o assessOptions
 	cmd := &cobra.Command{
 		Use:   "assess",
 		Short: "Grade stored listings against a profile",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runAssess(cmd, *dataDir, o)
+			return runAssess(cmd, *dataDir, *profilesDir, o)
 		},
 	}
 	f := cmd.Flags()
 	f.StringVar(&o.profileID, "profile", "", "profile id")
-	f.StringVar(&o.profilesDir, "profiles-dir", profile.DefaultRoot, "directory for profiles")
 	f.StringSliceVar(&o.ids, "id", nil, "only assess listings with these source ids (repeatable)")
 	f.StringVar(&o.model, "model", profile.DefaultAssessModel, "OpenRouter model used to grade listings")
 	f.IntVar(&o.limit, "limit", 5, "maximum model calls (0 for no limit)")
 	f.BoolVar(&o.force, "force", false, "reassess listings that already have a current assessment")
+	f.StringVar(&o.mode, "mode", "", "only assess rent or buy listings (default: both)")
 	cmd.MarkFlagRequired("profile")
 	return cmd
 }
 
-func runAssess(cmd *cobra.Command, dataDir string, o assessOptions) error {
+func runAssess(cmd *cobra.Command, dataDir, profilesDir string, o assessOptions) error {
 	ctx := cmd.Context()
 	out := cmd.OutOrStdout()
 
@@ -56,8 +54,8 @@ func runAssess(cmd *cobra.Command, dataDir string, o assessOptions) error {
 	if err != nil {
 		return err
 	}
-	store := profile.Store{Root: o.profilesDir}
-	p, err := store.Load(o.profileID)
+	store := profile.Store{Root: profilesDir}
+	p, err := store.Effective(o.profileID)
 	if err != nil {
 		return err
 	}
@@ -72,13 +70,23 @@ func runAssess(cmd *cobra.Command, dataDir string, o assessOptions) error {
 		return err
 	}
 	selected := all
+	if o.mode != "" {
+		m, err := profile.ParseMode(o.mode)
+		if err != nil {
+			return err
+		}
+		selected = slices.DeleteFunc(slices.Clone(selected), func(l listing.Listing) bool { return l.Offer != m.Offer() })
+	}
 	if len(o.ids) > 0 {
-		selected = slices.DeleteFunc(slices.Clone(all), func(l listing.Listing) bool {
+		selected = slices.DeleteFunc(slices.Clone(selected), func(l listing.Listing) bool {
 			return !slices.Contains(o.ids, l.SourceID)
 		})
 		if len(selected) == 0 {
 			return fmt.Errorf("no stored listings match --id %s", strings.Join(o.ids, ","))
 		}
+	}
+	if len(selected) == 0 {
+		return fmt.Errorf("no stored listings to assess")
 	}
 
 	images := media.DiskStore{Root: dataDir}
@@ -95,41 +103,8 @@ func runAssess(cmd *cobra.Command, dataDir string, o assessOptions) error {
 
 	fmt.Fprintf(out, "model: %s\nmodel calls: %d ($%.4f), listings updated: %d, already current: %d, without collages: %d, over --limit: %d\n\n",
 		o.model, stats.Calls, stats.CostUSD, stats.Updated, stats.Cached, stats.NoCollages, stats.OverLimit)
-	printAssessments(out, p, o.model, assessed)
+	if err := report.Table(out, report.Build(p, assessed, report.Options{Model: o.model})); err != nil {
+		return err
+	}
 	return assessErr
-}
-
-func printAssessments(out io.Writer, p profile.Profile, model string, listings []listing.Listing) {
-	type row struct {
-		l listing.Listing
-		a listing.Assessment
-	}
-	var rows []row
-	for _, l := range listings {
-		if a, ok := l.Assessment(p.ID, model); ok {
-			rows = append(rows, row{l, a})
-		}
-	}
-	slices.SortFunc(rows, func(x, y row) int {
-		return cmp.Or(cmp.Compare(y.a.Score, x.a.Score), cmp.Compare(x.l.SourceID, y.l.SourceID))
-	})
-
-	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "SCORE\tCOVERAGE\tVIBE\tMISSING ESSENTIALS\tAVOIDS HIT\tID\tADDRESS")
-	for _, r := range rows {
-		address := r.l.Address.Formatted
-		if r.l.Address.Unit != "" {
-			address += " #" + r.l.Address.Unit
-		}
-		fmt.Fprintf(tw, "%.1f\t%.0f%%\t%d/5\t%s\t%s\t%s\t%s\n",
-			r.a.Score, r.a.Coverage, r.a.Vibe, dashIfEmpty(r.a.MissingEssentials), dashIfEmpty(r.a.AvoidsHit), r.l.SourceID, address)
-	}
-	tw.Flush()
-}
-
-func dashIfEmpty(ss []string) string {
-	if len(ss) == 0 {
-		return "-"
-	}
-	return strings.Join(ss, ",")
 }

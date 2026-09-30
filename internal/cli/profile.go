@@ -1,11 +1,15 @@
 package cli
 
 import (
+	"cmp"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/url"
+	"slices"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
@@ -19,19 +23,18 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/providers/zillow"
 )
 
-func newProfileCmd() *cobra.Command {
-	var root string
+func newProfileCmd(root *string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "profile",
 		Short: "Create and draft search profiles from reference listings",
 	}
-	cmd.PersistentFlags().StringVar(&root, "profiles-dir", profile.DefaultRoot, "directory for profiles")
-	cmd.AddCommand(newProfileCreateCmd(&root), newProfileDraftCmd(&root))
+	cmd.AddCommand(newProfileCreateCmd(root), newProfileDraftCmd(root), newProfileSearchCmd(root), newProfileListCmd(root))
 	return cmd
 }
 
 type profileCreateOptions struct {
 	id        string
+	kind      string
 	name      string
 	notes     []string
 	model     string
@@ -52,8 +55,9 @@ func newProfileCreateCmd(root *string) *cobra.Command {
 	}
 	f := cmd.Flags()
 	f.StringVar(&o.id, "id", "", "profile id (lowercase letters, digits, dashes)")
+	f.StringVar(&o.kind, "kind", string(profile.KindWant), "want (a listing you like) or avoid (a listing you dislike)")
 	f.StringVar(&o.name, "name", "", "profile name (drafted if empty)")
-	f.StringArrayVar(&o.notes, "note", nil, "something you like about the listing (repeatable)")
+	f.StringArrayVar(&o.notes, "note", nil, "something you like, or dislike for --kind avoid, about the listing (repeatable)")
 	f.StringVar(&o.model, "model", profile.DefaultDraftModel, "OpenRouter model used to draft criteria")
 	f.BoolVar(&o.noDraft, "no-draft", false, "store the reference without drafting criteria")
 	f.BoolVar(&o.force, "force", false, "overwrite an existing profile")
@@ -66,6 +70,10 @@ func runProfileCreate(cmd *cobra.Command, store profile.Store, rawURL string, o 
 	ctx := cmd.Context()
 	out := cmd.OutOrStdout()
 	if err := profile.ValidID(o.id); err != nil {
+		return err
+	}
+	kind, err := profile.ParseKind(o.kind)
+	if err != nil {
 		return err
 	}
 	exists, err := store.Exists(o.id)
@@ -115,6 +123,7 @@ func runProfileCreate(cmd *cobra.Command, store profile.Store, rawURL string, o 
 
 	p := profile.Profile{
 		ID:     o.id,
+		Kind:   kind,
 		Name:   o.name,
 		Notes:  o.notes,
 		Ignore: profile.DefaultIgnore,
@@ -171,6 +180,84 @@ func newProfileDraftCmd(root *string) *cobra.Command {
 	return cmd
 }
 
+func newProfileListCmd(root *string) *cobra.Command {
+	return &cobra.Command{
+		Use:   "list",
+		Short: "List profiles",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			profiles, err := profile.Store{Root: *root}.List()
+			if err != nil {
+				return err
+			}
+			tw := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
+			fmt.Fprintln(tw, "ID\tKIND\tWANT\tAVOID\tSEARCHES\tNAME")
+			for _, p := range profiles {
+				var modes []string
+				for m := range p.Searches {
+					modes = append(modes, string(m))
+				}
+				slices.Sort(modes)
+				fmt.Fprintf(tw, "%s\t%s\t%d\t%d\t%s\t%s\n", p.ID, cmp.Or(p.Kind, profile.KindWant), len(p.Want), len(p.Avoid), cmp.Or(strings.Join(modes, ","), "-"), p.Name)
+			}
+			return tw.Flush()
+		},
+	}
+}
+
+func newProfileSearchCmd(root *string) *cobra.Command {
+	var flags searchFlags
+	var mode string
+	var clear bool
+	cmd := &cobra.Command{
+		Use:   "search <id>",
+		Short: "Show or set a profile's saved rent or buy search",
+		Long: "Show or set a profile's saved search for --mode.\n\n" +
+			"Flags given are merged into the saved search; --clear starts from an empty search.",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			m, err := profile.ParseMode(mode)
+			if err != nil {
+				return err
+			}
+			store := profile.Store{Root: *root}
+			p, err := store.Load(args[0])
+			if err != nil {
+				return err
+			}
+
+			base := p.Searches[m]
+			if clear {
+				base = profile.Search{}
+			}
+			search, err := flags.apply(cmd, base)
+			if err != nil {
+				return err
+			}
+			if clear || flags.anyChanged(cmd) {
+				if p.Searches == nil {
+					p.Searches = map[profile.Mode]profile.Search{}
+				}
+				p.Searches[m] = search
+				if err := store.Save(p); err != nil {
+					return err
+				}
+			}
+
+			b, err := json.MarshalIndent(search, "", "  ")
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "%s search for %s:\n%s\n", m, p.ID, b)
+			return nil
+		},
+	}
+	flags.register(cmd.Flags())
+	cmd.Flags().StringVar(&mode, "mode", string(profile.ModeRent), "rent or buy")
+	cmd.Flags().BoolVar(&clear, "clear", false, "replace the saved search instead of merging into it")
+	return cmd
+}
+
 func draftProfile(ctx context.Context, out io.Writer, cfg config.Config, store profile.Store, p *profile.Profile, model string) error {
 	key, err := cfg.OpenRouter()
 	if err != nil {
@@ -182,7 +269,7 @@ func draftProfile(ctx context.Context, out io.Writer, cfg config.Config, store p
 	}
 
 	drafter := profile.Drafter{Client: openrouter.NewClient(key), Model: model}
-	draft, meta, err := drafter.Draft(ctx, p.Notes, refs)
+	draft, meta, err := drafter.Draft(ctx, cmp.Or(p.Kind, profile.KindWant), p.Notes, refs)
 	if err != nil {
 		return err
 	}

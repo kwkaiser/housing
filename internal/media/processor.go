@@ -3,8 +3,6 @@ package media
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -15,9 +13,11 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"sync"
 
 	_ "golang.org/x/image/webp"
+	"golang.org/x/sync/errgroup"
+
+	"git.kwkaiser.io/kwkaiser/housing/internal/digest"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 )
@@ -68,26 +68,20 @@ func (p *Processor) FetchPhotos(ctx context.Context, listings []listing.Listing)
 		}
 	}
 
-	var (
-		wg  sync.WaitGroup
-		sem = make(chan struct{}, max(p.Concurrency, 1))
-	)
+	var g errgroup.Group
+	g.SetLimit(max(p.Concurrency, 1))
 	for _, u := range urls {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			select {
-			case sem <- struct{}{}:
-				defer func() { <-sem }()
-			case <-ctx.Done():
-				return
+		g.Go(func() error {
+			if ctx.Err() != nil {
+				return nil
 			}
 			if err := p.ensurePhoto(ctx, u); err != nil {
 				p.Logger.Warn("skipping photo", "url", u, "err", err)
 			}
-		}()
+			return nil
+		})
 	}
-	wg.Wait()
+	g.Wait()
 	return ctx.Err()
 }
 
@@ -231,12 +225,12 @@ func (p *Processor) decode(ctx context.Context, key string) (image.Image, error)
 }
 
 func (p *Processor) setKey(urls []string) string {
-	h := hashHex(p.Collager.ID() + "\n" + strings.Join(urls, "\n"))
+	h := digest.String(p.Collager.ID() + "\n" + strings.Join(urls, "\n"))
 	return "collages/" + h[:2] + "/" + h
 }
 
 func PhotoKey(rawURL string) string {
-	h := hashHex(rawURL)
+	h := digest.String(rawURL)
 	return "photos/" + h[:2] + "/" + h + photoExt(rawURL)
 }
 
@@ -250,9 +244,4 @@ func photoExt(rawURL string) string {
 		return ext
 	}
 	return ""
-}
-
-func hashHex(s string) string {
-	sum := sha256.Sum256([]byte(s))
-	return hex.EncodeToString(sum[:])
 }

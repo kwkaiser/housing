@@ -10,6 +10,7 @@ import (
 )
 
 type Options struct {
+	Offer        listing.OfferType
 	Model        string
 	IncludeStale bool
 	MinScore     float64
@@ -17,16 +18,17 @@ type Options struct {
 }
 
 type Row struct {
-	Rank              int
-	Listing           listing.Listing
-	Score             float64
-	Coverage          float64
-	Vibe              float64
-	MissingEssentials []string
-	AvoidsHit         []string
-	Summary           string
-	ByModel           map[string]listing.Assessment
-	Stale             bool
+	Rank              int                           `json:"rank"`
+	Listing           listing.Listing               `json:"listing"`
+	Score             float64                       `json:"score"`
+	Coverage          float64                       `json:"coverage"`
+	Vibe              float64                       `json:"vibe"`
+	MissingEssentials []string                      `json:"missing_essentials,omitempty"`
+	Dealbreakers      []string                      `json:"dealbreakers,omitempty"`
+	AvoidsHit         []string                      `json:"avoids_hit,omitempty"`
+	Summary           string                        `json:"summary"`
+	ByModel           map[string]listing.Assessment `json:"by_model"`
+	Stale             bool                          `json:"stale,omitempty"`
 }
 
 type Report struct {
@@ -42,6 +44,9 @@ func Build(p profile.Profile, listings []listing.Listing, opts Options) Report {
 	models := map[string]bool{}
 
 	for _, l := range listings {
+		if opts.Offer != "" && l.Offer != opts.Offer {
+			continue
+		}
 		byModel := map[string]listing.Assessment{}
 		stale := false
 		for model, a := range l.Assessments[p.ID] {
@@ -75,6 +80,7 @@ func Build(p profile.Profile, listings []listing.Listing, opts Options) Report {
 
 	slices.SortFunc(r.Rows, func(a, b Row) int {
 		return cmp.Or(
+			cmp.Compare(len(a.Dealbreakers), len(b.Dealbreakers)),
 			cmp.Compare(b.Score, a.Score),
 			cmp.Compare(len(a.MissingEssentials), len(b.MissingEssentials)),
 			cmp.Compare(b.Coverage, a.Coverage),
@@ -98,6 +104,7 @@ func Build(p profile.Profile, listings []listing.Listing, opts Options) Report {
 func combine(l listing.Listing, byModel map[string]listing.Assessment) Row {
 	row := Row{Listing: l, ByModel: byModel}
 	missing := map[string]bool{}
+	dealbreakers := map[string]bool{}
 	avoids := map[string]bool{}
 	var latest listing.Assessment
 	models := sortedKeys(func() map[string]bool {
@@ -118,6 +125,9 @@ func combine(l listing.Listing, byModel map[string]listing.Assessment) Row {
 		for _, id := range a.AvoidsHit {
 			avoids[id] = true
 		}
+		for _, id := range a.Dealbreakers {
+			dealbreakers[id] = true
+		}
 		if i == 0 || a.AssessedAt.After(latest.AssessedAt) {
 			latest = a
 		}
@@ -128,6 +138,7 @@ func combine(l listing.Listing, byModel map[string]listing.Assessment) Row {
 	row.Vibe = round1(row.Vibe / n)
 	row.MissingEssentials = sortedKeys(missing)
 	row.AvoidsHit = sortedKeys(avoids)
+	row.Dealbreakers = sortedKeys(dealbreakers)
 	row.Summary = latest.Summary
 	return row
 }

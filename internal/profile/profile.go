@@ -30,17 +30,34 @@ const (
 
 var Evidences = []Evidence{EvidencePhotos, EvidenceDescription, EvidenceEither}
 
+type Kind string
+
+const (
+	KindWant  Kind = "want"
+	KindAvoid Kind = "avoid"
+)
+
+func ParseKind(s string) (Kind, error) {
+	switch k := Kind(s); k {
+	case KindWant, KindAvoid:
+		return k, nil
+	}
+	return "", fmt.Errorf("invalid kind %q: use want or avoid", s)
+}
+
 type Criterion struct {
 	ID         string     `json:"id"`
 	Label      string     `json:"label"`
 	LookFor    string     `json:"look_for"`
 	NotThis    string     `json:"not_this,omitempty"`
 	Keywords   []string   `json:"keywords,omitempty"`
-	Importance Importance `json:"importance"`
-	Evidence   Evidence   `json:"evidence"`
+	Importance Importance `json:"importance" jsonschema:"enum=essential,enum=high,enum=medium,enum=low"`
+	Evidence   Evidence   `json:"evidence" jsonschema:"enum=photos,enum=description,enum=either"`
 }
 
 type Reference struct {
+	Profile  string         `json:"profile,omitempty"`
+	Avoid    bool           `json:"avoid,omitempty"`
 	Source   listing.Source `json:"source"`
 	SourceID string         `json:"source_id"`
 	URL      string         `json:"url"`
@@ -54,15 +71,17 @@ type Drafted struct {
 }
 
 type Profile struct {
-	ID         string      `json:"id"`
-	Name       string      `json:"name"`
-	Summary    string      `json:"summary"`
-	Notes      []string    `json:"notes,omitempty"`
-	Want       []Criterion `json:"want"`
-	Avoid      []Criterion `json:"avoid,omitempty"`
-	Ignore     []string    `json:"ignore"`
-	References []Reference `json:"references"`
-	Drafted    *Drafted    `json:"drafted,omitempty"`
+	ID         string          `json:"id"`
+	Kind       Kind            `json:"kind,omitempty"`
+	Name       string          `json:"name"`
+	Summary    string          `json:"summary"`
+	Notes      []string        `json:"notes,omitempty"`
+	Want       []Criterion     `json:"want"`
+	Avoid      []Criterion     `json:"avoid,omitempty"`
+	Ignore     []string        `json:"ignore"`
+	References []Reference     `json:"references"`
+	Searches   map[Mode]Search `json:"searches,omitempty"`
+	Drafted    *Drafted        `json:"drafted,omitempty"`
 }
 
 var idPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
@@ -74,10 +93,22 @@ func ValidID(id string) error {
 	return nil
 }
 
+func (p Profile) IsAvoid() bool {
+	return p.Kind == KindAvoid
+}
+
 func (p Profile) Validate() error {
 	var errs []error
 	if err := ValidID(p.ID); err != nil {
 		errs = append(errs, err)
+	}
+	if p.Kind != "" {
+		if _, err := ParseKind(string(p.Kind)); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if p.IsAvoid() && len(p.Want) > 0 {
+		errs = append(errs, fmt.Errorf("avoid profile %q cannot have want criteria", p.ID))
 	}
 	seen := map[string]bool{}
 	for _, c := range append(append([]Criterion{}, p.Want...), p.Avoid...) {
@@ -93,6 +124,14 @@ func (p Profile) Validate() error {
 		}
 		if !valid(Evidences, c.Evidence) {
 			errs = append(errs, fmt.Errorf("criterion %q: invalid evidence %q", c.ID, c.Evidence))
+		}
+	}
+	for mode, search := range p.Searches {
+		if _, err := ParseMode(string(mode)); err != nil {
+			errs = append(errs, err)
+		}
+		if err := search.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("%s search: %w", mode, err))
 		}
 	}
 	return errors.Join(errs...)

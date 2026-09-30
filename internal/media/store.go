@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/google/renameio/v2"
 )
 
 type DiskStore struct {
@@ -36,20 +38,13 @@ func (s DiskStore) Put(_ context.Context, key string, r io.Reader) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".*.tmp")
+	f, err := renameio.NewPendingFile(path, renameio.WithPermissions(0o644))
 	if err != nil {
 		return err
 	}
-	defer os.Remove(tmp.Name())
-	if _, err := io.Copy(tmp, r); err != nil {
-		tmp.Close()
+	defer f.Cleanup()
+	if _, err := io.Copy(f, r); err != nil {
 		return err
 	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	if err := os.Chmod(tmp.Name(), 0o644); err != nil {
-		return err
-	}
-	return os.Rename(tmp.Name(), path)
+	return f.CloseAtomicallyReplace()
 }

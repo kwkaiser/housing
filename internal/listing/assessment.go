@@ -21,8 +21,8 @@ const (
 
 type CriterionResult struct {
 	ID         string     `json:"id"`
-	Verdict    Verdict    `json:"verdict"`
-	Confidence Confidence `json:"confidence"`
+	Verdict    Verdict    `json:"verdict" jsonschema:"enum=present,enum=partial,enum=absent,enum=unknown"`
+	Confidence Confidence `json:"confidence" jsonschema:"enum=low,enum=medium,enum=high"`
 	Photos     []int      `json:"photos"`
 	Evidence   string     `json:"evidence"`
 }
@@ -35,6 +35,7 @@ type Assessment struct {
 	Coverage          float64           `json:"coverage"`
 	MissingEssentials []string          `json:"missing_essentials,omitempty"`
 	AvoidsHit         []string          `json:"avoids_hit,omitempty"`
+	Dealbreakers      []string          `json:"dealbreakers,omitempty"`
 	Vibe              int               `json:"vibe"`
 	Summary           string            `json:"summary"`
 	Want              []CriterionResult `json:"want"`

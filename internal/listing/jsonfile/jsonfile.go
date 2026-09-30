@@ -11,6 +11,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/google/renameio/v2"
+
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 )
 
@@ -104,20 +106,5 @@ func writeFile(path string, ls []listing.Listing) error {
 	if err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".*.tmp")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmp.Name())
-	if _, err := tmp.Write(append(b, '\n')); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	if err := os.Chmod(tmp.Name(), 0o644); err != nil {
-		return err
-	}
-	return os.Rename(tmp.Name(), path)
+	return renameio.WriteFile(path, append(b, '\n'), 0o644)
 }

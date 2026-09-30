@@ -30,6 +30,8 @@ const (
 	AmenityAirConditioning Amenity = "air_conditioning"
 )
 
+var Amenities = []Amenity{AmenityInUnitLaundry, AmenityDishwasher, AmenityParking, AmenityAirConditioning}
+
 type Money struct {
 	Cents    int64  `json:"cents"`
 	Currency string `json:"currency"`

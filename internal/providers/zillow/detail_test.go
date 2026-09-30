@@ -132,3 +132,33 @@ func TestLookupRejectsOtherHosts(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestEnrichSmallBuildingUnits(t *testing.T) {
+	const building = "https://www.zillow.com/b/98-perkins-st-somerville-ma-5Xm2RF/"
+	p := New(&fakeRunner{items: loadFixture(t, "detail_small_building.json")}, fakeRegions{austin})
+	in := []listing.Listing{
+		{Source: listing.SourceZillow, SourceID: "42.38487--71.08078#0", URL: building, Offer: listing.OfferRent,
+			Amenities: map[listing.Amenity]bool{listing.AmenityInUnitLaundry: true}},
+		{Source: listing.SourceZillow, SourceID: "42.38487--71.08078#1", URL: building, Offer: listing.OfferRent},
+	}
+	got, err := p.Enrich(context.Background(), in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("got %d listings, want one per unit", len(got))
+	}
+	ids := map[string]bool{}
+	for _, l := range got {
+		ids[l.SourceID] = true
+		if strings.Contains(l.SourceID, "#") || l.Description == "" || l.Price.Cents == 0 || l.Beds == nil || !strings.Contains(l.URL, "/homedetails/") {
+			t.Errorf("unit not enriched: %+v", l)
+		}
+		if !l.Amenities[listing.AmenityInUnitLaundry] {
+			t.Error("amenities guaranteed by the search should carry over to units")
+		}
+	}
+	if !ids["464622964"] || !ids["465235055"] {
+		t.Errorf("unit ids = %v", ids)
+	}
+}

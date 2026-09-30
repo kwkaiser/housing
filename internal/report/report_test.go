@@ -74,6 +74,20 @@ func TestBuild(t *testing.T) {
 		t.Errorf("model filter + top: %+v", byModel.Rows)
 	}
 
+	sale := assessed("sale", listing.SourceZillow, 100, map[string]float64{"a/m1": 50})
+	sale.Offer = listing.OfferSale
+	sale = sale.WithAssessment(testProfile.ID, listing.Assessment{Model: "a/m1", Score: 50, ProfileHash: testProfile.Hash(), InputHash: profile.InputHash(sale)})
+	rentOnly := Build(testProfile, append(listings, sale), Options{Offer: listing.OfferRent})
+	for _, row := range rentOnly.Rows {
+		if row.Listing.Offer != listing.OfferRent {
+			t.Errorf("offer filter leaked %s", row.Listing.SourceID)
+		}
+	}
+	saleOnly := Build(testProfile, append(listings, sale), Options{Offer: listing.OfferSale})
+	if len(saleOnly.Rows) != 1 || saleOnly.Rows[0].Listing.SourceID != "sale" {
+		t.Errorf("sale filter: %+v", saleOnly.Rows)
+	}
+
 	withStale := Build(testProfile, listings, Options{IncludeStale: true, MinScore: 90})
 	if len(withStale.Rows) != 1 || !withStale.Rows[0].Stale {
 		t.Errorf("include stale + min score: %+v", withStale.Rows)
@@ -89,10 +103,14 @@ func TestRender(t *testing.T) {
 	if err := Markdown(&md, r); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"# Attic", "| m1 | m2 |", "**70.0**", "[both Main St](https://example.com/both) (zillow)", "$2,500/mo", "both summary"} {
+	for _, want := range []string{"# Attic", "- **#1 · 70.0** — [both Main St](https://example.com/both) (zillow)", "  - $2,500/mo · beds unknown · coverage 100% · vibe 3/5", "  - Scores: m1 80.0, m2 60.0", "  - both summary"} {
 		if !strings.Contains(md.String(), want) {
 			t.Errorf("markdown missing %q:\n%s", want, md.String())
 		}
+	}
+
+	if strings.Contains(md.String(), "|") {
+		t.Errorf("markdown should not contain tables:\n%s", md.String())
 	}
 
 	var table bytes.Buffer
@@ -107,7 +125,10 @@ func TestRender(t *testing.T) {
 	if err := JSON(&js, r); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(js.String(), `"score": 70`) || !strings.Contains(js.String(), `"by_model"`) {
+	if !strings.Contains(js.String(), `"score": 70`) || !strings.Contains(js.String(), `"by_model"`) || !strings.Contains(js.String(), `"url": "https://example.com/both"`) {
 		t.Errorf("json:\n%s", js.String())
+	}
+	if strings.Contains(js.String(), `"assessments"`) || strings.Contains(js.String(), `"raw"`) {
+		t.Errorf("json rows should not repeat raw data or assessments:\n%s", js.String())
 	}
 }

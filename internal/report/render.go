@@ -19,7 +19,7 @@ func Table(w io.Writer, r Report) error {
 			header = append(header, strings.ToUpper(shortModel(m)))
 		}
 	}
-	header = append(header, "COV", "VIBE", "MISSING", "PRICE", "BEDS", "SOURCE", "ADDRESS", "URL")
+	header = append(header, "COV", "VIBE", "MISSING", "DEALBREAKERS", "PRICE", "BEDS", "SOURCE", "ADDRESS", "URL")
 	fmt.Fprintln(tw, strings.Join(header, "\t"))
 
 	for _, row := range r.Rows {
@@ -33,6 +33,7 @@ func Table(w io.Writer, r Report) error {
 			fmt.Sprintf("%.0f%%", row.Coverage),
 			fmt.Sprintf("%g", row.Vibe),
 			dash(strings.Join(row.MissingEssentials, ",")),
+			dash(strings.Join(row.Dealbreakers, ",")),
 			price(row.Listing),
 			beds(row.Listing),
 			string(row.Listing.Source),
@@ -54,71 +55,46 @@ func Markdown(w io.Writer, r Report) error {
 	}
 	fmt.Fprintf(w, "Profile `%s`, graded by %s.\n\n", r.Profile.ID, strings.Join(r.Models, ", "))
 
-	header := []string{"#", "Score"}
-	if len(r.Models) > 1 {
-		for _, m := range r.Models {
-			header = append(header, shortModel(m))
-		}
-	}
-	header = append(header, "Coverage", "Vibe", "Missing essentials", "Price", "Beds", "Listing", "Summary")
-	fmt.Fprintf(w, "| %s |\n|%s\n", strings.Join(header, " | "), strings.Repeat(" --- |", len(header)))
-
 	for _, row := range r.Rows {
-		cols := []string{strconv.Itoa(row.Rank), "**" + score(row) + "**"}
+		fmt.Fprintf(w, "- **#%d · %s** — [%s](%s) (%s)\n", row.Rank, score(row), address(row.Listing), row.Listing.URL, row.Listing.Source)
+		fmt.Fprintf(w, "  - %s · %s · coverage %.0f%% · vibe %g/5\n", price(row.Listing), bedsLabel(row.Listing), row.Coverage, row.Vibe)
 		if len(r.Models) > 1 {
+			var scores []string
 			for _, m := range r.Models {
-				cols = append(cols, modelScore(row, m))
+				scores = append(scores, shortModel(m)+" "+modelScore(row, m))
 			}
+			fmt.Fprintf(w, "  - Scores: %s\n", strings.Join(scores, ", "))
 		}
-		cols = append(cols,
-			fmt.Sprintf("%.0f%%", row.Coverage),
-			fmt.Sprintf("%g/5", row.Vibe),
-			dash(strings.Join(row.MissingEssentials, ", ")),
-			price(row.Listing),
-			beds(row.Listing),
-			fmt.Sprintf("[%s](%s) (%s)", mdEscape(address(row.Listing)), row.Listing.URL, row.Listing.Source),
-			mdEscape(row.Summary),
-		)
-		fmt.Fprintf(w, "| %s |\n", strings.Join(cols, " | "))
+		if len(row.Dealbreakers) > 0 {
+			fmt.Fprintf(w, "  - Dealbreakers: %s\n", strings.Join(row.Dealbreakers, ", "))
+		}
+		if len(row.MissingEssentials) > 0 {
+			fmt.Fprintf(w, "  - Missing essentials: %s\n", strings.Join(row.MissingEssentials, ", "))
+		}
+		if len(row.AvoidsHit) > 0 {
+			fmt.Fprintf(w, "  - Avoids hit: %s\n", strings.Join(row.AvoidsHit, ", "))
+		}
+		if row.Summary != "" {
+			fmt.Fprintf(w, "  - %s\n", strings.ReplaceAll(row.Summary, "\n", " "))
+		}
 	}
 	fmt.Fprintln(w)
 	return footer(w, r)
 }
 
 func JSON(w io.Writer, r Report) error {
-	type jsonRow struct {
-		Rank              int                           `json:"rank"`
-		Score             float64                       `json:"score"`
-		Coverage          float64                       `json:"coverage"`
-		Vibe              float64                       `json:"vibe"`
-		MissingEssentials []string                      `json:"missing_essentials,omitempty"`
-		AvoidsHit         []string                      `json:"avoids_hit,omitempty"`
-		Stale             bool                          `json:"stale,omitempty"`
-		Source            listing.Source                `json:"source"`
-		SourceID          string                        `json:"source_id"`
-		URL               string                        `json:"url"`
-		Address           string                        `json:"address"`
-		Price             listing.Money                 `json:"price"`
-		Beds              *int                          `json:"beds,omitempty"`
-		Summary           string                        `json:"summary"`
-		ByModel           map[string]listing.Assessment `json:"by_model"`
-	}
-	rows := make([]jsonRow, len(r.Rows))
+	rows := make([]Row, len(r.Rows))
 	for i, row := range r.Rows {
-		rows[i] = jsonRow{
-			Rank: row.Rank, Score: row.Score, Coverage: row.Coverage, Vibe: row.Vibe,
-			MissingEssentials: row.MissingEssentials, AvoidsHit: row.AvoidsHit, Stale: row.Stale,
-			Source: row.Listing.Source, SourceID: row.Listing.SourceID, URL: row.Listing.URL,
-			Address: address(row.Listing), Price: row.Listing.Price, Beds: row.Listing.Beds,
-			Summary: row.Summary, ByModel: row.ByModel,
-		}
+		row.Listing.Raw = nil
+		row.Listing.Assessments = nil
+		rows[i] = row
 	}
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(struct {
-		Profile string    `json:"profile"`
-		Models  []string  `json:"models"`
-		Rows    []jsonRow `json:"rows"`
+		Profile string   `json:"profile"`
+		Models  []string `json:"models"`
+		Rows    []Row    `json:"rows"`
 	}{r.Profile.ID, r.Models, rows})
 }
 
@@ -189,6 +165,19 @@ func address(l listing.Listing) string {
 	return a
 }
 
+func bedsLabel(l listing.Listing) string {
+	switch b := beds(l); b {
+	case "-":
+		return "beds unknown"
+	case "studio":
+		return b
+	case "1":
+		return "1 bed"
+	default:
+		return b + " beds"
+	}
+}
+
 func dash(s string) string {
 	if s == "" {
 		return "-"
@@ -201,8 +190,4 @@ func cmpStr(a, b string) string {
 		return a
 	}
 	return b
-}
-
-func mdEscape(s string) string {
-	return strings.NewReplacer("|", `\|`, "\n", " ").Replace(s)
 }

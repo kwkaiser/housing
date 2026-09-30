@@ -1,0 +1,300 @@
+[
+  {
+    "addressOrUrlFromInput": "https://www.zillow.com/b/98-perkins-st-somerville-ma-5Xm2RF/ --building-> Unit 1",
+    "zpid": 464622964,
+    "homeType": "APARTMENT",
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "livingArea": 1000,
+    "daysOnZillow": 0,
+    "description": "Located in the Sullivan Square area of Somerville. Under 3 minute walk to Sullivan Square T station on the Orange Line. Recently renovated 3 bedroom / 2 bathroom apartment in a Four-Family with hardwood floors throughout, large living room, brand new eat-in kitchen with dishwasher, disposal, granite counters and ceiling fan. Cats are allowed. (Reference #141197)",
+    "rentZestimate": 3699,
+    "listingProvider": {
+      "title": "Listing Provided by",
+      "logos": [],
+      "showNoContactInfoMessage": false,
+      "agentName": "Marian L",
+      "postingWebsiteLinkText": "See listing website",
+      "sourceText": "Source: Zillow Rentals"
+    },
+    "photoCount": 16,
+    "isZillowOwned": false,
+    "listingPrice": {
+      "amount": 3450,
+      "currency": "USD",
+      "formatted": "$3,450"
+    },
+    "listingAddress": {
+      "street": "98 Perkins St #1",
+      "city": "Somerville",
+      "state": "MA",
+      "zipCode": "02145",
+      "county": "Middlesex County",
+      "country": "USA",
+      "neighborhood": "East Somerville",
+      "timeZone": "America/New_York",
+      "full": "98 Perkins St #1, Somerville, MA 02145"
+    },
+    "coordinates": {
+      "latitude": 42.38487,
+      "longitude": -71.08078
+    },
+    "listingStatus": "forRent",
+    "propertyUrl": "https://www.zillow.com/homedetails/98-Perkins-St-1-Somerville-MA-02145/464622964_zpid/",
+    "listingType": {
+      "isFSBA": false,
+      "isFSBO": false,
+      "isComingSoon": false,
+      "isPending": false,
+      "isOpenHouse": false,
+      "isNewHome": false,
+      "isForAuction": false,
+      "isForeclosure": false,
+      "isBankOwned": false
+    },
+    "bathroomsDetail": {
+      "full": 2
+    },
+    "lotArea": {
+      "unit": "sqft"
+    },
+    "pricePerSquareFoot": 3,
+    "onMarketDate": "2026-09-29T00:00:00.000Z",
+    "parking": {
+      "totalSpaces": 0,
+      "hasGarage": false,
+      "features": []
+    },
+    "agent": {
+      "name": "Marian L"
+    },
+    "mls": {
+      "name": "Zillow Rentals"
+    },
+    "mainImage": {
+      "thumbnail": "https://photos.zillowstatic.com/fp/c86718011e897deef785fbf2bfb44fef-p_a.jpg",
+      "hiRes": "https://photos.zillowstatic.com/fp/c86718011e897deef785fbf2bfb44fef-p_h.jpg"
+    },
+    "staticMapUrl": "https://maps.googleapis.com/maps/api/staticmap?center=42.38487,-71.08078&zoom=13&size=192x144&maptype=roadmap&key=AIzaSyARFMLB1na-BBWf7_R3-5YOQQaHqEJf6RQ&signature=qr0TzpqSdVyVmEAU-vE_M6IRk74=",
+    "propertyFeatures": {
+      "appliances": [],
+      "heating": [],
+      "cooling": [],
+      "flooring": [
+        "Hardwood"
+      ],
+      "exteriorFeatures": [],
+      "interiorFeatures": [],
+      "view": [],
+      "waterSource": [],
+      "sewer": [],
+      "utilities": [],
+      "constructionMaterials": []
+    },
+    "atAGlanceFacts": [
+      {
+        "factLabel": "Date available",
+        "factValue": "Thu Oct 1 2026"
+      },
+      {
+        "factLabel": "Type",
+        "factValue": "Apartment"
+      },
+      {
+        "factLabel": "Cooling"
+      },
+      {
+        "factLabel": "Heating"
+      },
+      {
+        "factLabel": "Pets",
+        "factValue": "Cats"
+      },
+      {
+        "factLabel": "Parking",
+        "factValue": "Contact manager"
+      },
+      {
+        "factLabel": "Laundry",
+        "factValue": "Shared"
+      },
+      {
+        "factLabel": "Deposit & fees"
+      },
+      {
+        "factLabel": "One-time fees"
+      }
+    ],
+    "specialOffers": [],
+    "listingFloorPlans": [],
+    "listingPhotos": [
+      {
+        "url": "https://photos.zillowstatic.com/fp/c86718011e897deef785fbf2bfb44fef-uncropped_scaled_within_1536_1152.jpg"
+      },
+      {
+        "url": "https://photos.zillowstatic.com/fp/06c0e3f0435fcc581bad07f87fc5a416-uncropped_scaled_within_1536_1152.jpg"
+      }
+    ],
+    "isValid": true,
+    "scrapedAt": "2026-09-30T02:03:24.247Z"
+  },
+  {
+    "addressOrUrlFromInput": "https://www.zillow.com/b/98-perkins-st-somerville-ma-5Xm2RF/ --building-> Unit 1A",
+    "zpid": 465235055,
+    "homeType": "APARTMENT",
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "livingArea": 1000,
+    "daysOnZillow": 15,
+    "description": "Spacious 3-Bedroom Apartment in East Somerville\n\nWelcome to 98 Perkins St #1, a spacious and beautifully maintained 2-bedroom, 2-bathroom apartment in East Somerville. Great work from home situation as there are two extra rooms to be used as a home office.\n\nThis inviting home offers a comfortable layout with generous living space, hardwood floors, a well-appointed kitchen with dishwasher, and laundry in the basement. There is also a bonus room in the basement perfect for a home office.\n\nLocated in desirable East Somerville, the property is exceptionally walkable and offers easy access to neighborhood restaurants, shops, parks, public transportation, and major commuter routes. Assembly Row and Assembly Square are also nearby, while Boston and Cambridge are just a short commute away!\n\nSquare footage is approximate.\n\nThe lease is set to expire on 5/31/26 with option to renew. Renewal must be agreed upon, in writing, by both lessor and lessee.",
+    "rentZestimate": 3879,
+    "listingProvider": {
+      "title": "Listing Provided by",
+      "logos": [],
+      "showNoContactInfoMessage": false,
+      "agentName": "Victor Martins",
+      "postingWebsiteLinkText": "See listing website",
+      "sourceText": "Source: Zillow Rentals"
+    },
+    "photoCount": 15,
+    "isZillowOwned": false,
+    "listingPrice": {
+      "amount": 3450,
+      "currency": "USD",
+      "formatted": "$3,450"
+    },
+    "listingAddress": {
+      "street": "98 Perkins St #1A",
+      "city": "Somerville",
+      "state": "MA",
+      "zipCode": "02145",
+      "county": "Middlesex County",
+      "country": "USA",
+      "neighborhood": "East Somerville",
+      "timeZone": "America/New_York",
+      "full": "98 Perkins St #1A, Somerville, MA 02145"
+    },
+    "coordinates": {
+      "latitude": 42.38487,
+      "longitude": -71.08078
+    },
+    "listingStatus": "forRent",
+    "propertyUrl": "https://www.zillow.com/homedetails/98-Perkins-St-1A-Somerville-MA-02145/465235055_zpid/",
+    "listingType": {
+      "isFSBA": false,
+      "isFSBO": false,
+      "isComingSoon": false,
+      "isPending": false,
+      "isOpenHouse": false,
+      "isNewHome": false,
+      "isForAuction": false,
+      "isForeclosure": false,
+      "isBankOwned": false
+    },
+    "bathroomsDetail": {
+      "full": 2
+    },
+    "lotArea": {
+      "unit": "sqft"
+    },
+    "pricePerSquareFoot": 3,
+    "onMarketDate": "2026-09-14T00:00:00.000Z",
+    "parking": {
+      "totalSpaces": 0,
+      "hasGarage": false,
+      "features": []
+    },
+    "agent": {
+      "name": "Victor Martins"
+    },
+    "mls": {
+      "name": "Zillow Rentals"
+    },
+    "mainImage": {
+      "thumbnail": "https://photos.zillowstatic.com/fp/c2ae728e75b9f831d49384ebe0a01745-p_a.jpg",
+      "hiRes": "https://photos.zillowstatic.com/fp/c2ae728e75b9f831d49384ebe0a01745-p_h.jpg"
+    },
+    "staticMapUrl": "https://maps.googleapis.com/maps/api/staticmap?center=42.38487,-71.08078&zoom=13&size=192x144&maptype=roadmap&key=AIzaSyARFMLB1na-BBWf7_R3-5YOQQaHqEJf6RQ&signature=qr0TzpqSdVyVmEAU-vE_M6IRk74=",
+    "propertyFeatures": {
+      "appliances": [
+        "Dishwasher",
+        "Freezer",
+        "Microwave Oven",
+        "Oven",
+        "Refrigerator"
+      ],
+      "heating": [
+        "Baseboard"
+      ],
+      "cooling": [
+        "Air Conditioner",
+        "Window Unit"
+      ],
+      "flooring": [
+        "Hardwood",
+        "Tile"
+      ],
+      "exteriorFeatures": [],
+      "interiorFeatures": [],
+      "view": [],
+      "waterSource": [],
+      "sewer": [],
+      "utilities": [],
+      "constructionMaterials": []
+    },
+    "atAGlanceFacts": [
+      {
+        "factLabel": "Date available",
+        "factValue": "Available Now"
+      },
+      {
+        "factLabel": "Type",
+        "factValue": "Apartment"
+      },
+      {
+        "factLabel": "Cooling",
+        "factValue": "Air Conditioner, Window Unit"
+      },
+      {
+        "factLabel": "Heating",
+        "factValue": "Baseboard"
+      },
+      {
+        "factLabel": "Pets",
+        "factValue": "Cats, Small Dogs"
+      },
+      {
+        "factLabel": "Parking",
+        "factValue": "Contact manager"
+      },
+      {
+        "factLabel": "Laundry",
+        "factValue": "Shared"
+      },
+      {
+        "factLabel": "Deposit & fees",
+        "factValue": "$3,450"
+      },
+      {
+        "factLabel": "One-time fees",
+        "factValue": "$3,485"
+      }
+    ],
+    "hoa": {
+      "hasAssociation": true,
+      "feeFrequency": "$3,450"
+    },
+    "specialOffers": [],
+    "listingFloorPlans": [],
+    "listingPhotos": [
+      {
+        "url": "https://photos.zillowstatic.com/fp/c2ae728e75b9f831d49384ebe0a01745-uncropped_scaled_within_1536_1152.jpg"
+      },
+      {
+        "url": "https://photos.zillowstatic.com/fp/a29c88e7648d5479ba6cdd73a23b2ea8-uncropped_scaled_within_1536_1152.jpg"
+      }
+    ],
+    "isValid": true,
+    "scrapedAt": "2026-09-30T02:03:24.766Z"
+  }
+]
