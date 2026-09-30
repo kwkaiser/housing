@@ -71,11 +71,11 @@ func runFetch(cmd *cobra.Command, dataDir string, o fetchOptions) error {
 		return err
 	}
 
-	cfg, err := config.Load()
+	token, err := config.Load().Apify()
 	if err != nil {
 		return err
 	}
-	client := apify.NewClient(cfg.ApifyToken)
+	client := apify.NewClient(token)
 	client.MaxTotalChargeUSD = o.maxCharge
 
 	provider, err := newProvider(listing.Source(o.source), client)

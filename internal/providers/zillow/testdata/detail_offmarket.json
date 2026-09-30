@@ -1,0 +1,144 @@
+[
+  {
+    "addressOrUrlFromInput": "https://www.zillow.com/homedetails/7-Adams-St-APT-4-Somerville-MA-02145/71142320_zpid/",
+    "zpid": 71142320,
+    "homeType": "APARTMENT",
+    "lastSoldPrice": 270000,
+    "bedrooms": 2,
+    "bathrooms": 1,
+    "livingArea": 872,
+    "daysOnZillow": 7139,
+    "description": "Hidden Gem 2-Bedroom Apartment with Skylights & Stunning Views\n\nAvailable September 1\nDon't miss this unique top-floor 2-bedroom apartment located on the 3rd floor at 7 Adams Street in Somerville. This bright and inviting home features multiple beautiful skylights throughout the apartment, filling the space with natural light. With approximately 850 square feet, hardwood floors, in-unit laundry, and a private balcony overlooking downtown Somerville and Boston, this apartment truly must be seen to be appreciated.\nApartment Features:\n \t2 bedrooms \n \t1 bathroom \n \tApproximately 850 square feet \n \tTop-floor (3rd floor) unit \n \tMultiple skylights throughout the home \n \tHeat and hot water included \n \tHardwood floors \n \tIn-unit laundry \n \tSpacious kitchen with: \no\tGas stove \no\tDishwasher \no\tWhole-house fan \no\tPlenty of cabinet space \no\tComfortable sitting area \n \tLiving room and dining area \n \tInsulating shades on skylights and balcony doors \n \tAccess to attic storage \n \tLead-safe property \n \tSome furnishings available if desired \nOutdoor Features:\n \tPrivate balcony with gorgeous views of downtown and Somerville \n \tLarge shared backyard \n \tShared porch area \n \tQuiet, friendly neighborhood \nTenant Pays:\n \tElectricity \n \tSmall gas bill for cooking stove \n \tInternet and cable services \nPet Policy:\n \tCats okay \nOutstanding Location:\n \tApproximately 5-minute walk to Magoun Square \n \tApproximately 5 minutes to the community bike path \n \tShort walk to the Lowell Street Green Line station \n \tEasy access to Boston and major commuting routes \n \tQuiet neighborhood with great neighbors \nMove-In Costs:\n \tFirst month's rent \n \tLast month's rent \n \tSecurity deposit \nAvailable September 1.\nThis one-of-a-kind apartment offers charm, natural light, excellent storage, and an unbeatable Somerville location. The skylights, views, and outdoor spaces make this home truly special.\n\nMust see to appreciate!\nPlease call or text me to schedule an appointment!!\n\nBuilding heat is included, water is by Owner. Renter would pay electric and gas bill for stove. Deposits would be 1st month, last month and security deposit. Lease would be for one year!",
+    "zestimate": 671500,
+    "rentZestimate": 3028,
+    "listingProvider": {
+      "title": "Listing Provided by",
+      "logos": [],
+      "showNoContactInfoMessage": false,
+      "postingWebsiteLinkText": "See listing website",
+      "sourceText": "Source: Zillow Rentals"
+    },
+    "photoCount": 13,
+    "parcelId": "SOMEM48BAL27U4",
+    "isZillowOwned": false,
+    "listingPrice": {
+      "amount": 671500,
+      "currency": "USD",
+      "formatted": "$671,500"
+    },
+    "listingAddress": {
+      "street": "7 Adams St APT 4",
+      "city": "Somerville",
+      "state": "MA",
+      "zipCode": "02145",
+      "county": "Middlesex County",
+      "country": "USA",
+      "neighborhood": "Magoun Square",
+      "timeZone": "America/New_York",
+      "full": "7 Adams St APT 4, Somerville, MA 02145"
+    },
+    "coordinates": {
+      "latitude": 42.39341,
+      "longitude": -71.100746
+    },
+    "listingStatus": "other",
+    "propertyUrl": "https://www.zillow.com/homedetails/7-Adams-St-APT-4-Somerville-MA-02145/71142320_zpid/",
+    "listingType": {
+      "isFSBA": false,
+      "isFSBO": false,
+      "isComingSoon": false,
+      "isPending": false,
+      "isOpenHouse": false,
+      "isNewHome": false,
+      "isForAuction": false,
+      "isForeclosure": false,
+      "isBankOwned": false
+    },
+    "bathroomsDetail": {
+      "full": 1
+    },
+    "lotArea": {
+      "unit": "sqft"
+    },
+    "pricePerSquareFoot": 770,
+    "onMarketDate": "2026-07-22T00:00:00.000Z",
+    "parking": {
+      "totalSpaces": 0,
+      "hasGarage": false,
+      "features": [
+        "Off Street"
+      ]
+    },
+    "mls": {
+      "name": "Zillow Rentals"
+    },
+    "mainImage": {
+      "thumbnail": "https://photos.zillowstatic.com/fp/a5acfb1f6066471b02113690581de844-p_a.jpg",
+      "hiRes": "https://photos.zillowstatic.com/fp/a5acfb1f6066471b02113690581de844-p_h.jpg"
+    },
+    "staticMapUrl": "https://maps.googleapis.com/maps/api/staticmap?center=42.39341,-71.100746&zoom=13&size=192x144&maptype=roadmap&key=AIzaSyARFMLB1na-BBWf7_R3-5YOQQaHqEJf6RQ&signature=MjPbUG45aZIBjCiJ__4t7tPuEb4=",
+    "propertyFeatures": {
+      "appliances": [
+        "Dishwasher",
+        "Oven",
+        "Refrigerator"
+      ],
+      "heating": [
+        "Forced Air"
+      ],
+      "cooling": [],
+      "flooring": [
+        "Hardwood"
+      ],
+      "exteriorFeatures": [],
+      "interiorFeatures": [],
+      "view": [],
+      "waterSource": [],
+      "sewer": [],
+      "utilities": [],
+      "constructionMaterials": []
+    },
+    "atAGlanceFacts": [
+      {
+        "factLabel": "Type",
+        "factValue": "Apartment"
+      },
+      {
+        "factLabel": "Year Built"
+      },
+      {
+        "factLabel": "Heating",
+        "factValue": "Forced Air"
+      },
+      {
+        "factLabel": "Cooling"
+      },
+      {
+        "factLabel": "Parking",
+        "factValue": "Off Street"
+      },
+      {
+        "factLabel": "Offer Review Date"
+      }
+    ],
+    "hoa": {
+      "hasAssociation": true,
+      "feeFrequency": "$3,400"
+    },
+    "specialOffers": [],
+    "listingFloorPlans": [],
+    "listingPhotos": [
+      {
+        "url": "https://photos.zillowstatic.com/fp/a5acfb1f6066471b02113690581de844-uncropped_scaled_within_1536_1152.jpg"
+      },
+      {
+        "url": "https://photos.zillowstatic.com/fp/efd97bc497a2c3786163b2a3b3b25bc8-uncropped_scaled_within_1536_1152.jpg"
+      },
+      {
+        "url": "https://photos.zillowstatic.com/fp/bf3eca39bd54cd926b885d9889dab155-uncropped_scaled_within_1536_1152.jpg"
+      }
+    ],
+    "isValid": true,
+    "scrapedAt": "2026-09-30T00:55:37.273Z"
+  }
+]

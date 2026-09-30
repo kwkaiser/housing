@@ -15,11 +15,11 @@ import (
 )
 
 func TestSearchLive(t *testing.T) {
-	cfg, err := config.Load()
+	token, err := config.Load().Apify()
 	if err != nil {
 		t.Skip(err)
 	}
-	client := apify.NewClient(cfg.ApifyToken)
+	client := apify.NewClient(token)
 	client.MaxTotalChargeUSD = 0.05
 	p := New(client, NewAutocomplete())
 
@@ -75,11 +75,11 @@ func TestSearchLive(t *testing.T) {
 }
 
 func TestEnrichLive(t *testing.T) {
-	cfg, err := config.Load()
+	token, err := config.Load().Apify()
 	if err != nil {
 		t.Skip(err)
 	}
-	client := apify.NewClient(cfg.ApifyToken)
+	client := apify.NewClient(token)
 	client.MaxTotalChargeUSD = 0.05
 	p := New(client, NewAutocomplete())
 

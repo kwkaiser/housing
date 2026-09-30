@@ -125,4 +125,5 @@ type actorURL struct {
 var (
 	_ listing.Provider = (*Provider)(nil)
 	_ listing.Enricher = (*Provider)(nil)
+	_ listing.Lookup   = (*Provider)(nil)
 )

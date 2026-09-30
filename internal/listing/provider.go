@@ -31,6 +31,10 @@ type Provider interface {
 	Search(ctx context.Context, q Query) ([]Listing, error)
 }
 
+type Lookup interface {
+	Lookup(ctx context.Context, url string) (Listing, error)
+}
+
 type Enricher interface {
 	Enrich(ctx context.Context, listings []Listing) ([]Listing, error)
 }

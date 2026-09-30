@@ -61,6 +61,7 @@ type Listing struct {
 	Baths       *float64         `json:"baths,omitempty"`
 	SqFt        *int             `json:"sqft,omitempty"`
 	Amenities   map[Amenity]bool `json:"amenities,omitempty"`
+	Description string           `json:"description,omitempty"`
 	Photos      []string         `json:"photos"`
 	Collages    []string         `json:"collages,omitempty"`
 	ListedAt    *time.Time       `json:"listed_at,omitempty"`

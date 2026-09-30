@@ -1,10 +1,12 @@
 package zillow
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
 	"maps"
+	"net/url"
 	"strings"
 	"time"
 
@@ -20,15 +22,21 @@ type detailInput struct {
 }
 
 type detailItem struct {
-	Error         string     `json:"error"`
-	InputURL      string     `json:"addressOrUrlFromInput"`
-	PropertyURL   string     `json:"propertyUrl"`
-	ZPID          flexID     `json:"zpid"`
-	Bedrooms      *float64   `json:"bedrooms"`
-	Bathrooms     *float64   `json:"bathrooms"`
-	LivingArea    *float64   `json:"livingArea"`
-	OnMarketDate  *time.Time `json:"onMarketDate"`
-	ListingPhotos []struct {
+	Error          string        `json:"error"`
+	InputURL       string        `json:"addressOrUrlFromInput"`
+	PropertyURL    string        `json:"propertyUrl"`
+	ZPID           flexID        `json:"zpid"`
+	ListingStatus  string        `json:"listingStatus"`
+	ListingPrice   *zPrice       `json:"listingPrice"`
+	ListingAddress zAddress      `json:"listingAddress"`
+	Coordinates    *zCoordinates `json:"coordinates"`
+	Description    string        `json:"description"`
+	ScrapedAt      time.Time     `json:"scrapedAt"`
+	Bedrooms       *float64      `json:"bedrooms"`
+	Bathrooms      *float64      `json:"bathrooms"`
+	LivingArea     *float64      `json:"livingArea"`
+	OnMarketDate   *time.Time    `json:"onMarketDate"`
+	ListingPhotos  []struct {
 		URL string `json:"url"`
 	} `json:"listingPhotos"`
 	AtAGlanceFacts []struct {
@@ -147,6 +155,9 @@ func enrichHome(l listing.Listing, d detailResult) listing.Listing {
 		t := *it.OnMarketDate
 		l.ListedAt = &t
 	}
+	if it.Description != "" {
+		l.Description = it.Description
+	}
 	if ps := detailPhotos(it); len(ps) > 0 {
 		l.Photos = ps
 	}
@@ -163,6 +174,9 @@ func expandBuilding(base listing.Listing, d detailResult) []listing.Listing {
 		base.Photos = ps
 	}
 	base.Amenities = mergeAmenities(base.Amenities, buildingAmenities(it))
+	if it.Description != "" {
+		base.Description = it.Description
+	}
 	rawPlans := rawFloorPlans(d.raw)
 
 	var out []listing.Listing
@@ -338,4 +352,45 @@ func unitRaw(buildingZPID flexID, plan map[string]json.RawMessage, unit json.Raw
 		return nil
 	}
 	return b
+}
+
+func (p *Provider) Lookup(ctx context.Context, rawURL string) (listing.Listing, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil || !strings.HasSuffix(u.Hostname(), "zillow.com") {
+		return listing.Listing{}, fmt.Errorf("not a zillow url: %q", rawURL)
+	}
+	u.RawQuery, u.Fragment = "", ""
+
+	items, err := p.Runner.Run(ctx, DetailActorID, detailInput{
+		StartURLs:            []actorURL{{URL: u.String()}},
+		PropertyStatus:       "FOR_RENT",
+		ExtractBuildingUnits: "disabled",
+	})
+	if err != nil {
+		return listing.Listing{}, err
+	}
+
+	for _, raw := range items {
+		var d detailItem
+		if err := json.Unmarshal(raw, &d); err != nil {
+			return listing.Listing{}, fmt.Errorf("decode zillow detail: %w", err)
+		}
+		if d.Error != "" || d.ZPID == "" {
+			continue
+		}
+		base := listing.Listing{
+			Source:      listing.SourceZillow,
+			SourceID:    string(d.ZPID),
+			URL:         cmp.Or(d.PropertyURL, u.String()),
+			Offer:       offer(d.ListingStatus, ""),
+			Address:     address(d.ListingAddress),
+			Coordinates: d.Coordinates.toListing(),
+			ObservedAt:  cmp.Or(d.ScrapedAt, time.Now().UTC()),
+		}
+		if d.ListingPrice != nil && d.ListingPrice.Amount > 0 {
+			base.Price = money(d.ListingPrice.Amount, d.ListingPrice.Currency)
+		}
+		return enrichHome(base, detailResult{item: d, raw: raw}), nil
+	}
+	return listing.Listing{}, fmt.Errorf("zillow detail scraper returned nothing for %s", u)
 }

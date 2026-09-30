@@ -3,6 +3,7 @@ package zillow
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
@@ -99,5 +100,35 @@ func TestDishwasherIsNotLaundry(t *testing.T) {
 	got := homeAmenities(it)
 	if got[listing.AmenityInUnitLaundry] || !got[listing.AmenityDishwasher] {
 		t.Errorf("got %v", got)
+	}
+}
+
+func TestLookup(t *testing.T) {
+	runner := &fakeRunner{items: loadFixture(t, "detail_offmarket.json")}
+	p := New(runner, fakeRegions{austin})
+
+	l, err := p.Lookup(context.Background(), "https://www.zillow.com/homedetails/7-Adams-St-APT-4-Somerville-MA-02145/71142320_zpid/?utm=x#photos")
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := runner.input.(detailInput)
+	if got := input.StartURLs[0].URL; got != "https://www.zillow.com/homedetails/7-Adams-St-APT-4-Somerville-MA-02145/71142320_zpid/" {
+		t.Errorf("lookup should strip query and fragment, got %s", got)
+	}
+	if l.SourceID != "71142320" || l.Offer != "" || *l.Beds != 2 || *l.Baths != 1 || *l.SqFt != 872 {
+		t.Errorf("listing = %+v", l)
+	}
+	if !strings.Contains(l.Description, "skylights") || len(l.Photos) != 3 || l.Address.Formatted == "" {
+		t.Errorf("listing missing description/photos/address: %+v", l)
+	}
+	if !l.Amenities[listing.AmenityDishwasher] {
+		t.Errorf("amenities = %v", l.Amenities)
+	}
+}
+
+func TestLookupRejectsOtherHosts(t *testing.T) {
+	p := New(&fakeRunner{}, fakeRegions{austin})
+	if _, err := p.Lookup(context.Background(), "https://www.redfin.com/x"); err == nil {
+		t.Fatal("expected error")
 	}
 }
