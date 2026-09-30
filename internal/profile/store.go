@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
+	"git.kwkaiser.io/kwkaiser/housing/internal/listing/jsonfile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 )
 
@@ -81,6 +84,43 @@ func (s Store) Save(p Profile) error {
 		return err
 	}
 	return os.Rename(tmp.Name(), s.path(p.ID))
+}
+
+func (s Store) References(ctx context.Context, p Profile) ([]ReferenceInput, error) {
+	listings, err := (jsonfile.Persister{}).Load(ctx, s.ListingsDir(p.ID))
+	if err != nil {
+		return nil, err
+	}
+	byID := map[string]listing.Listing{}
+	for _, l := range listings {
+		byID[string(l.Source)+"/"+l.SourceID] = l
+	}
+
+	var refs []ReferenceInput
+	for _, r := range p.References {
+		l, ok := byID[string(r.Source)+"/"+r.SourceID]
+		if !ok {
+			return nil, fmt.Errorf("reference %s/%s missing from %s", r.Source, r.SourceID, s.ListingsDir(p.ID))
+		}
+		collages, err := ReadCollages(s.Media(p.ID), r.Collages)
+		if err != nil {
+			return nil, err
+		}
+		refs = append(refs, ReferenceInput{Listing: l, Collages: collages})
+	}
+	return refs, nil
+}
+
+func ReadCollages(store media.DiskStore, keys []string) ([][]byte, error) {
+	out := make([][]byte, 0, len(keys))
+	for _, key := range keys {
+		b, err := os.ReadFile(store.Path(key))
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, b)
+	}
+	return out, nil
 }
 
 func (s Store) path(id string) string {

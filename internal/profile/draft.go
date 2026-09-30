@@ -163,6 +163,21 @@ Rules:
 - ids are short unique snake_case strings.
 - "name" is a short title for the profile; "summary" is one or two sentences describing the overall vibe.`
 
+var criterionSchema = `{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "label", "look_for", "not_this", "keywords", "importance", "evidence"],
+  "properties": {
+    "id": {"type": "string"},
+    "label": {"type": "string"},
+    "look_for": {"type": "string"},
+    "not_this": {"type": "string"},
+    "keywords": {"type": "array", "items": {"type": "string"}},
+    "importance": {"type": "string", "enum": ["essential", "high", "medium", "low"]},
+    "evidence": {"type": "string", "enum": ["photos", "description", "either"]}
+  }
+}`
+
 var draftSchema = json.RawMessage(`{
   "type": "object",
   "additionalProperties": false,
@@ -170,24 +185,8 @@ var draftSchema = json.RawMessage(`{
   "properties": {
     "name": {"type": "string"},
     "summary": {"type": "string"},
-    "want": {"type": "array", "items": {"$ref": "#/$defs/criterion"}},
-    "avoid": {"type": "array", "items": {"$ref": "#/$defs/criterion"}},
+    "want": {"type": "array", "items": ` + criterionSchema + `},
+    "avoid": {"type": "array", "items": ` + criterionSchema + `},
     "ignore": {"type": "array", "items": {"type": "string"}}
-  },
-  "$defs": {
-    "criterion": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "label", "look_for", "not_this", "keywords", "importance", "evidence"],
-      "properties": {
-        "id": {"type": "string"},
-        "label": {"type": "string"},
-        "look_for": {"type": "string"},
-        "not_this": {"type": "string"},
-        "keywords": {"type": "array", "items": {"type": "string"}},
-        "importance": {"type": "string", "enum": ["essential", "high", "medium", "low"]},
-        "evidence": {"type": "string", "enum": ["photos", "description", "either"]}
-      }
-    }
   }
 }`)

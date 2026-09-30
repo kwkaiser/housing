@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -177,7 +176,7 @@ func draftProfile(ctx context.Context, out io.Writer, cfg config.Config, store p
 	if err != nil {
 		return err
 	}
-	refs, err := loadReferences(ctx, store, *p)
+	refs, err := store.References(ctx, *p)
 	if err != nil {
 		return err
 	}
@@ -192,36 +191,6 @@ func draftProfile(ctx context.Context, out io.Writer, cfg config.Config, store p
 	}
 	fmt.Fprintf(out, "drafted: %d want, %d avoid with %s ($%.4f)\n", len(p.Want), len(p.Avoid), meta.Model, meta.CostUSD)
 	return nil
-}
-
-func loadReferences(ctx context.Context, store profile.Store, p profile.Profile) ([]profile.ReferenceInput, error) {
-	listings, err := (jsonfile.Persister{}).Load(ctx, store.ListingsDir(p.ID))
-	if err != nil {
-		return nil, err
-	}
-	byID := map[string]listing.Listing{}
-	for _, l := range listings {
-		byID[string(l.Source)+"/"+l.SourceID] = l
-	}
-
-	media := store.Media(p.ID)
-	var refs []profile.ReferenceInput
-	for _, r := range p.References {
-		l, ok := byID[string(r.Source)+"/"+r.SourceID]
-		if !ok {
-			return nil, fmt.Errorf("reference %s/%s missing from %s", r.Source, r.SourceID, store.ListingsDir(p.ID))
-		}
-		in := profile.ReferenceInput{Listing: l}
-		for _, key := range r.Collages {
-			b, err := os.ReadFile(media.Path(key))
-			if err != nil {
-				return nil, err
-			}
-			in.Collages = append(in.Collages, b)
-		}
-		refs = append(refs, in)
-	}
-	return refs, nil
 }
 
 func lookupFor(rawURL string, runner apify.Runner) (listing.Lookup, error) {

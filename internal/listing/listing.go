@@ -50,21 +50,22 @@ type Address struct {
 }
 
 type Listing struct {
-	Source      Source           `json:"source"`
-	SourceID    string           `json:"source_id"`
-	URL         string           `json:"url"`
-	Offer       OfferType        `json:"offer"`
-	Price       Money            `json:"price"`
-	Address     Address          `json:"address"`
-	Coordinates *Coordinates     `json:"coordinates,omitempty"`
-	Beds        *int             `json:"beds,omitempty"`
-	Baths       *float64         `json:"baths,omitempty"`
-	SqFt        *int             `json:"sqft,omitempty"`
-	Amenities   map[Amenity]bool `json:"amenities,omitempty"`
-	Description string           `json:"description,omitempty"`
-	Photos      []string         `json:"photos"`
-	Collages    []string         `json:"collages,omitempty"`
-	ListedAt    *time.Time       `json:"listed_at,omitempty"`
-	ObservedAt  time.Time        `json:"observed_at"`
-	Raw         json.RawMessage  `json:"raw,omitempty"`
+	Source      Source                           `json:"source"`
+	SourceID    string                           `json:"source_id"`
+	URL         string                           `json:"url"`
+	Offer       OfferType                        `json:"offer"`
+	Price       Money                            `json:"price"`
+	Address     Address                          `json:"address"`
+	Coordinates *Coordinates                     `json:"coordinates,omitempty"`
+	Beds        *int                             `json:"beds,omitempty"`
+	Baths       *float64                         `json:"baths,omitempty"`
+	SqFt        *int                             `json:"sqft,omitempty"`
+	Amenities   map[Amenity]bool                 `json:"amenities,omitempty"`
+	Description string                           `json:"description,omitempty"`
+	Photos      []string                         `json:"photos"`
+	Collages    []string                         `json:"collages,omitempty"`
+	Assessments map[string]map[string]Assessment `json:"assessments,omitempty"`
+	ListedAt    *time.Time                       `json:"listed_at,omitempty"`
+	ObservedAt  time.Time                        `json:"observed_at"`
+	Raw         json.RawMessage                  `json:"raw,omitempty"`
 }
