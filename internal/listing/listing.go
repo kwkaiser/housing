@@ -32,38 +32,38 @@ const (
 )
 
 type Money struct {
-	Cents    int64
-	Currency string
+	Cents    int64  `json:"cents"`
+	Currency string `json:"currency"`
 }
 
 type Coordinates struct {
-	Lat float64
-	Lng float64
+	Lat float64 `json:"lat"`
+	Lng float64 `json:"lng"`
 }
 
 type Address struct {
-	Formatted  string
-	Street     string
-	Unit       string
-	City       string
-	State      string
-	PostalCode string
+	Formatted  string `json:"formatted"`
+	Street     string `json:"street,omitempty"`
+	Unit       string `json:"unit,omitempty"`
+	City       string `json:"city,omitempty"`
+	State      string `json:"state,omitempty"`
+	PostalCode string `json:"postal_code,omitempty"`
 }
 
 type Listing struct {
-	Source      Source
-	SourceID    string
-	URL         string
-	Offer       OfferType
-	Price       Money
-	Address     Address
-	Coordinates *Coordinates
-	Beds        *int
-	Baths       *float64
-	SqFt        *int
-	Amenities   map[Amenity]bool
-	Photos      []string
-	ListedAt    *time.Time
-	ObservedAt  time.Time
-	Raw         json.RawMessage
+	Source      Source           `json:"source"`
+	SourceID    string           `json:"source_id"`
+	URL         string           `json:"url"`
+	Offer       OfferType        `json:"offer"`
+	Price       Money            `json:"price"`
+	Address     Address          `json:"address"`
+	Coordinates *Coordinates     `json:"coordinates,omitempty"`
+	Beds        *int             `json:"beds,omitempty"`
+	Baths       *float64         `json:"baths,omitempty"`
+	SqFt        *int             `json:"sqft,omitempty"`
+	Amenities   map[Amenity]bool `json:"amenities,omitempty"`
+	Photos      []string         `json:"photos"`
+	ListedAt    *time.Time       `json:"listed_at,omitempty"`
+	ObservedAt  time.Time        `json:"observed_at"`
+	Raw         json.RawMessage  `json:"raw,omitempty"`
 }
