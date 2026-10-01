@@ -11,23 +11,61 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 )
 
+type cell struct {
+	Text string
+	Sort string
+}
+
+type column struct {
+	Label string
+	Cell  func(Row) cell
+}
+
+func (r Report) scoreColumns() []column {
+	var cols []column
+	switch {
+	case len(r.Templates) > 1:
+		for _, id := range r.ProfileIDs() {
+			cols = append(cols, column{Label: id, Cell: func(row Row) cell {
+				if g, ok := row.Grades[id]; ok {
+					return cell{match(g), num(g.Match)}
+				}
+				return cell{"-", ""}
+			}})
+		}
+	case len(r.Models) > 1:
+		for _, m := range r.Models {
+			cols = append(cols, column{Label: shortModel(m), Cell: func(row Row) cell {
+				if a, ok := row.ByModel[m]; ok {
+					return cell{fmt.Sprintf("%.1f", a.Score), num(a.Score)}
+				}
+				return cell{"-", ""}
+			}})
+		}
+	}
+	return cols
+}
+
 func Table(w io.Writer, r Report) error {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	header := []string{"#", "SCORE"}
-	if len(r.Models) > 1 {
-		for _, m := range r.Models {
-			header = append(header, strings.ToUpper(shortModel(m)))
-		}
+	extra := r.scoreColumns()
+	header := []string{"#", "MATCH", "SCORE"}
+	if len(r.Templates) > 1 {
+		header = append(header, "PROFILE")
+	}
+	for _, c := range extra {
+		header = append(header, strings.ToUpper(c.Label))
 	}
 	header = append(header, "COV", "VIBE", "MISSING", "DEALBREAKERS", "PRICE", "BEDS", "SOURCE", "ADDRESS", "URL")
 	fmt.Fprintln(tw, strings.Join(header, "\t"))
 
 	for _, row := range r.Rows {
-		cols := []string{strconv.Itoa(row.Rank), score(row)}
-		if len(r.Models) > 1 {
-			for _, m := range r.Models {
-				cols = append(cols, modelScore(row, m))
-			}
+		cols := []string{strconv.Itoa(row.Rank), match(row.Grade), fmt.Sprintf("%.1f", row.Score)}
+		if len(r.Templates) > 1 {
+			cols = append(cols, row.Profile)
+		}
+		for _, c := range extra {
+			cols = append(cols, c.Cell(row).Text)
 		}
 		cols = append(cols,
 			fmt.Sprintf("%.0f%%", row.Coverage),
@@ -36,7 +74,7 @@ func Table(w io.Writer, r Report) error {
 			dash(strings.Join(row.Dealbreakers, ",")),
 			price(row.Listing),
 			beds(row.Listing),
-			string(row.Listing.Source),
+			sources(row),
 			address(row.Listing),
 			row.Listing.URL,
 		)
@@ -45,40 +83,6 @@ func Table(w io.Writer, r Report) error {
 	if err := tw.Flush(); err != nil {
 		return err
 	}
-	return footer(w, r)
-}
-
-func Markdown(w io.Writer, r Report) error {
-	fmt.Fprintf(w, "# %s\n\n", cmpStr(r.Profile.Name, r.Profile.ID))
-	if r.Profile.Summary != "" {
-		fmt.Fprintf(w, "%s\n\n", r.Profile.Summary)
-	}
-	fmt.Fprintf(w, "Profile `%s`, graded by %s.\n\n", r.Profile.ID, strings.Join(r.Models, ", "))
-
-	for _, row := range r.Rows {
-		fmt.Fprintf(w, "- **#%d · %s** — [%s](%s) (%s)\n", row.Rank, score(row), address(row.Listing), row.Listing.URL, row.Listing.Source)
-		fmt.Fprintf(w, "  - %s · %s · coverage %.0f%% · vibe %g/5\n", price(row.Listing), bedsLabel(row.Listing), row.Coverage, row.Vibe)
-		if len(r.Models) > 1 {
-			var scores []string
-			for _, m := range r.Models {
-				scores = append(scores, shortModel(m)+" "+modelScore(row, m))
-			}
-			fmt.Fprintf(w, "  - Scores: %s\n", strings.Join(scores, ", "))
-		}
-		if len(row.Dealbreakers) > 0 {
-			fmt.Fprintf(w, "  - Dealbreakers: %s\n", strings.Join(row.Dealbreakers, ", "))
-		}
-		if len(row.MissingEssentials) > 0 {
-			fmt.Fprintf(w, "  - Missing essentials: %s\n", strings.Join(row.MissingEssentials, ", "))
-		}
-		if len(row.AvoidsHit) > 0 {
-			fmt.Fprintf(w, "  - Avoids hit: %s\n", strings.Join(row.AvoidsHit, ", "))
-		}
-		if row.Summary != "" {
-			fmt.Fprintf(w, "  - %s\n", strings.ReplaceAll(row.Summary, "\n", " "))
-		}
-	}
-	fmt.Fprintln(w)
 	return footer(w, r)
 }
 
@@ -92,33 +96,49 @@ func JSON(w io.Writer, r Report) error {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(struct {
-		Profile string   `json:"profile"`
-		Models  []string `json:"models"`
-		Rows    []Row    `json:"rows"`
-	}{r.Profile.ID, r.Models, rows})
+		Profiles     []string `json:"profiles"`
+		Models       []string `json:"models"`
+		Uncalibrated []string `json:"uncalibrated,omitempty"`
+		Rows         []Row    `json:"rows"`
+	}{r.ProfileIDs(), r.Models, r.Uncalibrated, rows})
 }
 
 func footer(w io.Writer, r Report) error {
-	if r.Stale > 0 {
-		_, err := fmt.Fprintf(w, "\n%d listing(s) omitted because their assessment is stale (profile or listing changed); rerun `housing assess` or pass --include-stale.\n", r.Stale)
-		return err
+	for _, n := range r.notes() {
+		if _, err := fmt.Fprintf(w, "\n%s\n", n); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func score(row Row) string {
-	s := fmt.Sprintf("%.1f", row.Score)
-	if row.Stale {
+func (r Report) notes() []string {
+	var out []string
+	if r.Stale > 0 {
+		out = append(out, fmt.Sprintf("%d listing(s) omitted because their assessment is stale (profile or listing changed); rerun `housing assess` or pass --include-stale.", r.Stale))
+	}
+	if r.Dealbreakers > 0 {
+		out = append(out, fmt.Sprintf("%d listing(s) hidden because they hit a dealbreaker; pass --include-dealbreakers to show them.", r.Dealbreakers))
+	}
+	if len(r.Uncalibrated) > 0 {
+		out = append(out, fmt.Sprintf("Match equals the raw score for %s: its reference listing has not been graded; rerun `housing assess`.", strings.Join(r.Uncalibrated, ", ")))
+	}
+	return out
+}
+
+func match(g Grade) string {
+	s := fmt.Sprintf("%.0f%%", g.Match)
+	if !g.Calibrated {
+		s = fmt.Sprintf("%.1f", g.Match)
+	}
+	if g.Stale {
 		s += "*"
 	}
 	return s
 }
 
-func modelScore(row Row, model string) string {
-	if a, ok := row.ByModel[model]; ok {
-		return fmt.Sprintf("%.1f", a.Score)
-	}
-	return "-"
+func num(f float64) string {
+	return strconv.FormatFloat(f, 'f', -1, 64)
 }
 
 func shortModel(m string) string {
@@ -155,6 +175,14 @@ func beds(l listing.Listing) string {
 		return "studio"
 	}
 	return strconv.Itoa(*l.Beds)
+}
+
+func sources(row Row) string {
+	names := []string{string(row.Listing.Source)}
+	for _, d := range row.AlsoListed {
+		names = append(names, string(d.Source))
+	}
+	return strings.Join(names, "+")
 }
 
 func address(l listing.Listing) string {

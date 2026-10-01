@@ -12,6 +12,7 @@ tasks:
   build:
     sources:
       - "**/*.go"
+      - "**/*.tmpl"
       - go.mod
       - go.sum
     generates:

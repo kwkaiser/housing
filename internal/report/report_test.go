@@ -2,6 +2,7 @@ package report
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -14,6 +15,8 @@ var testProfile = profile.Profile{
 	Name: "Attic",
 	Want: []profile.Criterion{{ID: "skylights", Label: "Skylights", Importance: profile.Essential, Evidence: profile.EvidenceEither}},
 }
+
+var single = []Template{{Profile: testProfile}}
 
 func assessed(id string, source listing.Source, cents int64, scores map[string]float64) listing.Listing {
 	l := listing.Listing{
@@ -54,7 +57,7 @@ func TestBuild(t *testing.T) {
 		stale,
 	}
 
-	r := Build(testProfile, listings, Options{})
+	r := Build(single, listings, Options{})
 	var ids []string
 	for _, row := range r.Rows {
 		ids = append(ids, row.Listing.SourceID)
@@ -69,7 +72,7 @@ func TestBuild(t *testing.T) {
 		t.Errorf("stale=%d models=%v", r.Stale, r.Models)
 	}
 
-	byModel := Build(testProfile, listings, Options{Model: "a/m1", Top: 2})
+	byModel := Build(single, listings, Options{Model: "a/m1", Top: 2})
 	if len(byModel.Rows) != 2 || byModel.Rows[0].Listing.SourceID != "both" || byModel.Rows[0].Score != 80 {
 		t.Errorf("model filter + top: %+v", byModel.Rows)
 	}
@@ -77,47 +80,140 @@ func TestBuild(t *testing.T) {
 	sale := assessed("sale", listing.SourceZillow, 100, map[string]float64{"a/m1": 50})
 	sale.Offer = listing.OfferSale
 	sale = sale.WithAssessment(testProfile.ID, listing.Assessment{Model: "a/m1", Score: 50, ProfileHash: testProfile.Hash(), InputHash: profile.InputHash(sale)})
-	rentOnly := Build(testProfile, append(listings, sale), Options{Offer: listing.OfferRent})
+	rentOnly := Build(single, append(listings, sale), Options{Offer: listing.OfferRent})
 	for _, row := range rentOnly.Rows {
 		if row.Listing.Offer != listing.OfferRent {
 			t.Errorf("offer filter leaked %s", row.Listing.SourceID)
 		}
 	}
-	saleOnly := Build(testProfile, append(listings, sale), Options{Offer: listing.OfferSale})
+	saleOnly := Build(single, append(listings, sale), Options{Offer: listing.OfferSale})
 	if len(saleOnly.Rows) != 1 || saleOnly.Rows[0].Listing.SourceID != "sale" {
 		t.Errorf("sale filter: %+v", saleOnly.Rows)
 	}
 
-	withStale := Build(testProfile, listings, Options{IncludeStale: true, MinScore: 90})
+	withStale := Build(single, listings, Options{IncludeStale: true, MinScore: 90})
 	if len(withStale.Rows) != 1 || !withStale.Rows[0].Stale {
 		t.Errorf("include stale + min score: %+v", withStale.Rows)
 	}
 }
 
-func TestRender(t *testing.T) {
-	r := Build(testProfile, []listing.Listing{
-		assessed("both", listing.SourceZillow, 250000, map[string]float64{"a/m1": 80, "b/m2": 60}),
-	}, Options{})
+func TestBuildHidesDealbreakers(t *testing.T) {
+	bad := assessed("bad", listing.SourceZillow, 100, map[string]float64{"a/m1": 90})
+	a := bad.Assessments["attic"]["a/m1"]
+	a.Dealbreakers = []string{"corporate"}
+	bad.Assessments["attic"]["a/m1"] = a
+	good := assessed("good", listing.SourceZillow, 100, map[string]float64{"a/m1": 10})
 
-	var md bytes.Buffer
-	if err := Markdown(&md, r); err != nil {
+	r := Build(single, []listing.Listing{bad, good}, Options{})
+	if len(r.Rows) != 1 || r.Rows[0].Listing.SourceID != "good" || r.Rows[0].Rank != 1 || r.Dealbreakers != 1 {
+		t.Errorf("dealbreakers should be hidden by default: %+v %d", r.Rows, r.Dealbreakers)
+	}
+	if r := Build(single, []listing.Listing{bad, good}, Options{Dealbreakers: true}); len(r.Rows) != 2 || r.Dealbreakers != 0 {
+		t.Errorf("--include-dealbreakers should keep them: %+v", r.Rows)
+	}
+}
+
+func TestBuildDuplicates(t *testing.T) {
+	beds := 2
+	at := func(l listing.Listing) listing.Listing {
+		l.Address = listing.Address{Formatted: "9 Kidder Ave #2, Somerville, MA", Street: "9 Kidder Ave", Unit: "2", PostalCode: "02144"}
+		l.Beds = &beds
+		return l
+	}
+	z := at(listing.Listing{Source: listing.SourceZillow, SourceID: "z", URL: "https://example.com/z", Offer: listing.OfferRent, Price: listing.Money{Cents: 280000, Currency: "USD"}})
+	c := at(assessed("c", listing.SourceCraigslist, 280000, map[string]float64{"a/m1": 60}))
+
+	r := Build(single, []listing.Listing{z, c}, Options{})
+	if len(r.Rows) != 1 {
+		t.Fatalf("duplicates should share one row: %+v", r.Rows)
+	}
+	row := r.Rows[0]
+	if row.Listing.SourceID != "c" || len(row.AlsoListed) != 1 || row.AlsoListed[0].URL != "https://example.com/z" {
+		t.Errorf("row should use the assessed listing and link the other: %+v", row)
+	}
+}
+
+func TestBuildTemplates(t *testing.T) {
+	loft := profile.Profile{
+		ID:   "loft",
+		Want: []profile.Criterion{{ID: "arches", Label: "Arched windows", Importance: profile.High, Evidence: profile.EvidencePhotos}},
+	}
+	grade := func(l listing.Listing, p profile.Profile, score float64) listing.Listing {
+		return l.WithAssessment(p.ID, listing.Assessment{Model: "a/m1", Score: score, ProfileHash: p.Hash(), InputHash: profile.InputHash(l)})
+	}
+	atticRef := grade(listing.Listing{Source: listing.SourceZillow, SourceID: "attic-ref"}, testProfile, 80)
+	loftRef := grade(listing.Listing{Source: listing.SourceZillow, SourceID: "loft-ref"}, loft, 40)
+	templates := []Template{{Profile: testProfile, References: []listing.Listing{atticRef}}, {Profile: loft, References: []listing.Listing{loftRef}}}
+
+	atticish := grade(grade(listing.Listing{Source: listing.SourceZillow, SourceID: "atticish"}, testProfile, 60), loft, 10)
+	loftish := grade(grade(listing.Listing{Source: listing.SourceZillow, SourceID: "loftish"}, testProfile, 20), loft, 36)
+	loftOnly := grade(listing.Listing{Source: listing.SourceZillow, SourceID: "loft-only"}, loft, 20)
+
+	r := Build(templates, []listing.Listing{atticish, loftish, loftOnly}, Options{})
+	var got []string
+	for _, row := range r.Rows {
+		got = append(got, fmt.Sprintf("%s:%s:%g", row.Listing.SourceID, row.Profile, row.Match))
+	}
+	if want := "loftish:loft:90,atticish:attic:75,loft-only:loft:50"; strings.Join(got, ",") != want {
+		t.Errorf("rows = %s, want %s", strings.Join(got, ","), want)
+	}
+	if g := r.Rows[0].Grades["attic"]; g.Match != 25 || !g.Calibrated || len(r.Rows[0].Grades) != 2 {
+		t.Errorf("every profile's grade should be kept: %+v", r.Rows[0].Grades)
+	}
+	if len(r.Uncalibrated) != 0 {
+		t.Errorf("uncalibrated = %v", r.Uncalibrated)
+	}
+
+	var page bytes.Buffer
+	if err := HTML(&page, r); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"# Attic", "- **#1 · 70.0** — [both Main St](https://example.com/both) (zillow)", "  - $2,500/mo · beds unknown · coverage 100% · vibe 3/5", "  - Scores: m1 80.0, m2 60.0", "  - both summary"} {
-		if !strings.Contains(md.String(), want) {
-			t.Errorf("markdown missing %q:\n%s", want, md.String())
+	for _, want := range []string{`<th>Profile</th>`, `<th data-type="num">loft</th>`, `<td class="num" data-sort="90">90%</td>`, `<td class="num" data-sort="25">25%</td>`} {
+		if !strings.Contains(page.String(), want) {
+			t.Errorf("html missing %q", want)
 		}
 	}
 
-	if strings.Contains(md.String(), "|") {
-		t.Errorf("markdown should not contain tables:\n%s", md.String())
+	loftRef.Assessments = nil
+	templates[1].References = []listing.Listing{loftRef}
+	if r := Build(templates, []listing.Listing{loftOnly}, Options{}); r.Rows[0].Match != 20 || strings.Join(r.Uncalibrated, ",") != "loft" {
+		t.Errorf("without a graded reference, match should fall back to the score: %+v %v", r.Rows[0].Grade, r.Uncalibrated)
+	}
+}
+
+func TestRender(t *testing.T) {
+	r := Build(single, []listing.Listing{
+		assessed("both", listing.SourceZillow, 250000, map[string]float64{"a/m1": 80, "b/m2": 60}),
+	}, Options{})
+	r.Rows[0].AlsoListed = []Link{{Source: listing.SourceRedfin, URL: "https://example.com/r", Price: listing.Money{Cents: 260000, Currency: "USD"}}}
+
+	var page bytes.Buffer
+	if err := HTML(&page, r); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"<title>Attic</title>",
+		`<td class="num score" data-sort="70">70.0</td>`,
+		`<td class="num" data-sort="80">80.0</td>`,
+		`<td class="num" data-sort="250000">$2,500/mo</td>`,
+		`<a href="https://example.com/both">both Main St</a>`,
+		`<a href="https://example.com/both">zillow</a>, <a href="https://example.com/r">redfin</a>`,
+		"both summary",
+		"<th data-hidden>Dealbreakers</th>",
+		"<summary>Profiles</summary>",
+		"<li>Skylights <span class=\"tags\">essential</span></li>",
+		`<details class="picker"><summary>Columns</summary><div id="columns"></div></details>`,
+	} {
+		if !strings.Contains(page.String(), want) {
+			t.Errorf("html missing %q:\n%s", want, page.String())
+		}
 	}
 
 	var table bytes.Buffer
 	if err := Table(&table, r); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(table.String(), "https://example.com/both") || !strings.Contains(table.String(), "M1") {
+	if !strings.Contains(table.String(), "https://example.com/both") || !strings.Contains(table.String(), "M1") || !strings.Contains(table.String(), "zillow+redfin") {
 		t.Errorf("table:\n%s", table.String())
 	}
 

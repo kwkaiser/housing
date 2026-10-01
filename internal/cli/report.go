@@ -16,30 +16,32 @@ type reportFlags struct {
 }
 
 func (r *reportFlags) register(fs *pflag.FlagSet, withModel bool) {
-	fs.StringVar(&r.format, "format", "table", "table, markdown or json")
+	fs.StringVar(&r.format, "format", "table", "table, html or json")
 	fs.StringVarP(&r.output, "output", "o", "", "write the report to a file instead of stdout")
 	fs.BoolVar(&r.opts.IncludeStale, "include-stale", false, "include assessments made against an older profile or listing")
-	fs.Float64Var(&r.opts.MinScore, "min-score", 0, "omit listings scoring below this")
+	fs.BoolVar(&r.opts.Dealbreakers, "include-dealbreakers", false, "include listings that hit a dealbreaker")
+	fs.Float64Var(&r.opts.MinScore, "min-score", 0, "omit listings whose best match is below this")
 	fs.IntVar(&r.opts.Top, "top", 0, "show only the top N listings (0 for all)")
 	if withModel {
 		fs.StringVar(&r.opts.Model, "model", "", "rank by a single grading model (default: average of all models)")
 	}
 }
 
-func (r *reportFlags) options(profileID string, mode profile.Mode) pipeline.ReportOptions {
+func (r *reportFlags) options(profileIDs []string, mode profile.Mode) pipeline.ReportOptions {
 	opts := r.opts
 	if mode != "" {
 		opts.Offer = mode.Offer()
 	}
-	return pipeline.ReportOptions{ProfileID: profileID, Format: r.format, Output: r.output, Report: opts}
+	return pipeline.ReportOptions{ProfileIDs: profileIDs, Format: r.format, Output: r.output, Report: opts}
 }
 
 func newReportCmd(dataDir, profilesDir *string) *cobra.Command {
 	var r reportFlags
-	var profileID, mode string
+	var profileIDs []string
+	var mode string
 	cmd := &cobra.Command{
 		Use:   "report",
-		Short: "Rank assessed listings for a profile",
+		Short: "Rank assessed listings against one or more profiles",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var m profile.Mode
@@ -49,12 +51,12 @@ func newReportCmd(dataDir, profilesDir *string) *cobra.Command {
 					return err
 				}
 			}
-			return newEnv(cmd, *dataDir, *profilesDir).Report(cmd.Context(), r.options(profileID, m))
+			return newEnv(cmd, *dataDir, *profilesDir).Report(cmd.Context(), r.options(profileIDs, m))
 		},
 	}
 	f := cmd.Flags()
 	r.register(f, true)
-	f.StringVar(&profileID, "profile", "", "profile id")
+	f.StringSliceVar(&profileIDs, "profile", nil, "profile ids to rank against; listings rank by their best match (repeatable)")
 	f.StringVar(&mode, "mode", "", "only report rent or buy listings (default: both)")
 	cmd.MarkFlagRequired("profile")
 	return cmd

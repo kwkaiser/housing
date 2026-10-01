@@ -6,26 +6,27 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/report"
 )
 
 type ReportOptions struct {
-	ProfileID string
-	Format    string
-	Output    string
-	Report    report.Options
+	ProfileIDs []string
+	Format     string
+	Output     string
+	Report     report.Options
 }
 
 var renderers = map[string]func(io.Writer, report.Report) error{
-	"table":    report.Table,
-	"markdown": report.Markdown,
-	"json":     report.JSON,
+	"table": report.Table,
+	"html":  report.HTML,
+	"json":  report.JSON,
 }
 
 func ValidFormat(format string) error {
 	if _, ok := renderers[format]; !ok {
-		return fmt.Errorf("invalid format %q: use table, markdown or json", format)
+		return fmt.Errorf("invalid format %q: use table, html or json", format)
 	}
 	return nil
 }
@@ -34,7 +35,7 @@ func (e *Env) Report(ctx context.Context, o ReportOptions) error {
 	if err := ValidFormat(o.Format); err != nil {
 		return err
 	}
-	p, err := e.profiles().Effective(o.ProfileID)
+	templates, err := e.templates(ctx, o.ProfileIDs)
 	if err != nil {
 		return err
 	}
@@ -42,9 +43,10 @@ func (e *Env) Report(ctx context.Context, o ReportOptions) error {
 	if err != nil {
 		return err
 	}
-	r := report.Build(p, listings, o.Report)
-	if len(r.Rows) == 0 && r.Stale == 0 {
-		return fmt.Errorf("no listings in %s have been assessed against %q; run `housing assess --profile %s` first", e.DataDir, p.ID, p.ID)
+	r := report.Build(templates, listings, o.Report)
+	if len(r.Rows) == 0 && r.Stale == 0 && r.Dealbreakers == 0 {
+		ids := strings.Join(o.ProfileIDs, ",")
+		return fmt.Errorf("no listings in %s have been assessed against %s; run `housing assess --profile %s` first", e.DataDir, ids, ids)
 	}
 
 	render := renderers[o.Format]

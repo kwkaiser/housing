@@ -11,6 +11,7 @@ import (
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/apify"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
+	"git.kwkaiser.io/kwkaiser/housing/internal/listing/dedupe"
 	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/providers/craigslist"
@@ -109,14 +110,6 @@ func (e *Env) Fetch(ctx context.Context, o FetchOptions) ([]listing.Listing, err
 	}
 	listings := slices.Concat(results...)
 
-	if o.Photos && len(listings) > 0 {
-		p := media.NewProcessor(media.NewHTTPFetcher(), e.images(), media.NewGrid())
-		if err := p.FetchPhotos(ctx, listings); err != nil {
-			return nil, err
-		}
-		e.printf("photos: downloaded\n")
-	}
-
 	stored, err := e.persister().Load(ctx, e.DataDir)
 	if err != nil {
 		return nil, err
@@ -127,7 +120,42 @@ func (e *Env) Fetch(ctx context.Context, o FetchOptions) ([]listing.Listing, err
 		return nil, err
 	}
 	e.printf("stored: %d listings in %s\n", len(listings), e.DataDir)
+
+	distinct := FreshGroups(stored, listings)
+	dupes := 0
+	for _, g := range distinct {
+		dupes += len(g.Others)
+	}
+	if dupes > 0 {
+		e.printf("dedupe: %d distinct listings, %d duplicates across sources\n", len(distinct), dupes)
+	}
+	listings = dedupe.Primaries(distinct)
+
+	if o.Photos && len(listings) > 0 {
+		p := media.NewProcessor(media.NewHTTPFetcher(), e.images(), media.NewGrid())
+		if err := p.FetchPhotos(ctx, listings); err != nil {
+			return nil, err
+		}
+		e.printf("photos: downloaded\n")
+	}
 	return listings, nil
+}
+
+func FreshGroups(stored, fresh []listing.Listing) []dedupe.Group {
+	isFresh := make(map[string]bool, len(fresh))
+	for _, l := range fresh {
+		isFresh[dedupe.Key(l)] = true
+	}
+	all := slices.DeleteFunc(slices.Clone(stored), func(l listing.Listing) bool { return isFresh[dedupe.Key(l)] })
+	all = append(all, fresh...)
+
+	var out []dedupe.Group
+	for _, g := range dedupe.Groups(all) {
+		if slices.ContainsFunc(g.Members(), func(l listing.Listing) bool { return isFresh[dedupe.Key(l)] }) {
+			out = append(out, g)
+		}
+	}
+	return out
 }
 
 func CarryOver(stored, fresh []listing.Listing) []listing.Listing {

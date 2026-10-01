@@ -119,7 +119,7 @@ func TestSearch(t *testing.T) {
 	if l.Address.Formatted != "Benton Rd, Tufts University" {
 		t.Errorf("address = %q", l.Address.Formatted)
 	}
-	if l.Coordinates == nil || l.Coordinates.Lat != 42.403933 || l.ListedAt == nil || !l.ListedAt.Equal(time.Date(2026, 9, 29, 23, 30, 0, 0, time.UTC)) {
+	if l.Coordinates == nil || l.Coordinates.Lat != 42.403933 || l.Coordinates.Lng != -71.110973 || l.ListedAt == nil || !l.ListedAt.Equal(time.Date(2026, 9, 29, 23, 30, 0, 0, time.UTC)) {
 		t.Errorf("coords/listed = %+v %v", l.Coordinates, l.ListedAt)
 	}
 	if len(l.Photos) != 3 || !strings.HasSuffix(l.Photos[0], "_1200x900.jpg") {

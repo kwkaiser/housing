@@ -72,8 +72,10 @@ func toListing(raw json.RawMessage, now time.Time) (listing.Listing, bool, error
 		ObservedAt:  observed,
 		Raw:         raw,
 	}
-	if lat, lng := parseFloat(it.Latitude), parseFloat(it.Longitude); lat != nil && lng != nil {
-		l.Coordinates = &listing.Coordinates{Lat: *lat, Lng: *lng}
+	lat, latErr := strconv.ParseFloat(strings.TrimSpace(it.Latitude), 64)
+	lng, lngErr := strconv.ParseFloat(strings.TrimSpace(it.Longitude), 64)
+	if latErr == nil && lngErr == nil {
+		l.Coordinates = &listing.Coordinates{Lat: lat, Lng: lng}
 	}
 	if t, err := time.Parse(postedLayout, it.Datetime); err == nil {
 		t = t.UTC()

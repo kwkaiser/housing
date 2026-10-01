@@ -3,8 +3,15 @@ package openrouter
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"os"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -129,5 +136,49 @@ func TestCompleteClientError(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "bad schema") {
 		t.Errorf("error should surface the API message: %v", err)
+	}
+}
+
+func TestCompleteRetriesBrokenBodies(t *testing.T) {
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if calls.Add(1) == 1 {
+			w.Header().Set("Content-Length", strconv.Itoa(len(okBody)))
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(okBody[:10]))
+			w.(http.Flusher).Flush()
+			conn, _, _ := w.(http.Hijacker).Hijack()
+			conn.Close()
+			return
+		}
+		w.Write([]byte(okBody))
+	}))
+	defer srv.Close()
+
+	c := NewClient("key", WithServerURL(srv.URL), WithRetries(4, time.Millisecond, time.Millisecond))
+	if _, err := c.Complete(context.Background(), Request{Model: "m", User: []Part{TextPart("hi")}}); err != nil {
+		t.Fatal(err)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("calls = %d, want a retry after the body was cut off", calls.Load())
+	}
+}
+
+func TestTransient(t *testing.T) {
+	cases := map[string]struct {
+		err  error
+		want bool
+	}{
+		"tls alert while reading": {fmt.Errorf("error reading response body: %w", &net.OpError{Op: "remote error", Err: errors.New("tls: bad record MAC")}), true},
+		"truncated body":          {fmt.Errorf("error reading response body: %w", io.ErrUnexpectedEOF), true},
+		"request already retried": {&url.Error{Op: "Post", URL: "x", Err: &net.OpError{Op: "dial", Err: errors.New("refused")}}, false},
+		"timeout":                 {&net.OpError{Op: "read", Err: os.ErrDeadlineExceeded}, false},
+		"other":                   {errors.New("bad request"), false},
+	}
+	for name, c := range cases {
+		if got := transient(c.err); got != c.want {
+			t.Errorf("%s: got %v", name, got)
+		}
 	}
 }

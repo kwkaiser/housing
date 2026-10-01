@@ -5,10 +5,14 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
+	"net"
+	"net/url"
 	"time"
 
 	sdk "github.com/OpenRouterTeam/go-sdk"
 	"github.com/OpenRouterTeam/go-sdk/models/components"
+	"github.com/OpenRouterTeam/go-sdk/models/operations"
 	"github.com/OpenRouterTeam/go-sdk/optionalnullable"
 	"github.com/OpenRouterTeam/go-sdk/retry"
 	"github.com/hashicorp/go-retryablehttp"
@@ -66,8 +70,11 @@ func ImagePart(mediaType string, data []byte) Part {
 }
 
 type Client struct {
-	sdk     *sdk.OpenRouter
-	limiter *rate.Limiter
+	sdk          *sdk.OpenRouter
+	limiter      *rate.Limiter
+	retryMax     int
+	retryWaitMin time.Duration
+	retryWaitMax time.Duration
 }
 
 var _ Completer = (*Client)(nil)
@@ -129,13 +136,16 @@ func NewClient(apiKey string, opts ...Option) *Client {
 	if s.perSecond > 0 {
 		limit = rate.Limit(s.perSecond)
 	}
-	return &Client{sdk: sdk.New(sdkOpts...), limiter: rate.NewLimiter(limit, max(s.burst, 1))}
+	return &Client{
+		sdk:          sdk.New(sdkOpts...),
+		limiter:      rate.NewLimiter(limit, max(s.burst, 1)),
+		retryMax:     s.retryMax,
+		retryWaitMin: s.retryWaitMin,
+		retryWaitMax: s.retryWaitMax,
+	}
 }
 
 func (c *Client) Complete(ctx context.Context, req Request) (Response, error) {
-	if err := c.limiter.Wait(ctx); err != nil {
-		return Response{}, err
-	}
 	chat := components.ChatRequest{
 		Model:    &req.Model,
 		Messages: messages(req),
@@ -156,10 +166,40 @@ func (c *Client) Complete(ctx context.Context, req Request) (Response, error) {
 		chat.ResponseFormat = &format
 	}
 
-	res, err := c.sdk.Chat.Send(ctx, chat, nil)
-	if err != nil {
-		return Response{}, fmt.Errorf("openrouter: %w", err)
+	wait := c.retryWaitMin
+	for attempt := 0; ; attempt++ {
+		if err := c.limiter.Wait(ctx); err != nil {
+			return Response{}, err
+		}
+		res, err := c.sdk.Chat.Send(ctx, chat, nil)
+		if err == nil {
+			return response(res)
+		}
+		if attempt >= c.retryMax || ctx.Err() != nil || !transient(err) {
+			return Response{}, fmt.Errorf("openrouter: %w", err)
+		}
+		select {
+		case <-ctx.Done():
+			return Response{}, ctx.Err()
+		case <-time.After(wait):
+		}
+		wait = min(2*wait, c.retryWaitMax)
 	}
+}
+
+func transient(err error) bool {
+	var ue *url.Error
+	if errors.As(err, &ue) {
+		return false
+	}
+	if errors.Is(err, io.ErrUnexpectedEOF) {
+		return true
+	}
+	var ne net.Error
+	return errors.As(err, &ne) && !ne.Timeout()
+}
+
+func response(res *operations.SendChatCompletionRequestResponse) (Response, error) {
 	if res == nil || res.ChatResult == nil {
 		return Response{}, ErrEmptyResponse
 	}

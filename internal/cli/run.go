@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -22,12 +23,14 @@ func newRunCmd(dataDir, profilesDir *string) *cobra.Command {
 		Long: "Run the whole pipeline for a profile's saved search: fetch listings from every source in parallel,\n" +
 			"download photos, build collages, grade the fetched listings in parallel, then report on every\n" +
 			"assessed listing for the profile and mode. Each stage saves its results before the next starts.\n\n" +
-			"The report is printed and also written as Markdown to <data-dir>/reports/<profile>-<mode>.md\n" +
+			"With --profile repeated, the first profile's saved search is used, listings are graded against every\n" +
+			"profile, and each listing is ranked by its best match.\n\n" +
+			"The report is printed and also written as a sortable HTML table to <data-dir>/reports/<profiles>-<mode>.html\n" +
 			"unless --output is given.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
-			if fetch.profileID == "" {
+			if len(fetch.profileIDs) == 0 {
 				return fmt.Errorf("--profile is required")
 			}
 			if err := pipeline.ValidFormat(rep.format); err != nil {
@@ -58,7 +61,7 @@ func newRunCmd(dataDir, profilesDir *string) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				_, _, stats, err := env.Assess(ctx, assess.options(fetch.profileID, fetchOpts.Mode, nil), collaged)
+				_, _, stats, err := env.Assess(ctx, assess.options(fetch.profileIDs, fetchOpts.Mode, nil), collaged)
 				if err != nil {
 					if ctx.Err() != nil || stats.Updated == 0 && stats.Failed == 0 {
 						return err
@@ -67,7 +70,7 @@ func newRunCmd(dataDir, profilesDir *string) *cobra.Command {
 				}
 			}
 
-			reportOpts := rep.options(fetch.profileID, fetchOpts.Mode)
+			reportOpts := rep.options(fetch.profileIDs, fetchOpts.Mode)
 			reportOpts.Report.Model = assess.model
 			if reportOpts.Output != "" {
 				return env.Report(ctx, reportOpts)
@@ -75,8 +78,8 @@ func newRunCmd(dataDir, profilesDir *string) *cobra.Command {
 			if err := env.Report(ctx, reportOpts); err != nil {
 				return err
 			}
-			reportOpts.Format = "markdown"
-			reportOpts.Output = filepath.Join(env.DataDir, "reports", fmt.Sprintf("%s-%s.md", fetch.profileID, fetchOpts.Mode))
+			reportOpts.Format = "html"
+			reportOpts.Output = filepath.Join(env.DataDir, "reports", fmt.Sprintf("%s-%s.html", strings.Join(fetch.profileIDs, "+"), fetchOpts.Mode))
 			return env.Report(ctx, reportOpts)
 		},
 	}

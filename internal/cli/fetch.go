@@ -16,7 +16,7 @@ type fetchFlags struct {
 	search           searchFlags
 	sources          []string
 	mode             string
-	profileID        string
+	profileIDs       []string
 	enrich           bool
 	photos           bool
 	maxCharge        float64
@@ -27,7 +27,7 @@ func (f *fetchFlags) register(fs *pflag.FlagSet) {
 	f.search.register(fs)
 	fs.StringSliceVar(&f.sources, "source", []string{string(listing.SourceZillow)}, "listing sources to search in parallel (repeatable)")
 	fs.StringVar(&f.mode, "mode", string(profile.ModeRent), "rent or buy")
-	fs.StringVar(&f.profileID, "profile", "", "use this profile's saved search for --mode")
+	fs.StringSliceVar(&f.profileIDs, "profile", nil, "use this profile's saved search for --mode (the first, if repeated)")
 	fs.BoolVar(&f.enrich, "enrich", true, "fetch listing details (splits buildings into units)")
 	fs.BoolVar(&f.photos, "photos", true, "download listing photos")
 	fs.Float64Var(&f.maxCharge, "max-charge", 1, "maximum Apify charge in USD per actor run")
@@ -39,7 +39,7 @@ func (f *fetchFlags) options(cmd *cobra.Command, env *pipeline.Env) (pipeline.Fe
 	if err != nil {
 		return pipeline.FetchOptions{}, err
 	}
-	base, err := env.SavedSearch(f.profileID, mode)
+	base, err := env.SavedSearch(f.searchProfile(), mode)
 	if err != nil && !(errors.Is(err, pipeline.ErrNoSavedSearch) && cmd.Flags().Changed("location")) {
 		return pipeline.FetchOptions{}, err
 	}
@@ -60,6 +60,13 @@ func (f *fetchFlags) options(cmd *cobra.Command, env *pipeline.Env) (pipeline.Fe
 		MaxChargeUSD:     f.maxCharge,
 		ApifyConcurrency: f.apifyConcurrency,
 	}, nil
+}
+
+func (f *fetchFlags) searchProfile() string {
+	if len(f.profileIDs) == 0 {
+		return ""
+	}
+	return f.profileIDs[0]
 }
 
 func newFetchCmd(dataDir, profilesDir *string) *cobra.Command {

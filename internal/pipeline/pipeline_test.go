@@ -71,3 +71,21 @@ func TestCarryOver(t *testing.T) {
 		t.Error("carry over must match on source as well as id")
 	}
 }
+
+func TestFreshGroups(t *testing.T) {
+	beds := 2
+	addr := listing.Address{Street: "23 Everett St", PostalCode: "02138"}
+	l := func(source listing.Source, id string) listing.Listing {
+		return listing.Listing{Source: source, SourceID: id, Offer: listing.OfferRent, Beds: &beds, Address: addr, Price: listing.Money{Cents: 280000, Currency: "USD"}}
+	}
+	stored := []listing.Listing{
+		l(listing.SourceZillow, "z").WithAssessment("attic", listing.Assessment{Model: "m"}),
+		{Source: listing.SourceZillow, SourceID: "old", Offer: listing.OfferRent, Address: listing.Address{Street: "1 Elm St"}},
+	}
+	fresh := []listing.Listing{l(listing.SourceFacebook, "f"), l(listing.SourceRedfin, "r")}
+
+	got := FreshGroups(stored, fresh)
+	if len(got) != 1 || got[0].Primary.SourceID != "z" || len(got[0].Others) != 2 {
+		t.Errorf("fresh duplicates of an assessed listing should collapse onto it: %+v", got)
+	}
+}
