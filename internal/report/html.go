@@ -43,6 +43,9 @@ func HTML(w io.Writer, r Report) error {
 		p := r.Templates[0].Profile
 		title = cmpStr(p.Name, p.ID)
 	}
+	if r.Day != "" {
+		title += " · " + r.Day
+	}
 	return htmlTemplate.Execute(w, struct {
 		Report
 		Title   string

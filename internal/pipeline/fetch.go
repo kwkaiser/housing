@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
@@ -18,6 +19,7 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/providers/facebook"
 	"git.kwkaiser.io/kwkaiser/housing/internal/providers/redfin"
 	"git.kwkaiser.io/kwkaiser/housing/internal/providers/zillow"
+	"git.kwkaiser.io/kwkaiser/housing/internal/store"
 )
 
 const DefaultFetchLimit = 10
@@ -25,6 +27,7 @@ const DefaultFetchLimit = 10
 var ErrNoSavedSearch = errors.New("no saved search")
 
 type FetchOptions struct {
+	Collection       string
 	Sources          []listing.Source
 	Mode             profile.Mode
 	Search           profile.Search
@@ -64,6 +67,7 @@ func (e *Env) Fetch(ctx context.Context, o FetchOptions) ([]listing.Listing, err
 		return nil, fmt.Errorf("at least one source is required")
 	}
 	q := o.Search.Query(o.Mode)
+	day := store.Day(time.Now())
 
 	token, err := e.Config.Apify()
 	if err != nil {
@@ -93,6 +97,12 @@ func (e *Env) Fetch(ctx context.Context, o FetchOptions) ([]listing.Listing, err
 		providers[i] = p
 	}
 
+	db, err := e.openStore(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
 	results := make([][]listing.Listing, len(providers))
 	g, gctx := errgroup.WithContext(ctx)
 	for i, p := range providers {
@@ -110,16 +120,16 @@ func (e *Env) Fetch(ctx context.Context, o FetchOptions) ([]listing.Listing, err
 	}
 	listings := slices.Concat(results...)
 
-	stored, err := e.persister().Load(ctx, e.DataDir)
+	stored, err := db.Load(ctx)
 	if err != nil {
 		return nil, err
 	}
 	listings = CarryOver(stored, listings)
 
-	if err := e.persister().Persist(ctx, e.DataDir, listings); err != nil {
+	if err := db.Observe(ctx, day, o.Collection, listings); err != nil {
 		return nil, err
 	}
-	e.printf("stored: %d listings in %s\n", len(listings), e.DataDir)
+	e.printf("stored: %d listings observed on %s in %s\n", len(listings), day, e.DataDir)
 
 	distinct := FreshGroups(stored, listings)
 	dupes := 0

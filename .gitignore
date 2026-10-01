@@ -5,3 +5,4 @@ bin/
 .env
 data/
 profiles/
+collections/

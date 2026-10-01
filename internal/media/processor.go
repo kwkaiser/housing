@@ -225,13 +225,28 @@ func (p *Processor) decode(ctx context.Context, key string) (image.Image, error)
 }
 
 func (p *Processor) setKey(urls []string) string {
-	h := digest.String(p.Collager.ID() + "\n" + strings.Join(urls, "\n"))
+	ids := make([]string, len(urls))
+	for i, u := range urls {
+		ids[i] = PhotoID(u)
+	}
+	h := digest.String(p.Collager.ID() + "\n" + strings.Join(ids, "\n"))
 	return "collages/" + h[:2] + "/" + h
 }
 
 func PhotoKey(rawURL string) string {
-	h := digest.String(rawURL)
+	h := digest.String(PhotoID(rawURL))
 	return "photos/" + h[:2] + "/" + h + photoExt(rawURL)
+}
+
+func PhotoID(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return rawURL
+	}
+	if strings.HasSuffix(u.Hostname(), ".fbcdn.net") {
+		return "fbcdn:" + u.Path
+	}
+	return rawURL
 }
 
 func photoExt(rawURL string) string {

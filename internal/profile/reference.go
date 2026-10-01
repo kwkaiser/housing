@@ -2,6 +2,7 @@ package profile
 
 import (
 	"context"
+	"sync"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing/jsonfile"
@@ -57,4 +58,41 @@ func (s *BatchStats) Add(o BatchStats) {
 	s.OverBudget += o.OverBudget
 	s.Failed += o.Failed
 	s.CostUSD += o.CostUSD
+}
+
+type Budget struct {
+	mu    sync.Mutex
+	max   float64
+	spent float64
+}
+
+func NewBudget(maxUSD float64) *Budget {
+	return &Budget{max: maxUSD}
+}
+
+func (b *Budget) Exhausted() bool {
+	if b == nil || b.max <= 0 {
+		return false
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.spent >= b.max
+}
+
+func (b *Budget) Spend(usd float64) {
+	if b == nil {
+		return
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.spent += usd
+}
+
+func (b *Budget) Spent() float64 {
+	if b == nil {
+		return 0
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.spent
 }

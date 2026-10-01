@@ -7,38 +7,63 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
 	"git.kwkaiser.io/kwkaiser/housing/internal/pipeline"
 )
 
-func newRunCmd(dataDir, profilesDir *string) *cobra.Command {
+func newRunCmd(dataDir, profilesDir, collectionsDir *string) *cobra.Command {
 	var (
-		fetch   fetchFlags
-		collage collageFlags
-		assess  assessFlags
-		rep     reportFlags
+		fetch        fetchFlags
+		collage      collageFlags
+		assess       assessFlags
+		rep          reportFlags
+		collectionID string
 	)
 	cmd := &cobra.Command{
 		Use:   "run",
 		Short: "Fetch, collage, assess and report in one pass",
-		Long: "Run the whole pipeline for a profile's saved search: fetch listings from every source in parallel,\n" +
-			"download photos, build collages, grade the fetched listings in parallel, then report on every\n" +
-			"assessed listing for the profile and mode. Each stage saves its results before the next starts.\n\n" +
-			"With --profile repeated, the first profile's saved search is used, listings are graded against every\n" +
-			"profile, and each listing is ranked by its best match.\n\n" +
-			"The report is printed and also written as a sortable HTML table to <data-dir>/reports/<profiles>-<mode>.html\n" +
+		Long: "Run the whole pipeline: fetch listings from every source in parallel, download photos, build\n" +
+			"collages, grade the fetched listings, then report on the day's graded listings. Each stage saves\n" +
+			"its results before the next starts, and listings already graded are not graded again.\n\n" +
+			"With --collection, the collection's search, sources, mode, profiles, model and run budget are used;\n" +
+			"flags given explicitly override them. Without it, --profile is required and the first profile's\n" +
+			"saved search is used. Each listing is ranked by its best match across the profiles.\n\n" +
+			"Only one run may use a data directory at a time, so overlapping cron jobs fail fast.\n\n" +
+			"The report is printed and also written as a sortable HTML table to <data-dir>/reports/<name>-<mode>.html\n" +
 			"unless --output is given.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
-			if len(fetch.profileIDs) == 0 {
-				return fmt.Errorf("--profile is required")
-			}
+			changed := cmd.Flags().Changed
 			if err := pipeline.ValidFormat(rep.format); err != nil {
 				return err
 			}
 			env := newEnv(cmd, *dataDir, *profilesDir)
 
-			fetchOpts, err := fetch.options(cmd, env)
+			var c *collection.Collection
+			profileIDs := fetch.profileIDs
+			name := strings.Join(profileIDs, "+")
+			if collectionID != "" {
+				loaded, err := collection.Store{Root: *collectionsDir}.Load(collectionID)
+				if err != nil {
+					return err
+				}
+				c, name = &loaded, loaded.ID
+				if !changed("profile") {
+					profileIDs = c.Profiles
+				}
+				if !changed("model") && c.Model != "" {
+					assess.model = c.Model
+				}
+				if !changed("max-run-cost-usd") {
+					assess.maxRunCost = c.MaxRunCostUSD
+				}
+			}
+			if len(profileIDs) == 0 {
+				return fmt.Errorf("--profile or --collection is required")
+			}
+
+			fetchOpts, err := fetch.options(cmd, env, c)
 			if err != nil {
 				return err
 			}
@@ -49,6 +74,12 @@ func newRunCmd(dataDir, profilesDir *string) *cobra.Command {
 			if _, err := env.Config.OpenRouter(); err != nil {
 				return err
 			}
+
+			unlock, err := env.Lock()
+			if err != nil {
+				return err
+			}
+			defer unlock()
 
 			fetched, err := env.Fetch(ctx, fetchOpts)
 			if err != nil {
@@ -61,7 +92,9 @@ func newRunCmd(dataDir, profilesDir *string) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				_, _, stats, err := env.Assess(ctx, assess.options(fetch.profileIDs, fetchOpts.Mode, nil), collaged)
+				assessOpts := assess.options(profileIDs, fetchOpts.Mode, nil)
+				assessOpts.Collection = fetchOpts.Collection
+				_, _, stats, err := env.Assess(ctx, assessOpts, collaged)
 				if err != nil {
 					if ctx.Err() != nil || stats.Updated == 0 && stats.Failed == 0 {
 						return err
@@ -70,7 +103,8 @@ func newRunCmd(dataDir, profilesDir *string) *cobra.Command {
 				}
 			}
 
-			reportOpts := rep.options(fetch.profileIDs, fetchOpts.Mode)
+			reportOpts := rep.options(profileIDs, fetchOpts.Mode)
+			reportOpts.Collection = fetchOpts.Collection
 			reportOpts.Report.Model = assess.model
 			if reportOpts.Output != "" {
 				return env.Report(ctx, reportOpts)
@@ -79,7 +113,7 @@ func newRunCmd(dataDir, profilesDir *string) *cobra.Command {
 				return err
 			}
 			reportOpts.Format = "html"
-			reportOpts.Output = filepath.Join(env.DataDir, "reports", fmt.Sprintf("%s-%s.html", strings.Join(fetch.profileIDs, "+"), fetchOpts.Mode))
+			reportOpts.Output = filepath.Join(env.DataDir, "reports", fmt.Sprintf("%s-%s.html", name, fetchOpts.Mode))
 			return env.Report(ctx, reportOpts)
 		},
 	}
@@ -88,6 +122,6 @@ func newRunCmd(dataDir, profilesDir *string) *cobra.Command {
 	collage.register(f, "force-collage", false)
 	assess.register(f, "assess-limit")
 	rep.register(f, false)
-	cmd.MarkFlagRequired("profile")
+	f.StringVar(&collectionID, "collection", "", "run this collection")
 	return cmd
 }

@@ -12,7 +12,9 @@ import (
 )
 
 type ReportOptions struct {
+	Collection string
 	ProfileIDs []string
+	Day        string
 	Format     string
 	Output     string
 	Report     report.Options
@@ -39,14 +41,29 @@ func (e *Env) Report(ctx context.Context, o ReportOptions) error {
 	if err != nil {
 		return err
 	}
-	listings, err := e.persister().Load(ctx, e.DataDir)
+	db, err := e.openStore(ctx)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	day := o.Day
+	if day == "" {
+		if day, err = db.LatestDay(ctx, o.Collection); err != nil {
+			return err
+		}
+		if day == "" {
+			return noListings(o.Collection)
+		}
+	}
+	listings, err := db.LoadDay(ctx, day, o.Collection)
 	if err != nil {
 		return err
 	}
 	r := report.Build(templates, listings, o.Report)
+	r.Day = day
 	if len(r.Rows) == 0 && r.Stale == 0 && r.Dealbreakers == 0 {
 		ids := strings.Join(o.ProfileIDs, ",")
-		return fmt.Errorf("no listings in %s have been assessed against %s; run `housing assess --profile %s` first", e.DataDir, ids, ids)
+		return fmt.Errorf("no listings observed on %s have been assessed against %s; run `housing assess --profile %s` first", day, ids, ids)
 	}
 
 	render := renderers[o.Format]

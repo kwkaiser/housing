@@ -56,6 +56,7 @@ type Link struct {
 }
 
 type Report struct {
+	Day          string
 	Templates    []Template
 	Models       []string
 	Rows         []Row

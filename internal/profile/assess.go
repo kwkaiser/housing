@@ -326,6 +326,7 @@ type BatchOptions struct {
 	Limit           int
 	Concurrency     int
 	MaxCostUSD      float64
+	Budget          *Budget
 	Checkpoint      func([]listing.Listing) error
 	CheckpointEvery int
 }
@@ -392,7 +393,7 @@ func (a Assessor) AssessListings(
 		members := groups[key]
 		g.Go(func() error {
 			mu.Lock()
-			overBudget := opts.MaxCostUSD > 0 && stats.CostUSD >= opts.MaxCostUSD
+			overBudget := opts.MaxCostUSD > 0 && stats.CostUSD >= opts.MaxCostUSD || opts.Budget.Exhausted()
 			if overBudget {
 				stats.OverBudget += len(members)
 			}
@@ -404,6 +405,7 @@ func (a Assessor) AssessListings(
 
 			result, err := a.assessOne(ctx, p, refs, first, readCollages)
 
+			opts.Budget.Spend(result.CostUSD)
 			mu.Lock()
 			defer mu.Unlock()
 			stats.CostUSD += result.CostUSD

@@ -203,3 +203,15 @@ func TestHTTPFetcherRejectsNonImage(t *testing.T) {
 		t.Fatal("expected error for non-image response")
 	}
 }
+
+func TestPhotoID(t *testing.T) {
+	a := "https://scontent-msp1-1.xx.fbcdn.net/v/t39.84726-6/825_n.jpg?stp=dst-jpg_s960x960&_nc_ohc=one&oe=AAA"
+	b := "https://scontent-ord5-2.xx.fbcdn.net/v/t39.84726-6/825_n.jpg?stp=dst-jpg_s960x960&_nc_ohc=two&oe=BBB"
+	if PhotoID(a) != PhotoID(b) || PhotoKey(a) != PhotoKey(b) {
+		t.Errorf("facebook photos should be keyed by path: %s vs %s", PhotoKey(a), PhotoKey(b))
+	}
+	z := "https://photos.zillowstatic.com/fp/abc-uncropped_scaled_within_1536_1152.jpg"
+	if PhotoID(z) != z || PhotoKey(z) == PhotoKey(z+"?x=1") {
+		t.Error("other providers should keep their full url as the key")
+	}
+}

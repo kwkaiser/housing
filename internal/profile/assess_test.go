@@ -176,6 +176,21 @@ func TestAssessListingsBudget(t *testing.T) {
 	}
 }
 
+func TestAssessListingsSharedBudget(t *testing.T) {
+	cc := &countingCompleter{reply: assessReply, cost: 0.01}
+	a := Assessor{Client: cc, Model: "test/model"}
+	budget := NewBudget(0.035)
+	opts := BatchOptions{Concurrency: 1, MaxCostUSD: 1, Budget: budget}
+	_, first, _ := a.AssessListings(context.Background(), testProfile, nil, manyListings(2), readAny, opts)
+	_, second, _ := a.AssessListings(context.Background(), testProfile, nil, manyListings(4), readAny, opts)
+	if first.Calls != 2 || second.Calls != 2 || second.OverBudget != 2 || budget.Spent() < 0.039 || !budget.Exhausted() {
+		t.Errorf("first=%+v second=%+v spent=%v, want the budget shared across batches", first, second, budget.Spent())
+	}
+	if (*Budget)(nil).Exhausted() || NewBudget(0).Exhausted() {
+		t.Error("a missing or zero budget should never be exhausted")
+	}
+}
+
 func TestAssessListingsCheckpoints(t *testing.T) {
 	a := Assessor{Client: &countingCompleter{reply: assessReply}, Model: "test/model"}
 	var saved []int

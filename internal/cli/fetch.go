@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/apify"
+	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/pipeline"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
@@ -34,7 +35,10 @@ func (f *fetchFlags) register(fs *pflag.FlagSet) {
 	fs.IntVar(&f.apifyConcurrency, "apify-concurrency", apify.DefaultConcurrency, "maximum concurrent Apify actor runs")
 }
 
-func (f *fetchFlags) options(cmd *cobra.Command, env *pipeline.Env) (pipeline.FetchOptions, error) {
+func (f *fetchFlags) options(cmd *cobra.Command, env *pipeline.Env, c *collection.Collection) (pipeline.FetchOptions, error) {
+	if c != nil {
+		return f.collectionOptions(cmd, *c)
+	}
 	mode, err := profile.ParseMode(f.mode)
 	if err != nil {
 		return pipeline.FetchOptions{}, err
@@ -62,6 +66,31 @@ func (f *fetchFlags) options(cmd *cobra.Command, env *pipeline.Env) (pipeline.Fe
 	}, nil
 }
 
+func (f *fetchFlags) collectionOptions(cmd *cobra.Command, c collection.Collection) (pipeline.FetchOptions, error) {
+	o := pipeline.FetchOptions{
+		Collection:       c.ID,
+		Sources:          c.Sources,
+		Mode:             c.Mode,
+		Enrich:           f.enrich,
+		Photos:           f.photos,
+		MaxChargeUSD:     f.maxCharge,
+		ApifyConcurrency: f.apifyConcurrency,
+	}
+	var err error
+	if cmd.Flags().Changed("mode") {
+		if o.Mode, err = profile.ParseMode(f.mode); err != nil {
+			return pipeline.FetchOptions{}, err
+		}
+	}
+	if cmd.Flags().Changed("source") {
+		o.Sources = toSources(f.sources)
+	}
+	if o.Search, err = f.search.apply(cmd, c.Search); err != nil {
+		return pipeline.FetchOptions{}, err
+	}
+	return o, nil
+}
+
 func (f *fetchFlags) searchProfile() string {
 	if len(f.profileIDs) == 0 {
 		return ""
@@ -79,7 +108,7 @@ func newFetchCmd(dataDir, profilesDir *string) *cobra.Command {
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			env := newEnv(cmd, *dataDir, *profilesDir)
-			opts, err := f.options(cmd, env)
+			opts, err := f.options(cmd, env, nil)
 			if err != nil {
 				return err
 			}

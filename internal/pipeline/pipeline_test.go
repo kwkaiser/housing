@@ -3,11 +3,14 @@ package pipeline
 import (
 	"bytes"
 	"context"
+	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/config"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
+	"git.kwkaiser.io/kwkaiser/housing/internal/listing/jsonfile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 )
 
@@ -88,4 +91,49 @@ func TestFreshGroups(t *testing.T) {
 	if len(got) != 1 || got[0].Primary.SourceID != "z" || len(got[0].Others) != 2 {
 		t.Errorf("fresh duplicates of an assessed listing should collapse onto it: %+v", got)
 	}
+}
+
+func TestImportJSON(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	env := &Env{DataDir: dir, Out: &bytes.Buffer{}}
+	ls := []listing.Listing{
+		{Source: listing.SourceZillow, SourceID: "1", Offer: listing.OfferRent, ObservedAt: time.Date(2026, 9, 28, 12, 0, 0, 0, time.UTC)},
+		{Source: listing.SourceRedfin, SourceID: "2", Offer: listing.OfferRent, ObservedAt: time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC)},
+	}
+	if err := (jsonfile.Persister{}).Persist(ctx, dir, ls); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.openStore(ctx); !errors.Is(err, ErrNotImported) {
+		t.Fatalf("unimported JSON should be reported: %v", err)
+	}
+	if err := env.ImportJSON(ctx); err != nil {
+		t.Fatal(err)
+	}
+	db, err := env.openStore(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	got, err := db.Load(ctx)
+	if err != nil || len(got) != 2 {
+		t.Fatalf("got %d listings, %v", len(got), err)
+	}
+}
+
+func TestLock(t *testing.T) {
+	env := &Env{DataDir: t.TempDir()}
+	unlock, err := env.Lock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.Lock(); !errors.Is(err, ErrLocked) {
+		t.Errorf("second lock should fail: %v", err)
+	}
+	unlock()
+	again, err := env.Lock()
+	if err != nil {
+		t.Fatalf("lock after unlock: %v", err)
+	}
+	again()
 }

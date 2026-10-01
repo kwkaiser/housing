@@ -1,14 +1,19 @@
 package pipeline
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/config"
-	"git.kwkaiser.io/kwkaiser/housing/internal/listing/jsonfile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
+	"git.kwkaiser.io/kwkaiser/housing/internal/store"
 )
 
 type Env struct {
@@ -26,8 +31,23 @@ func (e *Env) printf(format string, args ...any) {
 	fmt.Fprintf(e.Out, format, args...)
 }
 
-func (e *Env) persister() jsonfile.Persister {
-	return jsonfile.Persister{}
+var ErrNotImported = errors.New("listings have not been imported into the database")
+
+func (e *Env) openStore(ctx context.Context) (*store.Store, error) {
+	path := filepath.Join(e.DataDir, store.FileName)
+	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
+		legacy, err := filepath.Glob(filepath.Join(e.DataDir, "*.json"))
+		if err != nil {
+			return nil, err
+		}
+		if len(legacy) > 0 {
+			return nil, fmt.Errorf("%w: %s holds JSON listings; run `housing import-json` first", ErrNotImported, e.DataDir)
+		}
+	}
+	if err := os.MkdirAll(e.DataDir, 0o755); err != nil {
+		return nil, err
+	}
+	return store.Open(ctx, path)
 }
 
 func (e *Env) images() media.DiskStore {
@@ -36,4 +56,11 @@ func (e *Env) images() media.DiskStore {
 
 func (e *Env) profiles() profile.Store {
 	return profile.Store{Root: e.ProfilesDir}
+}
+
+func noListings(collection string) error {
+	if collection != "" {
+		return fmt.Errorf("collection %q has no fetched listings yet; run `housing run --collection %s`", collection, collection)
+	}
+	return fmt.Errorf("no listings have been fetched yet")
 }

@@ -14,6 +14,7 @@ type assessFlags struct {
 	limit       int
 	concurrency int
 	maxCost     float64
+	maxRunCost  float64
 	force       bool
 }
 
@@ -22,6 +23,7 @@ func (a *assessFlags) register(fs *pflag.FlagSet, limitName string) {
 	fs.IntVar(&a.limit, limitName, 20, "maximum model calls per profile (0 for no limit)")
 	fs.IntVar(&a.concurrency, "concurrency", pipeline.DefaultAssessConcurrency, "concurrent model calls")
 	fs.Float64Var(&a.maxCost, "max-cost-usd", 1, "stop starting model calls for a profile once this much has been spent on it (0 for no cap)")
+	fs.Float64Var(&a.maxRunCost, "max-run-cost-usd", 0, "stop starting model calls once this much has been spent across all profiles (0 for no cap)")
 	fs.BoolVar(&a.force, "force", false, "reassess listings that already have a current assessment")
 }
 
@@ -34,28 +36,37 @@ func (a *assessFlags) options(profileIDs []string, mode profile.Mode, ids []stri
 		Limit:       a.limit,
 		Concurrency: a.concurrency,
 		MaxCostUSD:  a.maxCost,
+		MaxRunUSD:   a.maxRunCost,
 		Force:       a.force,
 	}
 }
 
-func newAssessCmd(dataDir, profilesDir *string) *cobra.Command {
+func newAssessCmd(dataDir, profilesDir, collectionsDir *string) *cobra.Command {
 	var a assessFlags
 	var profileIDs, ids []string
-	var mode string
+	var mode, day, collectionID string
 	cmd := &cobra.Command{
 		Use:   "assess",
-		Short: "Grade stored listings against one or more profiles",
+		Short: "Grade the latest day's listings against one or more profiles",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			var m profile.Mode
-			if mode != "" {
-				var err error
-				if m, err = profile.ParseMode(mode); err != nil {
-					return err
+			sc, err := resolveScope(cmd, *collectionsDir, collectionID, profileIDs, mode)
+			if err != nil {
+				return err
+			}
+			if c := sc.collection; c != nil {
+				if !cmd.Flags().Changed("model") && c.Model != "" {
+					a.model = c.Model
+				}
+				if !cmd.Flags().Changed("max-run-cost-usd") {
+					a.maxRunCost = c.MaxRunCostUSD
 				}
 			}
 			env := newEnv(cmd, *dataDir, *profilesDir)
-			templates, assessed, _, err := env.Assess(cmd.Context(), a.options(profileIDs, m, ids), nil)
+			opts := a.options(sc.profileIDs, sc.mode, ids)
+			opts.Day = day
+			opts.Collection = sc.collectionID()
+			templates, assessed, _, err := env.Assess(cmd.Context(), opts, nil)
 			if assessed != nil {
 				cmd.Println()
 				if terr := report.Table(cmd.OutOrStdout(), report.Build(templates, assessed, report.Options{Model: a.model})); terr != nil && err == nil {
@@ -70,6 +81,7 @@ func newAssessCmd(dataDir, profilesDir *string) *cobra.Command {
 	f.StringSliceVar(&profileIDs, "profile", nil, "profile ids to grade against (repeatable)")
 	f.StringSliceVar(&ids, "id", nil, "only assess listings with these source ids (repeatable)")
 	f.StringVar(&mode, "mode", "", "only assess rent or buy listings (default: both)")
-	cmd.MarkFlagRequired("profile")
+	f.StringVar(&day, "day", "", "grade listings observed on this day, YYYY-MM-DD (default: the latest day fetched)")
+	f.StringVar(&collectionID, "collection", "", "grade this collection's listings against its profiles")
 	return cmd
 }

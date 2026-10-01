@@ -15,9 +15,13 @@ type CollageOptions struct {
 }
 
 func (e *Env) Collage(ctx context.Context, o CollageOptions, listings []listing.Listing) ([]listing.Listing, error) {
+	db, err := e.openStore(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
 	if listings == nil {
-		var err error
-		if listings, err = e.persister().Load(ctx, e.DataDir); err != nil {
+		if listings, err = db.Load(ctx); err != nil {
 			return nil, err
 		}
 	}
@@ -36,7 +40,7 @@ func (e *Env) Collage(ctx context.Context, o CollageOptions, listings []listing.
 	if err != nil {
 		return nil, err
 	}
-	if err := e.persister().Persist(ctx, e.DataDir, processed); err != nil {
+	if err := db.Save(ctx, processed); err != nil {
 		return nil, err
 	}
 

@@ -1,17 +1,20 @@
 package pipeline
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing/dedupe"
 	"git.kwkaiser.io/kwkaiser/housing/internal/openrouter"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/report"
+	"git.kwkaiser.io/kwkaiser/housing/internal/store"
 )
 
 const (
@@ -20,6 +23,7 @@ const (
 )
 
 type AssessOptions struct {
+	Collection  string
 	ProfileIDs  []string
 	Model       string
 	Mode        profile.Mode
@@ -27,6 +31,8 @@ type AssessOptions struct {
 	Limit       int
 	Concurrency int
 	MaxCostUSD  float64
+	MaxRunUSD   float64
+	Day         string
 	Force       bool
 }
 
@@ -51,6 +57,7 @@ func (e *Env) templates(ctx context.Context, ids []string) ([]report.Template, e
 
 func (e *Env) Assess(ctx context.Context, o AssessOptions, listings []listing.Listing) ([]report.Template, []listing.Listing, profile.BatchStats, error) {
 	var stats profile.BatchStats
+	started := time.Now()
 	key, err := e.Config.OpenRouter()
 	if err != nil {
 		return nil, nil, stats, err
@@ -60,10 +67,31 @@ func (e *Env) Assess(ctx context.Context, o AssessOptions, listings []listing.Li
 		return nil, nil, stats, err
 	}
 
-	if listings == nil {
-		if listings, err = e.persister().Load(ctx, e.DataDir); err != nil {
+	db, err := e.openStore(ctx)
+	if err != nil {
+		return templates, nil, stats, err
+	}
+	defer db.Close()
+	day := cmp.Or(o.Day, store.Day(started))
+	switch {
+	case listings != nil:
+	case len(o.IDs) > 0:
+		if listings, err = db.Load(ctx); err != nil {
 			return templates, nil, stats, err
 		}
+	default:
+		if o.Day == "" {
+			if day, err = db.LatestDay(ctx, o.Collection); err != nil {
+				return templates, nil, stats, err
+			}
+			if day == "" {
+				return templates, nil, stats, noListings(o.Collection)
+			}
+		}
+		if listings, err = db.LoadDay(ctx, day, o.Collection); err != nil {
+			return templates, nil, stats, err
+		}
+		e.printf("assess: %d listings observed on %s\n", len(listings), day)
 	}
 	selected := listings
 	if o.Mode != "" {
@@ -83,7 +111,8 @@ func (e *Env) Assess(ctx context.Context, o AssessOptions, listings []listing.Li
 
 	client := openrouter.NewClient(key)
 	images := e.images()
-	checkpoint := func(ls []listing.Listing) error { return e.persister().Persist(ctx, e.DataDir, ls) }
+	checkpoint := func(ls []listing.Listing) error { return db.Save(ctx, ls) }
+	budget := profile.NewBudget(o.MaxRunUSD)
 	var errs []error
 	for i, t := range templates {
 		if ctx.Err() != nil {
@@ -98,7 +127,7 @@ func (e *Env) Assess(ctx context.Context, o AssessOptions, listings []listing.Li
 
 		calibrated, cs, cerr := assessor.AssessListings(ctx, p, refs, t.References,
 			func(keys []string) ([][]byte, error) { return profile.ReadCollages(e.profiles().Media(p.ID), keys) },
-			profile.BatchOptions{Force: o.Force, Concurrency: 1},
+			profile.BatchOptions{Force: o.Force, Concurrency: 1, Budget: budget},
 		)
 		stats.Add(cs)
 		if cs.Updated > 0 {
@@ -121,6 +150,7 @@ func (e *Env) Assess(ctx context.Context, o AssessOptions, listings []listing.Li
 				Limit:           o.Limit,
 				Concurrency:     cmpOr(o.Concurrency, DefaultAssessConcurrency),
 				MaxCostUSD:      o.MaxCostUSD,
+				Budget:          budget,
 				Checkpoint:      checkpoint,
 				CheckpointEvery: checkpointEvery,
 			},
@@ -128,7 +158,7 @@ func (e *Env) Assess(ctx context.Context, o AssessOptions, listings []listing.Li
 		stats.Add(s)
 		selected = assessed
 		if s.Updated > 0 {
-			if err := e.persister().Persist(ctx, e.DataDir, assessed); err != nil {
+			if err := db.Save(ctx, assessed); err != nil {
 				return templates, selected, stats, err
 			}
 		}
@@ -138,5 +168,29 @@ func (e *Env) Assess(ctx context.Context, o AssessOptions, listings []listing.Li
 		e.printf("assess (%s, %s): %d model calls ($%.4f), %d listings updated, %d already current, %d failed, %d without collages, %d over limit, %d over budget\n",
 			p.ID, o.Model, s.Calls, s.CostUSD, s.Updated, s.Cached, s.Failed, s.NoCollages, s.OverLimit, s.OverBudget)
 	}
-	return templates, selected, stats, errors.Join(errs...)
+	if budget.Exhausted() {
+		e.printf("assess: run budget of $%.2f reached; remaining listings will be graded on the next run\n", o.MaxRunUSD)
+	}
+
+	err = errors.Join(errs...)
+	run := store.Run{
+		Kind:       "assess",
+		Collection: o.Collection,
+		Day:        day,
+		StartedAt:  started,
+		FinishedAt: time.Now(),
+		Model:      o.Model,
+		Profiles:   o.ProfileIDs,
+		Calls:      stats.Calls,
+		CostUSD:    stats.CostUSD,
+		Failed:     stats.Failed,
+		OverBudget: stats.OverBudget,
+	}
+	if err != nil {
+		run.Error = err.Error()
+	}
+	if rerr := db.RecordRun(context.WithoutCancel(ctx), run); rerr != nil {
+		err = errors.Join(err, rerr)
+	}
+	return templates, selected, stats, err
 }

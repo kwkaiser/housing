@@ -35,29 +35,33 @@ func (r *reportFlags) options(profileIDs []string, mode profile.Mode) pipeline.R
 	return pipeline.ReportOptions{ProfileIDs: profileIDs, Format: r.format, Output: r.output, Report: opts}
 }
 
-func newReportCmd(dataDir, profilesDir *string) *cobra.Command {
+func newReportCmd(dataDir, profilesDir, collectionsDir *string) *cobra.Command {
 	var r reportFlags
 	var profileIDs []string
-	var mode string
+	var mode, day, collectionID string
 	cmd := &cobra.Command{
 		Use:   "report",
 		Short: "Rank assessed listings against one or more profiles",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			var m profile.Mode
-			if mode != "" {
-				var err error
-				if m, err = profile.ParseMode(mode); err != nil {
-					return err
-				}
+			sc, err := resolveScope(cmd, *collectionsDir, collectionID, profileIDs, mode)
+			if err != nil {
+				return err
 			}
-			return newEnv(cmd, *dataDir, *profilesDir).Report(cmd.Context(), r.options(profileIDs, m))
+			if c := sc.collection; c != nil && !cmd.Flags().Changed("model") && c.Model != "" {
+				r.opts.Model = c.Model
+			}
+			opts := r.options(sc.profileIDs, sc.mode)
+			opts.Day = day
+			opts.Collection = sc.collectionID()
+			return newEnv(cmd, *dataDir, *profilesDir).Report(cmd.Context(), opts)
 		},
 	}
 	f := cmd.Flags()
 	r.register(f, true)
 	f.StringSliceVar(&profileIDs, "profile", nil, "profile ids to rank against; listings rank by their best match (repeatable)")
 	f.StringVar(&mode, "mode", "", "only report rent or buy listings (default: both)")
-	cmd.MarkFlagRequired("profile")
+	f.StringVar(&day, "day", "", "report on listings observed on this day, YYYY-MM-DD (default: the latest day fetched)")
+	f.StringVar(&collectionID, "collection", "", "report on this collection's listings against its profiles")
 	return cmd
 }
