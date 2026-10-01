@@ -1,6 +1,11 @@
 package cli
 
 import (
+	"context"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/spf13/cobra"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
@@ -28,11 +33,19 @@ func newRootCmd() *cobra.Command {
 		newAssessCmd(dataDir, profilesDir, collectionsDir),
 		newReportCmd(dataDir, profilesDir, collectionsDir),
 		newImportJSONCmd(dataDir, profilesDir),
+		newPublishCmd(dataDir, profilesDir, collectionsDir),
+		newServeCmd(dataDir, profilesDir, collectionsDir),
 		newRunCmd(dataDir, profilesDir, collectionsDir),
 	)
 	return cmd
 }
 
 func Execute() error {
-	return newRootCmd().Execute()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	go func() {
+		<-ctx.Done()
+		stop()
+	}()
+	return newRootCmd().ExecuteContext(ctx)
 }

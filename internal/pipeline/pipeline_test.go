@@ -4,6 +4,10 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -136,4 +140,45 @@ func TestLock(t *testing.T) {
 		t.Fatalf("lock after unlock: %v", err)
 	}
 	again()
+}
+
+func TestServe(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "current.json"), []byte(`{"db":"housing-x.sqlite3"}`), 0o644)
+	env := &Env{Out: &bytes.Buffer{}}
+	ctx, cancel := context.WithCancel(context.Background())
+	urls := make(chan string, 1)
+	done := make(chan error, 1)
+	go func() {
+		done <- env.Serve(ctx, ServeOptions{Addr: "127.0.0.1:0", Dir: dir, Ready: func(u string) { urls <- u }})
+	}()
+
+	var base string
+	select {
+	case base = <-urls:
+	case err := <-done:
+		t.Fatalf("serve exited early: %v", err)
+	}
+	res, err := http.Get(base + "current.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(res.Body)
+	res.Body.Close()
+	if res.StatusCode != 200 || !strings.Contains(string(body), "housing-x") || res.Header.Get("Cache-Control") != "no-store" {
+		t.Errorf("got %d %q %q", res.StatusCode, body, res.Header.Get("Cache-Control"))
+	}
+
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Errorf("shutdown: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("serve did not stop after cancel")
+	}
+	if err := env.Serve(context.Background(), ServeOptions{Addr: "127.0.0.1:0", Dir: filepath.Join(dir, "missing")}); err == nil {
+		t.Error("a missing directory should be an error")
+	}
 }

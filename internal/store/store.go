@@ -365,3 +365,58 @@ func key(source listing.Source, sourceID string) string {
 func timestamp(t time.Time) string {
 	return t.UTC().Format(time.RFC3339Nano)
 }
+
+type DayCount struct {
+	Day      string
+	Listings int
+}
+
+func (s *Store) CollectionDays(ctx context.Context, collection string) ([]DayCount, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT day, count(*) FROM collection_observations WHERE collection = ? GROUP BY day ORDER BY day`, collection)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []DayCount
+	for rows.Next() {
+		var d DayCount
+		if err := rows.Scan(&d.Day, &d.Listings); err != nil {
+			return nil, err
+		}
+		out = append(out, d)
+	}
+	return out, rows.Err()
+}
+
+type Sighting struct {
+	Day        string
+	PriceCents int64
+}
+
+func (s *Store) History(ctx context.Context, collection string) (map[string][]Sighting, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT o.source, o.source_id, o.day, o.price_cents FROM observations o
+		WHERE EXISTS (SELECT 1 FROM collection_observations c
+			WHERE c.collection = ? AND c.source = o.source AND c.source_id = o.source_id)
+		ORDER BY o.day`, collection)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string][]Sighting{}
+	for rows.Next() {
+		var source, sourceID string
+		var sg Sighting
+		if err := rows.Scan(&source, &sourceID, &sg.Day, &sg.PriceCents); err != nil {
+			return nil, err
+		}
+		k := key(listing.Source(source), sourceID)
+		out[k] = append(out[k], sg)
+	}
+	return out, rows.Err()
+}
+
+func Key(l listing.Listing) string {
+	return key(l.Source, l.SourceID)
+}

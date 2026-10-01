@@ -246,3 +246,36 @@ func TestCollections(t *testing.T) {
 		t.Error("run collection not recorded")
 	}
 }
+
+func TestHistory(t *testing.T) {
+	ctx := context.Background()
+	s := open(t)
+	l := sample()
+	if err := s.Observe(ctx, "2026-09-28", "", []listing.Listing{l}); err != nil {
+		t.Fatal(err)
+	}
+	l.Price.Cents = 260000
+	if err := s.Observe(ctx, "2026-09-29", "somerville", []listing.Listing{l}); err != nil {
+		t.Fatal(err)
+	}
+	other := sample()
+	other.SourceID = "2"
+	if err := s.Observe(ctx, "2026-09-30", "somerville", []listing.Listing{l, other}); err != nil {
+		t.Fatal(err)
+	}
+
+	days, err := s.CollectionDays(ctx, "somerville")
+	if err != nil || len(days) != 2 || days[1] != (DayCount{"2026-09-30", 2}) {
+		t.Errorf("days = %+v %v", days, err)
+	}
+	h, err := s.History(ctx, "somerville")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := h[Key(l)]; len(got) != 3 || got[0] != (Sighting{"2026-09-28", 280000}) || got[2].PriceCents != 260000 {
+		t.Errorf("history should include sightings outside the collection: %+v", got)
+	}
+	if len(h[Key(other)]) != 1 {
+		t.Errorf("other history = %+v", h[Key(other)])
+	}
+}

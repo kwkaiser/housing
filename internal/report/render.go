@@ -219,3 +219,7 @@ func cmpStr(a, b string) string {
 	}
 	return b
 }
+
+func AddressLine(l listing.Listing) string {
+	return address(l)
+}

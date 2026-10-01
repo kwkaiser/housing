@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
 	"git.kwkaiser.io/kwkaiser/housing/internal/config"
 	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
@@ -17,10 +18,11 @@ import (
 )
 
 type Env struct {
-	DataDir     string
-	ProfilesDir string
-	Config      config.Config
-	Out         io.Writer
+	DataDir        string
+	ProfilesDir    string
+	CollectionsDir string
+	Config         config.Config
+	Out            io.Writer
 
 	mu sync.Mutex
 }
@@ -52,6 +54,10 @@ func (e *Env) openStore(ctx context.Context) (*store.Store, error) {
 
 func (e *Env) images() media.DiskStore {
 	return media.DiskStore{Root: e.DataDir}
+}
+
+func (e *Env) collections() collection.Store {
+	return collection.Store{Root: e.CollectionsDir}
 }
 
 func (e *Env) profiles() profile.Store {

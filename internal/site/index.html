@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Listings</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #fafaf9;
+  --fg: #1c1917;
+  --muted: #78716c;
+  --line: #e7e5e4;
+  --stripe: #f5f5f4;
+  --accent: #2563eb;
+  --bad: #dc2626;
+  --good: #15803d;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1917;
+    --fg: #e7e5e4;
+    --muted: #a8a29e;
+    --line: #44403c;
+    --stripe: #292524;
+    --accent: #60a5fa;
+    --bad: #f87171;
+    --good: #4ade80;
+  }
+}
+body { margin: 0; padding: 2rem 1rem; background: var(--bg); color: var(--fg); font: 14px/1.45 system-ui, sans-serif; }
+h1 { margin: 0 0 .75rem; font-size: 1.4rem; }
+p { margin: 0 0 1rem; color: var(--muted); max-width: 70ch; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+button, select, input[type=date] { font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: .3rem .6rem; }
+button { cursor: pointer; }
+button:disabled { opacity: .4; cursor: default; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 0 0 1rem; }
+.controls .picker { margin: 0; }
+.muted { color: var(--muted); }
+.toggle { display: inline-flex; align-items: center; gap: .35rem; cursor: pointer; user-select: none; }
+.toggle input { margin: 0; accent-color: var(--accent); }
+.wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: .5rem .75rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { position: sticky; top: 0; background: var(--bg); font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; }
+th::after { content: ""; display: inline-block; width: 1em; color: var(--muted); }
+th[aria-sort=ascending]::after { content: " ▲"; }
+th[aria-sort=descending]::after { content: " ▼"; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.score { font-weight: 600; }
+.bad { color: var(--bad); }
+.summary { min-width: 24rem; max-width: 40rem; color: var(--muted); }
+.tags { color: var(--muted); }
+.badge { display: inline-block; margin-left: .35rem; padding: 0 .4rem; border-radius: 999px; font-size: .75rem; border: 1px solid currentColor; white-space: nowrap; }
+.badge.new { color: var(--accent); }
+.badge.down { color: var(--good); }
+.badge.up { color: var(--bad); }
+.off { display: none; }
+.picker { position: relative; display: inline-block; }
+.picker summary { list-style: none; padding: .3rem .75rem; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; user-select: none; }
+.picker summary::-webkit-details-marker { display: none; }
+.picker summary::after { content: " ▾"; color: var(--muted); }
+.picker[open] summary { border-color: var(--muted); }
+#columns { position: absolute; z-index: 2; top: calc(100% + .25rem); left: 0; min-width: 12rem; max-height: 60vh; overflow-y: auto; padding: .35rem 0; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 20px rgb(0 0 0 / .15); }
+#columns label { display: flex; align-items: center; gap: .5rem; padding: .3rem .75rem; cursor: pointer; white-space: nowrap; }
+#columns label:hover { background: var(--stripe); }
+#columns input { margin: 0; accent-color: var(--accent); }
+.section { margin: 0 0 1rem; }
+.section > summary { cursor: pointer; user-select: none; font-weight: 600; padding: .25rem 0; }
+.section[open] > summary { margin-bottom: .5rem; }
+table.profiles th { cursor: default; position: static; }
+table.profiles th::after { content: none; }
+table.profiles ul { margin: 0; padding-left: 1rem; }
+table.profiles code + div { color: var(--muted); max-width: 16rem; }
+</style>
+</head>
+<body>
+<h1 id="title">Listings</h1>
+<p id="status">Loading…</p>
+<div id="app" hidden>
+<div class="controls">
+  <select id="collection" aria-label="Collection"></select>
+  <button id="prev" aria-label="Previous day">←</button>
+  <input type="date" id="day" aria-label="Day">
+  <button id="next" aria-label="Next day">→</button>
+  <label class="toggle"><input type="checkbox" id="dealbreakers"> Dealbreakers</label>
+  <details class="picker"><summary>Columns</summary><div id="columns"></div></details>
+  <span id="counts" class="muted"></span>
+</div>
+<details class="section">
+<summary>Profiles</summary>
+<div class="wrap">
+<table class="profiles">
+<thead><tr><th>Profile</th><th>Summary</th><th>Wants</th><th>Avoids</th><th>Reference</th></tr></thead>
+<tbody id="profiles"></tbody>
+</table>
+</div>
+</details>
+<div class="wrap"><table id="listings"><thead><tr></tr></thead><tbody></tbody></table></div>
+<p id="notes"></p>
+</div>
+<script type="module">
+import sqlite3InitModule from "https://cdn.jsdelivr.net/npm/@sqlite.org/sqlite-wasm@3.53.4-build1/dist/index.mjs";
+
+const SCHEMA = 1;
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const store = {
+  get(key) { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } },
+  set(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch {} },
+};
+
+async function open() {
+  const res = await fetch("current.json", { cache: "no-store" });
+  if (!res.ok) throw new Error(`current.json: ${res.status}`);
+  const current = await res.json();
+  if (current.schema > SCHEMA) throw new Error("This page is older than the published data; reload to pick up the new viewer.");
+  const [sqlite3, buf] = await Promise.all([
+    sqlite3InitModule({ print: () => {}, printErr: () => {} }),
+    fetch(current.db).then((r) => {
+      if (!r.ok) throw new Error(`${current.db}: ${r.status}`);
+      return r.arrayBuffer();
+    }),
+  ]);
+  const bytes = new Uint8Array(buf);
+  const ptr = sqlite3.wasm.allocFromTypedArray(bytes);
+  const db = new sqlite3.oo1.DB();
+  const { capi } = sqlite3;
+  db.checkRc(capi.sqlite3_deserialize(db.pointer, "main", ptr, bytes.length, bytes.length,
+    capi.SQLITE_DESERIALIZE_FREEONCLOSE | capi.SQLITE_DESERIALIZE_READONLY));
+  const version = db.selectValue("PRAGMA user_version");
+  if (version > SCHEMA) throw new Error("This page is older than the published data; reload to pick up the new viewer.");
+  return (sql, bind) => db.exec({ sql, bind, rowMode: "object", returnValue: "resultRows" });
+}
+
+const money = (cents, offer) => cents == null ? "-" : "$" + Math.round(cents / 100).toLocaleString("en-US") + (offer === "rent" ? "/mo" : "");
+const beds = (b) => b == null ? "-" : b === 0 ? "studio" : String(b);
+const match = (g) => (g.calibrated ? `${Math.round(g.match)}%` : g.match.toFixed(1)) + (g.stale ? "*" : "");
+const link = (url, text) => `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(text)}</a>`;
+
+function badges(r, day) {
+  let out = "";
+  if (r.first_seen === day) out += `<span class="badge new">new</span>`;
+  if (r.previous_price_cents != null && r.previous_price_cents !== r.price_cents) {
+    const diff = r.price_cents - r.previous_price_cents;
+    out += `<span class="badge ${diff < 0 ? "down" : "up"}">${diff < 0 ? "↓" : "↑"} ${money(Math.abs(diff))}</span>`;
+  }
+  return out;
+}
+
+function columnsFor(collection, day) {
+  const multi = collection.profiles.length > 1;
+  const cols = [
+    { label: "#", num: true, cell: (r) => [r.rank, r.rank] },
+    { label: "Match", num: true, cls: "score", cell: (r) => [match(r), r.match] },
+    { label: "Score", num: true, cell: (r) => [r.score.toFixed(1), r.score] },
+  ];
+  if (multi) {
+    cols.push({ label: "Profile", cell: (r) => [esc(r.profile)] });
+    for (const id of collection.profiles) {
+      cols.push({ label: id, num: true, cell: (r) => (r.grades[id] ? [match(r.grades[id]), r.grades[id].match] : ["-", ""]) });
+    }
+  }
+  cols.push(
+    { label: "Coverage", num: true, cell: (r) => [`${Math.round(r.coverage)}%`, r.coverage] },
+    { label: "Vibe", num: true, cell: (r) => [r.vibe, r.vibe] },
+    { label: "Price", num: true, cell: (r) => [money(r.price_cents, r.offer), r.price_cents] },
+    { label: "Beds", num: true, cell: (r) => [beds(r.beds), r.beds ?? ""] },
+    { label: "Address", cell: (r) => [link(r.url, r.address) + badges(r, day), r.address] },
+    { label: "Sources", cell: (r) => [[link(r.url, r.source), ...r.also_listed.map((d) => link(d.url, d.source))].join(", "), r.source] },
+    { label: "Dealbreakers", hidden: true, cls: "tags bad", cell: (r) => [esc(r.dealbreakers.join(", "))] },
+    { label: "Missing", hidden: true, cls: "tags", cell: (r) => [esc(r.missing.join(", "))] },
+    { label: "Avoids", hidden: true, cls: "tags", cell: (r) => [esc(r.avoids.join(", "))] },
+    { label: "Summary", cls: "summary", cell: (r) => [esc(r.summary)] },
+  );
+  return cols;
+}
+
+const query = await open().catch((err) => {
+  $("status").textContent = `Could not load listings: ${err.message}`;
+  throw err;
+});
+
+const collections = query("SELECT * FROM collections ORDER BY position").map((c) => ({
+  ...c, profiles: JSON.parse(c.profiles), models: JSON.parse(c.models),
+}));
+if (collections.length === 0) {
+  $("status").textContent = "Nothing has been published yet.";
+  throw new Error("no collections");
+}
+
+const params = new URLSearchParams(location.search);
+const shown = store.get("columns") || {};
+const state = {
+  collection: collections.find((c) => c.id === params.get("collection")) || collections[0],
+  day: params.get("day"),
+  dealbreakers: store.get("dealbreakers") === true,
+  sort: null,
+};
+let days = [];
+
+for (const c of collections) $("collection").add(new Option(`${c.id} · ${c.location} (${c.mode})`, c.id));
+$("collection").hidden = collections.length < 2;
+$("dealbreakers").checked = state.dealbreakers;
+
+function selectCollection(id) {
+  state.collection = collections.find((c) => c.id === id) || collections[0];
+  $("collection").value = state.collection.id;
+  days = query("SELECT * FROM days WHERE collection = ? ORDER BY day", [state.collection.id]);
+  $("day").min = days[0]?.day || "";
+  $("day").max = days.at(-1)?.day || "";
+  renderProfiles();
+}
+
+function renderProfiles() {
+  const rows = query("SELECT * FROM profiles WHERE collection = ? ORDER BY position", [state.collection.id]);
+  $("profiles").innerHTML = rows.map((p) => {
+    const wants = JSON.parse(p.wants).map((w) => `<li>${esc(w.label)} <span class="tags">${esc(w.importance)}</span></li>`).join("");
+    const avoids = JSON.parse(p.avoids).map((a) => `<li>${esc(a.label)}${a.dealbreaker ? ` <span class="tags bad">dealbreaker</span>` : ""}</li>`).join("");
+    const refs = JSON.parse(p.refs).map((r) => {
+      const scores = Object.entries(r.scores || {}).map(([m, s]) => ` <span class="tags">${esc(m.split("/").pop())} ${s.toFixed(1)}</span>`).join("");
+      return `<div>${link(r.url, r.address)}${scores}</div>`;
+    }).join("") || "-";
+    return `<tr><td><code>${esc(p.id)}</code><div>${esc(p.name)}</div></td><td class="summary">${esc(p.summary)}</td><td><ul>${wants}</ul></td><td><ul>${avoids}</ul></td><td>${refs}</td></tr>`;
+  }).join("");
+}
+
+function selectDay(day) {
+  const exact = days.find((d) => d.day === day);
+  const fallback = days.filter((d) => !day || d.day <= day).at(-1) || days[0];
+  const chosen = exact || fallback;
+  state.day = chosen?.day || null;
+  $("day").value = state.day || "";
+  const i = days.indexOf(chosen);
+  $("prev").disabled = i <= 0;
+  $("next").disabled = i < 0 || i >= days.length - 1;
+  $("notes").textContent = day && !exact && chosen ? `No run on ${day}; showing ${chosen.day}.` : "";
+  const url = new URL(location);
+  url.searchParams.set("collection", state.collection.id);
+  if (state.day) url.searchParams.set("day", state.day);
+  history.replaceState(null, "", url);
+  render();
+}
+
+function render() {
+  const { collection, day } = state;
+  document.title = `Listings · ${collection.id}${day ? " · " + day : ""}`;
+  $("title").textContent = `Listings · ${collection.id}`;
+  const all = day ? query("SELECT * FROM rows WHERE collection = ? AND day = ? ORDER BY ord", [collection.id, day]) : [];
+  let rows = all.map((r) => ({
+    ...r,
+    calibrated: !!r.calibrated, stale: !!r.stale,
+    missing: JSON.parse(r.missing), dealbreakers: JSON.parse(r.dealbreakers), avoids: JSON.parse(r.avoids),
+    grades: JSON.parse(r.grades), also_listed: JSON.parse(r.also_listed),
+  }));
+  const hidden = rows.filter((r) => r.dealbreakers.length > 0).length;
+  if (!state.dealbreakers) rows = rows.filter((r) => r.dealbreakers.length === 0);
+  rows.forEach((r, i) => { r.rank = i + 1; });
+
+  const info = days.find((d) => d.day === day);
+  const parts = info ? [`${info.graded} of ${info.listings} listings graded`] : ["No runs yet"];
+  if (!state.dealbreakers && hidden) parts.push(`${hidden} hidden by dealbreakers`);
+  if (rows.some((r) => r.stale)) parts.push("* graded against an older profile");
+  $("counts").textContent = parts.join(" · ");
+
+  const cols = columnsFor(collection, day);
+  if (state.sort && state.sort.col < cols.length) {
+    const { col, dir } = state.sort;
+    const key = (r) => {
+      const v = cols[col].cell(r)[1] ?? cols[col].cell(r)[0];
+      return cols[col].num ? (v === "" ? -Infinity : Number(v)) : String(v).toLowerCase();
+    };
+    rows.sort((a, b) => {
+      const x = key(a), y = key(b);
+      return (x < y ? -1 : x > y ? 1 : 0) * dir;
+    });
+  }
+
+  const head = $("listings").tHead.rows[0];
+  head.innerHTML = cols.map((c, i) => {
+    const sort = state.sort?.col === i ? ` aria-sort="${state.sort.dir > 0 ? "ascending" : "descending"}"` : "";
+    return `<th data-col="${i}"${sort}>${esc(c.label)}</th>`;
+  }).join("");
+  $("listings").tBodies[0].innerHTML = rows.map((r) => "<tr>" + cols.map((c) => {
+    const cls = [c.num ? "num" : "", c.cls || ""].join(" ").trim();
+    return `<td${cls ? ` class="${cls}"` : ""}>${c.cell(r)[0]}</td>`;
+  }).join("") + "</tr>").join("");
+
+  renderPicker(cols);
+}
+
+function renderPicker(cols) {
+  const visible = (c) => shown[c.label] ?? !c.hidden;
+  $("columns").replaceChildren(...cols.map((c, i) => {
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = visible(c);
+    box.addEventListener("change", () => {
+      shown[c.label] = box.checked;
+      store.set("columns", shown);
+      applyColumns(cols, visible);
+    });
+    const label = document.createElement("label");
+    label.append(box, c.label);
+    return label;
+  }));
+  applyColumns(cols, visible);
+}
+
+function applyColumns(cols, visible) {
+  const table = $("listings");
+  cols.forEach((c, i) => {
+    const off = !visible(c);
+    table.tHead.rows[0].cells[i].classList.toggle("off", off);
+    for (const tr of table.tBodies[0].rows) tr.cells[i].classList.toggle("off", off);
+  });
+}
+
+$("listings").tHead.addEventListener("click", (e) => {
+  const th = e.target.closest("th");
+  if (!th) return;
+  const col = Number(th.dataset.col);
+  const dir = state.sort?.col === col ? -state.sort.dir : 1;
+  state.sort = col === 0 && dir === 1 ? null : { col, dir };
+  render();
+});
+$("collection").addEventListener("change", (e) => {
+  state.sort = null;
+  selectCollection(e.target.value);
+  selectDay(null);
+});
+$("day").addEventListener("change", (e) => selectDay(e.target.value));
+$("prev").addEventListener("click", () => {
+  const i = days.findIndex((d) => d.day === state.day);
+  if (i > 0) selectDay(days[i - 1].day);
+});
+$("next").addEventListener("click", () => {
+  const i = days.findIndex((d) => d.day === state.day);
+  if (i >= 0 && i < days.length - 1) selectDay(days[i + 1].day);
+});
+$("dealbreakers").addEventListener("change", (e) => {
+  state.dealbreakers = e.target.checked;
+  store.set("dealbreakers", state.dealbreakers);
+  render();
+});
+const picker = document.querySelector(".picker");
+document.addEventListener("click", (e) => { if (!picker.contains(e.target)) picker.open = false; });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") picker.open = false; });
+
+selectCollection(state.collection.id);
+selectDay(state.day);
+$("status").hidden = true;
+$("app").hidden = false;
+</script>
+</body>
+</html>
