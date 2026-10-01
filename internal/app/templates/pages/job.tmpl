@@ -1,0 +1,39 @@
+{{define "title"}}{{.Data.Title}}{{end}}
+{{define "head"}}{{if .Data.Active}}<meta http-equiv="refresh" content="3">
+{{end}}{{end}}
+{{define "content"}}{{with .Data}}
+<p><a href="/jobs">← Jobs</a></p>
+<h1>Job {{.ID}} · {{.KindLabel}}{{with .Target}} · {{.}}{{end}} <span class="{{.StatusClass}}">{{.Status}}</span></h1>
+{{if .Active}}<p class="note running">{{if eq .Status "queued"}}Queued, waiting for the runner…{{else}}Running…{{end}} This page refreshes every few seconds.</p>{{end}}
+<dl class="fields">
+  <dt>Kind</dt><dd>{{.KindLabel}}</dd>
+  <dt>Target</dt><dd>{{if .TargetHref}}<a href="{{.TargetHref}}">{{.Target}}</a>{{else}}-{{end}}</dd>
+  <dt>Trigger</dt><dd>{{.Trigger}}</dd>
+  <dt>Created</dt><dd>{{.Created}} <span class="muted">· {{.Ago}}</span></dd>
+  <dt>Duration</dt><dd>{{.Duration}}</dd>
+  <dt>Cost</dt><dd>{{.Cost}}</dd>
+</dl>
+{{with .Error}}<h2>Error</h2>
+<pre class="error">{{.}}</pre>{{end}}
+{{if .Params}}<h2>Parameters</h2>
+<dl class="fields">
+  {{range .Params}}<dt>{{.Label}}</dt><dd>{{if .Href}}<a href="{{.Href}}">{{.Value}}</a>{{else}}{{.Value}}{{end}}</dd>
+  {{end}}
+</dl>{{end}}
+{{if or .Profile .Result}}<h2>Result</h2>
+<dl class="fields">
+  {{with .Profile}}<dt>Profile</dt><dd><a href="{{.Href}}">{{.Label}}</a>{{if ne .Label .Value}} <span class="muted">{{.Value}}</span>{{end}}</dd>
+  {{end}}{{range .Result}}<dt>{{.Label}}</dt><dd>{{if .Href}}<a href="{{.Href}}">{{.Value}}</a>{{else}}{{.Value}}{{end}}</dd>
+  {{end}}
+</dl>{{end}}
+<h2>Log</h2>
+<div class="wrap">
+<table class="events">
+<thead><tr><th>Time</th><th>Stage</th><th>Message</th></tr></thead>
+<tbody>
+{{range .Events}}<tr><td class="num">{{.Time}}</td><td class="tags">{{.Stage}}</td><td class="message">{{.Message}}</td></tr>
+{{else}}<tr><td colspan="3" class="muted">{{if .Active}}No events yet.{{else}}No events were recorded.{{end}}</td></tr>
+{{end}}</tbody>
+</table>
+</div>
+{{end}}{{end}}

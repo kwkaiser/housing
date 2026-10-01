@@ -74,7 +74,7 @@ func (a Assessor) Assess(ctx context.Context, p Profile, refs []ReferenceInput, 
 		return listing.Assessment{}, fmt.Errorf("%q is an avoid profile and cannot be assessed against directly", p.ID)
 	}
 	if len(p.Want) == 0 {
-		return listing.Assessment{}, fmt.Errorf("profile %q has no criteria; run `housing profile draft %s` first", p.ID, p.ID)
+		return listing.Assessment{}, fmt.Errorf("profile %q has no criteria; re-draft it from its profile page first", p.ID)
 	}
 	if len(c.Collages) == 0 {
 		return listing.Assessment{}, fmt.Errorf("listing %s/%s has no collages", c.Listing.Source, c.Listing.SourceID)
@@ -329,6 +329,35 @@ type BatchOptions struct {
 	Budget          *Budget
 	Checkpoint      func([]listing.Listing) error
 	CheckpointEvery int
+	Observe         func(BatchEvent)
+}
+
+type BatchEventKind string
+
+const (
+	BatchPlanned    BatchEventKind = "planned"
+	BatchStarted    BatchEventKind = "started"
+	BatchGraded     BatchEventKind = "graded"
+	BatchFailed     BatchEventKind = "failed"
+	BatchOverBudget BatchEventKind = "over_budget"
+)
+
+type BatchEvent struct {
+	Kind       BatchEventKind
+	Listing    listing.Listing
+	Units      int
+	N          int
+	Total      int
+	Assessment listing.Assessment
+	Err        error
+	Elapsed    time.Duration
+	Stats      BatchStats
+}
+
+func (o BatchOptions) observe(e BatchEvent) {
+	if o.Observe != nil {
+		o.Observe(e)
+	}
 }
 
 type BatchStats struct {
@@ -384,10 +413,13 @@ func (a Assessor) AssessListings(
 	}
 
 	var (
-		mu   sync.Mutex
-		errs []error
-		g    errgroup.Group
+		mu         sync.Mutex
+		errs       []error
+		g          errgroup.Group
+		started    int
+		budgetSeen bool
 	)
+	opts.observe(BatchEvent{Kind: BatchPlanned, Total: len(order), Stats: stats})
 	g.SetLimit(max(opts.Concurrency, 1))
 	for _, key := range order {
 		members := groups[key]
@@ -398,12 +430,25 @@ func (a Assessor) AssessListings(
 				stats.OverBudget += len(members)
 			}
 			first := out[members[0]]
+			firstOverBudget := overBudget && !budgetSeen
+			budgetSeen = budgetSeen || overBudget
+			n := started
+			if !overBudget && ctx.Err() == nil {
+				started++
+				n = started
+			}
 			mu.Unlock()
+			if firstOverBudget {
+				opts.observe(BatchEvent{Kind: BatchOverBudget, Total: len(order), N: n, Stats: stats})
+			}
 			if overBudget || ctx.Err() != nil {
 				return nil
 			}
 
+			opts.observe(BatchEvent{Kind: BatchStarted, Listing: first, Units: len(members), N: n, Total: len(order)})
+			begin := time.Now()
 			result, err := a.assessOne(ctx, p, refs, first, readCollages)
+			elapsed := time.Since(begin)
 
 			opts.Budget.Spend(result.CostUSD)
 			mu.Lock()
@@ -412,6 +457,7 @@ func (a Assessor) AssessListings(
 			if err != nil {
 				stats.Failed += len(members)
 				errs = append(errs, fmt.Errorf("assess %s/%s: %w", first.Source, first.SourceID, err))
+				opts.observe(BatchEvent{Kind: BatchFailed, Listing: first, Units: len(members), N: n, Total: len(order), Err: err, Elapsed: elapsed, Assessment: result, Stats: stats})
 				return nil
 			}
 			stats.Calls++
@@ -419,6 +465,7 @@ func (a Assessor) AssessListings(
 				out[i] = out[i].WithAssessment(p.ID, result)
 				stats.Updated++
 			}
+			opts.observe(BatchEvent{Kind: BatchGraded, Listing: first, Units: len(members), N: n, Total: len(order), Assessment: result, Elapsed: elapsed, Stats: stats})
 			if opts.Checkpoint != nil && opts.CheckpointEvery > 0 && stats.Calls%opts.CheckpointEvery == 0 {
 				if err := opts.Checkpoint(slices.Clone(out)); err != nil {
 					errs = append(errs, fmt.Errorf("checkpoint: %w", err))

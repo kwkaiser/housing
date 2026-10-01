@@ -15,6 +15,8 @@ const (
 	SourceFacebook   Source = "facebook"
 )
 
+var Sources = []Source{SourceZillow, SourceRedfin, SourceRealtor, SourceCraigslist, SourceFacebook}
+
 type OfferType string
 
 const (

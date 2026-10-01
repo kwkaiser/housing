@@ -1,0 +1,26 @@
+{{define "title"}}Profiles{{end}}
+{{define "content"}}{{with .Data}}
+<h1>Profiles</h1>
+<div class="controls"><a class="button" href="/profiles/new">New profile</a></div>
+{{if .Profiles}}
+<div class="wrap">
+<table class="profiles-table">
+<thead><tr><th>Profile</th><th>Kind</th><th>Name</th><th class="num">Wants</th><th class="num">Avoids</th><th class="num">References</th><th>Collections</th><th>Last drafted</th></tr></thead>
+<tbody>
+{{range .Profiles}}<tr>
+  <td><a href="{{.Href}}"><code>{{.ID}}</code></a></td>
+  <td><span class="kind {{.Kind}}">{{.Kind}}</span></td>
+  <td>{{.Name}}</td>
+  <td class="num">{{.Wants}}</td>
+  <td class="num">{{.Avoids}}</td>
+  <td class="num">{{.References}}</td>
+  <td class="tags">{{if eq .Kind "avoid"}}every collection{{else}}{{range $i, $c := .Collections}}{{if $i}}, {{end}}<a href="{{$c.Href}}">{{$c.ID}}</a>{{else}}-{{end}}{{end}}</td>
+  <td class="nowrap">{{or .Drafted "-"}}</td>
+</tr>
+{{end}}</tbody>
+</table>
+</div>
+{{else}}
+<p>There are no profiles yet. A profile is built from a listing you like (or dislike): its photos and description are drafted into criteria that listings are graded against. <a href="/profiles/new">Create one</a> to get started.</p>
+{{end}}
+{{end}}{{end}}

@@ -1,0 +1,139 @@
+{{define "title"}}{{.Data.Title}}{{end}}
+{{define "fielderror"}}{{with .}}<p class="field-error">{{.}}</p>{{end}}{{end}}
+{{define "content"}}{{with .Data}}
+<p><a href="/collections">← Collections</a></p>
+<h1>{{.Title}}</h1>
+{{if or .Errors .General}}<div class="errors" role="alert">
+<p>The collection was not saved. Fix the problems below and try again.</p>
+{{with .General}}<ul>{{range .}}<li>{{.}}</li>{{end}}</ul>{{end}}
+</div>{{end}}
+<form method="post" action="{{.Action}}" class="form">
+<fieldset>
+<legend>Collection</legend>
+<div class="field{{if index .Errors "id"}} invalid{{end}}">
+  <label for="f-id">ID</label>
+  {{if .Create}}<input id="f-id" name="id" value="{{.ID}}" required pattern="[a-z0-9][a-z0-9\-]*" autocomplete="off" spellcheck="false">
+  <small>Lowercase letters, digits and dashes. It can't be changed later.</small>{{else}}<input id="f-id" value="{{.ID}}" disabled>{{end}}
+  {{template "fielderror" index .Errors "id"}}
+</div>
+<div class="field{{if index .Errors "mode"}} invalid{{end}}">
+  <span class="label">Mode</span>
+  <div class="options">{{range .Modes}}<label class="toggle"><input type="radio" name="mode" value="{{.Value}}"{{if .Checked}} checked{{end}}> {{.Label}}</label>
+  {{end}}</div>
+  {{template "fielderror" index .Errors "mode"}}
+</div>
+<div class="field{{if index .Errors "sources"}} invalid{{end}}">
+  <span class="label">Sources</span>
+  <div class="options">{{range .Sources}}<label class="toggle"><input type="checkbox" name="sources" value="{{.Value}}"{{if .Checked}} checked{{end}}> {{.Label}}</label>
+  {{end}}</div>
+  {{template "fielderror" index .Errors "sources"}}
+</div>
+</fieldset>
+
+<fieldset>
+<legend>Profiles</legend>
+<div class="field{{if index .Errors "profiles"}} invalid{{end}}">
+  {{if .Profiles}}<table class="choices">
+  <thead><tr><th>Use</th><th>Order</th><th>Profile</th></tr></thead>
+  <tbody>
+  {{range .Profiles}}<tr>
+    <td><input type="checkbox" id="f-p-{{.ID}}" name="profiles" value="{{.ID}}"{{if .Checked}} checked{{end}}></td>
+    <td><input type="number" class="order" name="order_{{.ID}}" value="{{.Order}}" min="1" step="1" aria-label="Order of {{.ID}}"></td>
+    <td><label for="f-p-{{.ID}}"><code>{{.ID}}</code>{{with .Name}} {{.}}{{end}}</label></td>
+  </tr>
+  {{end}}</tbody>
+  </table>
+  <small>Listings are graded against every checked profile, in this order. Lower numbers come first; unnumbered profiles go last.</small>
+  {{else}}<p>There are no want profiles yet. <a href="/profiles/new">Create one</a> first.</p>{{end}}
+  {{template "fielderror" index .Errors "profiles"}}
+</div>
+{{if .Avoids}}<div class="field">
+  <span class="label">Avoid profiles</span>
+  <ul class="avoids">{{range .Avoids}}<li><code>{{.ID}}</code>{{with .Name}} {{.}}{{end}} <span class="tags">always applied</span></li>
+  {{end}}</ul>
+</div>{{end}}
+</fieldset>
+
+<fieldset>
+<legend>Search</legend>
+<div class="field{{if index .Errors "location"}} invalid{{end}}">
+  <label for="f-location">Location</label>
+  <input id="f-location" name="location" value="{{.Location}}" required placeholder="Somerville, MA or 02144">
+  {{template "fielderror" index .Errors "location"}}
+</div>
+<div class="grid">
+<div class="field{{if index .Errors "radius_miles"}} invalid{{end}}">
+  <label for="f-radius">Radius (miles)</label>
+  <input id="f-radius" name="radius_miles" type="number" min="0" step="any" value="{{.RadiusMiles}}">
+  {{template "fielderror" index .Errors "radius_miles"}}
+</div>
+<div class="field{{if index .Errors "min_price"}} invalid{{end}}">
+  <label for="f-min-price">Min price ($)</label>
+  <input id="f-min-price" name="min_price" type="number" min="0" step="1" value="{{.MinPrice}}">
+  {{template "fielderror" index .Errors "min_price"}}
+</div>
+<div class="field{{if index .Errors "max_price"}} invalid{{end}}">
+  <label for="f-max-price">Max price ($)</label>
+  <input id="f-max-price" name="max_price" type="number" min="0" step="1" value="{{.MaxPrice}}">
+  {{template "fielderror" index .Errors "max_price"}}
+</div>
+<div class="field{{if index .Errors "min_beds"}} invalid{{end}}">
+  <label for="f-min-beds">Min beds</label>
+  <input id="f-min-beds" name="min_beds" type="number" min="0" step="1" value="{{.MinBeds}}">
+  {{template "fielderror" index .Errors "min_beds"}}
+</div>
+<div class="field{{if index .Errors "max_beds"}} invalid{{end}}">
+  <label for="f-max-beds">Max beds</label>
+  <input id="f-max-beds" name="max_beds" type="number" min="0" step="1" value="{{.MaxBeds}}">
+  {{template "fielderror" index .Errors "max_beds"}}
+</div>
+<div class="field{{if index .Errors "max_age_days"}} invalid{{end}}">
+  <label for="f-max-age">Max listing age (days)</label>
+  <input id="f-max-age" name="max_age_days" type="number" min="0" step="1" value="{{.MaxAgeDays}}">
+  {{template "fielderror" index .Errors "max_age_days"}}
+</div>
+<div class="field{{if index .Errors "limit"}} invalid{{end}}">
+  <label for="f-limit">Results per source</label>
+  <input id="f-limit" name="limit" type="number" min="0" step="1" value="{{.Limit}}">
+  {{template "fielderror" index .Errors "limit"}}
+</div>
+</div>
+<small>Leave a field empty to not filter on it.</small>
+<div class="field{{if index .Errors "amenities"}} invalid{{end}}">
+  <span class="label">Required amenities</span>
+  <div class="options">{{range .Amenities}}<label class="toggle"><input type="checkbox" name="amenities" value="{{.Value}}"{{if .Checked}} checked{{end}}> {{.Label}}</label>
+  {{end}}</div>
+  {{template "fielderror" index .Errors "amenities"}}
+</div>
+</fieldset>
+
+<fieldset>
+<legend>Grading and schedule</legend>
+<div class="grid">
+<div class="field{{if index .Errors "model"}} invalid{{end}}">
+  <label for="f-model">Model</label>
+  <input id="f-model" name="model" value="{{.Model}}" placeholder="{{.DefaultModel}}" spellcheck="false">
+  <small>Empty uses {{.DefaultModel}}.</small>
+  {{template "fielderror" index .Errors "model"}}
+</div>
+<div class="field{{if index .Errors "max_run_cost_usd"}} invalid{{end}}">
+  <label for="f-budget">Max grading cost per run ($)</label>
+  <input id="f-budget" name="max_run_cost_usd" type="number" min="0" step="0.01" value="{{.MaxRunCostUSD}}" placeholder="{{.DefaultBudget}}">
+  <small>Empty uses the default of ${{.DefaultBudget}}.</small>
+  {{template "fielderror" index .Errors "max_run_cost_usd"}}
+</div>
+<div class="field{{if index .Errors "schedule"}} invalid{{end}}">
+  <label for="f-schedule">Daily run time</label>
+  <input id="f-schedule" name="schedule" type="time" value="{{.Schedule}}">
+  <small>Server local time. Empty runs only on demand.</small>
+  {{template "fielderror" index .Errors "schedule"}}
+</div>
+</div>
+</fieldset>
+
+<div class="controls">
+  <button type="submit" class="primary">{{if .Create}}Create collection{{else}}Save changes{{end}}</button>
+  <a class="button" href="/collections">Cancel</a>
+</div>
+</form>
+{{end}}{{end}}

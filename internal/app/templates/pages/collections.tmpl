@@ -1,0 +1,27 @@
+{{define "title"}}Collections{{end}}
+{{define "content"}}{{with .Data}}
+<h1>Collections</h1>
+<div class="controls"><a class="button" href="/collections/new">New collection</a></div>
+{{if .Collections}}
+<div class="wrap">
+<table class="collections-table">
+<thead><tr><th>Collection</th><th>Mode</th><th>Location</th><th>Sources</th><th>Profiles</th><th>Schedule</th><th class="num">Budget</th><th>Last run</th><th>Actions</th></tr></thead>
+<tbody>
+{{range .Collections}}<tr>
+  <td><a href="{{.Href}}">{{.ID}}</a></td>
+  <td>{{.Mode}}</td>
+  <td>{{.Search.Location}}</td>
+  <td class="tags">{{.SourceList}}</td>
+  <td class="tags">{{join .Profiles ", "}}</td>
+  <td class="nowrap">{{.ScheduleLabel}}</td>
+  <td class="num">{{.Budget}}{{if .DefaultBudget}} <span class="muted">default</span>{{end}}</td>
+  <td class="nowrap">{{with .Run}}<span class="{{.StatusClass}}">{{.Status}}</span> <span class="muted">{{.Ago}}</span> · <a href="{{.Href}}">view</a>{{else}}<span class="muted">never</span>{{end}}</td>
+  <td class="nowrap actions"><a class="button" href="{{.EditHref}}">Edit</a> <form method="post" action="/jobs/run"><input type="hidden" name="collection" value="{{.ID}}"><button type="submit">Run now</button></form></td>
+</tr>
+{{end}}</tbody>
+</table>
+</div>
+{{else}}
+<p>There are no collections yet. A collection is a search plus the profiles its results are graded against. <a href="/collections/new">Create one</a> to get started.</p>
+{{end}}
+{{end}}{{end}}

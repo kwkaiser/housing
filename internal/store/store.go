@@ -101,6 +101,7 @@ func (s *Store) Load(ctx context.Context) ([]listing.Listing, error) {
 	return s.load(ctx, `
 		SELECT l.price_cents, l.currency, l.observed_at, l.url, l.offer, v.data, v.raw, v.collages
 		FROM listings l JOIN versions v ON v.id = l.current_version
+		WHERE EXISTS (SELECT 1 FROM observations o WHERE o.source = l.source AND o.source_id = l.source_id)
 		ORDER BY l.source, l.source_id`)
 }
 

@@ -65,18 +65,22 @@ func toListing(raw json.RawMessage, now time.Time) (listing.Listing, bool, error
 	if err := json.Unmarshal(raw, &it); err != nil {
 		return listing.Listing{}, false, fmt.Errorf("decode facebook item: %w", err)
 	}
-	if it.ID == "" {
+	l, ok := mapItem(it, raw, now)
+	if !ok || l.Beds == nil {
 		return listing.Listing{}, false, nil
+	}
+	return l, true, nil
+}
+
+func mapItem(it item, raw json.RawMessage, now time.Time) (listing.Listing, bool) {
+	if it.ID == "" {
+		return listing.Listing{}, false
 	}
 	amount, err := strconv.ParseFloat(it.Price.Amount, 64)
 	if err != nil || amount <= 0 {
-		return listing.Listing{}, false, nil
+		return listing.Listing{}, false
 	}
 	rooms := strings.Join([]string{it.UnitRoomInfo, it.CustomTitle, it.Title}, " · ")
-	beds := parseBeds(rooms)
-	if beds == nil {
-		return listing.Listing{}, false, nil
-	}
 
 	currency := it.Price.Currency
 	if currency == "" {
@@ -89,7 +93,7 @@ func toListing(raw json.RawMessage, now time.Time) (listing.Listing, bool, error
 		Offer:       listing.OfferRent,
 		Price:       listing.Money{Cents: int64(math.Round(amount * 100)), Currency: currency},
 		Address:     address(it),
-		Beds:        beds,
+		Beds:        parseBeds(rooms),
 		Baths:       parseBaths(rooms),
 		SqFt:        parseSqFt(string(it.UnitAreaInfo) + " " + it.Description.Text),
 		Description: strings.TrimSpace(it.Description.Text),
@@ -107,7 +111,7 @@ func toListing(raw json.RawMessage, now time.Time) (listing.Listing, bool, error
 	if found := listing.AmenitiesFromText(it.Title + ". " + it.Description.Text); len(found) > 0 {
 		l.Amenities = found
 	}
-	return l, true, nil
+	return l, true
 }
 
 func parseBeds(s string) *int {

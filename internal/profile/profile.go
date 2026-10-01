@@ -84,6 +84,13 @@ type Profile struct {
 	Drafted    *Drafted        `json:"drafted,omitempty"`
 }
 
+const DefaultRoot = "profiles"
+
+var (
+	ErrNotFound = errors.New("profile not found")
+	ErrExists   = errors.New("profile already exists")
+)
+
 var idPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 
 func ValidID(id string) error {
@@ -144,4 +151,26 @@ func valid[T comparable](all []T, v T) bool {
 		}
 	}
 	return false
+}
+
+func Effective(p Profile, all []Profile) (Profile, error) {
+	if p.IsAvoid() {
+		return Profile{}, fmt.Errorf("%q is an avoid profile; it is applied automatically when assessing against a want profile", p.ID)
+	}
+	p.Avoid = append([]Criterion{}, p.Avoid...)
+	p.References = append([]Reference{}, p.References...)
+	for _, ap := range all {
+		if !ap.IsAvoid() || len(ap.Avoid) == 0 {
+			continue
+		}
+		for _, c := range ap.Avoid {
+			c.ID = ap.ID + "." + c.ID
+			p.Avoid = append(p.Avoid, c)
+		}
+		for _, r := range ap.References {
+			r.Profile, r.Avoid = ap.ID, true
+			p.References = append(p.References, r)
+		}
+	}
+	return p, p.Validate()
 }

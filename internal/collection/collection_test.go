@@ -2,10 +2,9 @@ package collection
 
 import (
 	"errors"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
@@ -21,28 +20,6 @@ func valid() Collection {
 	}
 }
 
-func TestStore(t *testing.T) {
-	s := Store{Root: t.TempDir()}
-	if _, err := s.Load("somerville"); !errors.Is(err, ErrNotFound) {
-		t.Fatalf("missing collection: %v", err)
-	}
-	c := valid()
-	if err := s.Save(c); err != nil {
-		t.Fatal(err)
-	}
-	got, err := s.Load("somerville")
-	if err != nil || got.Search.Location != "Somerville, MA" || got.Profiles[0] != "somerville-attic" {
-		t.Fatalf("got %+v %v", got, err)
-	}
-	if all, err := s.List(); err != nil || len(all) != 1 {
-		t.Errorf("list = %+v %v", all, err)
-	}
-	os.WriteFile(filepath.Join(s.Root, "other.json"), []byte(`{"id":"somerville"}`), 0o644)
-	if _, err := s.Load("other"); err == nil {
-		t.Error("a file whose id does not match its name should be rejected")
-	}
-}
-
 func TestValidate(t *testing.T) {
 	c := valid()
 	c.Mode, c.Sources, c.Profiles, c.Search.Location = "lease", nil, nil, ""
@@ -51,5 +28,54 @@ func TestValidate(t *testing.T) {
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("missing %q in %v", want, err)
 		}
+	}
+}
+
+func TestValidateFields(t *testing.T) {
+	c := valid()
+	c.ID, c.Profiles, c.MaxRunCostUSD, c.Schedule = "Bad", []string{"a", "a"}, -1, "7am"
+	c.Search.MinPrice, c.Search.MaxPrice = ptr(5), ptr(1)
+	err := c.Validate()
+	got := map[string]bool{}
+	for _, e := range err.(interface{ Unwrap() error }).Unwrap().(interface{ Unwrap() []error }).Unwrap() {
+		var fe profile.FieldError
+		if errors.As(e, &fe) {
+			got[fe.Field] = true
+		}
+	}
+	for _, f := range []string{"id", "profiles", "max_run_cost_usd", "schedule", "max_price"} {
+		if !got[f] {
+			t.Errorf("no %s field error in %v", f, err)
+		}
+	}
+}
+
+func ptr(n int) *int {
+	return &n
+}
+
+func TestSchedule(t *testing.T) {
+	for _, s := range []string{"", "00:00", "07:30", "23:59"} {
+		c := valid()
+		c.Schedule = s
+		if err := c.Validate(); err != nil {
+			t.Errorf("%q: %v", s, err)
+		}
+	}
+	for _, s := range []string{"7:30", "24:00", "07:60", "7am", "07:30:00", " 07:30"} {
+		c := valid()
+		c.Schedule = s
+		if err := c.Validate(); err == nil || !strings.Contains(err.Error(), "schedule") {
+			t.Errorf("%q should be rejected: %v", s, err)
+		}
+	}
+	c := valid()
+	day := time.Date(2026, 9, 30, 0, 0, 0, 0, time.Local)
+	if _, ok := c.ScheduledAt(day); ok {
+		t.Error("an unscheduled collection has no run time")
+	}
+	c.Schedule = "07:30"
+	if at, ok := c.ScheduledAt(day); !ok || !at.Equal(time.Date(2026, 9, 30, 7, 30, 0, 0, time.Local)) {
+		t.Errorf("scheduled at %v", at)
 	}
 }

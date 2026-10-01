@@ -1,0 +1,42 @@
+[Unit]
+Description=housing web app
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=housing
+Group=housing
+WorkingDirectory=/var/lib/housing
+EnvironmentFile=/etc/housing/env
+ExecStart=/usr/local/bin/housing server --addr 127.0.0.1:8080 --data-dir /var/lib/housing/data
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+StateDirectory=housing
+StateDirectoryMode=0750
+UMask=0027
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/housing
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

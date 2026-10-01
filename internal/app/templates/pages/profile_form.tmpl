@@ -1,0 +1,77 @@
+{{define "title"}}{{.Data.Title}}{{end}}
+{{define "fielderror"}}{{with .}}<p class="field-error">{{.}}</p>{{end}}{{end}}
+{{define "content"}}{{with .Data}}
+<p><a href="/profiles">← Profiles</a></p>
+<h1>{{.Title}}</h1>
+{{if or .Errors .General}}<div class="errors" role="alert">
+<p>The profile was not created. Fix the problems below and try again.</p>
+{{with .General}}<ul>{{range .}}<li>{{.}}</li>{{end}}</ul>{{end}}
+</div>{{end}}
+<form method="post" action="/profiles" class="form">
+<fieldset>
+<legend>Reference listing</legend>
+<div class="field{{if index .Errors "url"}} invalid{{end}}">
+  <label for="f-url">Listing URL</label>
+  <input id="f-url" name="url" type="url" value="{{.URL}}" required placeholder="https://www.zillow.com/homedetails/…" spellcheck="false">
+  <small>A single listing page to build the profile from, on Zillow, Redfin, Craigslist or Facebook Marketplace.</small>
+  {{template "fielderror" index .Errors "url"}}
+</div>
+<div class="field{{if index .Errors "id"}} invalid{{end}}">
+  <label for="f-id">ID</label>
+  <input id="f-id" name="id" value="{{.ID}}" required pattern="[a-z0-9][a-z0-9\-]*" autocomplete="off" spellcheck="false">
+  <small>Lowercase letters, digits and dashes. It can't be changed later.</small>
+  {{template "fielderror" index .Errors "id"}}
+</div>
+<div class="field{{if index .Errors "kind"}} invalid{{end}}">
+  <span class="label">Kind</span>
+  <div class="options">{{range .Kinds}}<label class="toggle"><input type="radio" name="kind" value="{{.Value}}"{{if .Checked}} checked{{end}}> {{.Label}}</label>
+  {{end}}</div>
+  <small>want: a listing you like. avoid: a listing you dislike; its criteria are applied to every want profile.</small>
+  {{template "fielderror" index .Errors "kind"}}
+</div>
+<div class="field{{if index .Errors "name"}} invalid{{end}}">
+  <label for="f-name">Name</label>
+  <input id="f-name" name="name" value="{{.Name}}">
+  <small>Empty lets the model name it.</small>
+  {{template "fielderror" index .Errors "name"}}
+</div>
+<div class="field{{if index .Errors "notes"}} invalid{{end}}">
+  <label for="f-notes">Notes</label>
+  <textarea id="f-notes" name="notes" rows="4">
+{{.Notes}}</textarea>
+  <small>What you like (or dislike, for avoid) about the listing, one per line.</small>
+  {{template "fielderror" index .Errors "notes"}}
+</div>
+</fieldset>
+
+<fieldset>
+<legend>Drafting</legend>
+<div class="field">
+  <label class="toggle"><input type="checkbox" name="draft" value="1"{{if .Draft}} checked{{end}}> Draft criteria</label>
+  <small>Unchecked stores the reference only; draft it later from the profile page.</small>
+</div>
+<div class="grid">
+<div class="field{{if index .Errors "model"}} invalid{{end}}">
+  <label for="f-model">Model</label>
+  <input id="f-model" name="model" value="{{.Model}}" placeholder="{{.DefaultModel}}" spellcheck="false">
+  <small>Empty uses {{.DefaultModel}}.</small>
+  {{template "fielderror" index .Errors "model"}}
+</div>
+<div class="field{{if index .Errors "max_charge_usd"}} invalid{{end}}">
+  <label for="f-charge">Max Apify charge ($)</label>
+  <input id="f-charge" name="max_charge_usd" type="number" min="0.01" step="0.01" value="{{.MaxChargeUSD}}" placeholder="{{.DefaultCharge}}">
+  <small>Empty uses the default of ${{.DefaultCharge}}.</small>
+  {{template "fielderror" index .Errors "max_charge_usd"}}
+</div>
+</div>
+<div class="field">
+  <label class="toggle"><input type="checkbox" name="force" value="1"{{if .Force}} checked{{end}}> Overwrite an existing profile with this ID</label>
+</div>
+</fieldset>
+
+<div class="controls">
+  <button type="submit" class="primary">Create profile</button>
+  <a class="button" href="/profiles">Cancel</a>
+</div>
+</form>
+{{end}}{{end}}

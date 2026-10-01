@@ -1,0 +1,62 @@
+{{define "title"}}{{.Data.Title}}{{end}}
+{{define "content"}}{{with .Data}}
+{{if .BackHref}}<p><a href="{{.BackHref}}">← {{.Collection}}{{with .Day}} · {{.}}{{end}}</a></p>{{end}}
+<h1>{{.Title}}</h1>
+<p class="facts">
+  <span class="score">{{money .Listing.Price.Cents .Offer}}</span>
+  · {{beds .Listing.Beds}} beds · {{baths .Listing.Baths}} baths · {{sqft .Listing.SqFt}} sqft
+</p>
+<p>
+  <a href="{{.Listing.URL}}" target="_blank" rel="noopener">{{.Listing.Source}}</a>
+  {{range .AlsoListed}} · <a href="{{.URL}}" target="_blank" rel="noopener">{{.Source}}</a> <span class="muted">{{money .Price.Cents .Offer}}</span>{{end}}
+</p>
+
+{{if .Collages}}
+<h2>Photos</h2>
+<div class="collages">
+{{range $i, $src := .Collages}}<a href="{{$src}}"><img src="{{$src}}" alt="Collage {{$i}}" loading="lazy"></a>
+{{end}}
+</div>
+{{end}}
+
+{{with .Listing.Description}}<div class="description">{{.}}</div>{{end}}
+
+{{range .Grades}}
+<section class="grade">
+<h2><a href="{{profileURL .Profile.ID}}">{{or .Profile.Name .Profile.ID}}</a> <span class="muted">{{.Profile.ID}}</span></h2>
+<p class="facts">
+  Match <span class="score">{{match .Match .Calibrated .Stale}}</span>
+  · score {{fixed1 .Score}} · coverage {{percent .Coverage}} · vibe {{.Vibe}}
+  {{with .Dealbreakers}}· <span class="bad">dealbreakers: {{join . ", "}}</span>{{end}}
+</p>
+{{with .Summary}}<details class="section"><summary>Assessment summary</summary><p>{{.}}</p></details>{{end}}
+{{range .Models}}
+<details class="section criteria-section">
+<summary>Criteria · {{model .Model}}{{if .Stale}} <span class="muted">* stale</span>{{end}} <span class="muted">score {{fixed1 .Score}} · coverage {{percent .Coverage}} · vibe {{.Vibe}}</span></summary>
+<div class="wrap">
+<table class="criteria">
+<thead><tr><th>Criterion</th><th>Importance</th><th>Verdict</th><th>Confidence</th><th>Evidence</th><th class="num">Photos</th></tr></thead>
+<tbody>
+{{range .Wants}}<tr><td>{{.Label}}</td><td class="tags">{{.Importance}}</td><td class="verdict {{.Verdict}}">{{.Verdict}}</td><td class="tags">{{.Confidence}}</td><td class="summary">{{.Evidence}}</td><td class="num">{{ints .Photos}}</td></tr>
+{{end}}
+{{if .Avoids}}<tr class="group"><th colspan="6">Avoid</th></tr>
+{{range .Avoids}}<tr><td>{{.Label}}</td><td class="tags">{{if .Dealbreaker}}<span class="bad">dealbreaker</span>{{else}}{{.Importance}}{{end}}</td><td class="verdict avoid-{{.Verdict}}">{{.Verdict}}</td><td class="tags">{{.Confidence}}</td><td class="summary">{{.Evidence}}</td><td class="num">{{ints .Photos}}</td></tr>
+{{end}}{{end}}
+</tbody>
+</table>
+</div>
+</details>
+{{end}}
+</section>
+{{end}}
+
+{{if .History}}
+<h2>Price history</h2>
+<table class="history">
+<thead><tr><th>Day</th><th class="num">Price</th></tr></thead>
+<tbody>
+{{range .History}}<tr><td>{{.Day}}</td><td class="num">{{money .PriceCents $.Data.Offer}}</td></tr>
+{{end}}</tbody>
+</table>
+{{end}}
+{{end}}{{end}}

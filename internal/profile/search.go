@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -43,18 +44,39 @@ type Search struct {
 }
 
 func (s Search) Validate() error {
+	var errs []error
+	field := func(name, format string, args ...any) {
+		errs = append(errs, FieldError{Field: name, Err: fmt.Errorf(format, args...)})
+	}
 	for _, a := range s.Amenities {
 		if !slices.Contains(listing.Amenities, a) {
-			return fmt.Errorf("unknown amenity %q", a)
+			field("amenities", "unknown amenity %q", a)
+		}
+	}
+	if s.RadiusMiles < 0 {
+		field("radius_miles", "radius must not be negative")
+	}
+	for _, n := range []struct {
+		name, label string
+		v           *int
+	}{{"min_price", "min price", s.MinPrice}, {"max_price", "max price", s.MaxPrice}, {"min_beds", "min beds", s.MinBeds}, {"max_beds", "max beds", s.MaxBeds}} {
+		if n.v != nil && *n.v < 0 {
+			field(n.name, "%s must not be negative", n.label)
 		}
 	}
 	if s.MinPrice != nil && s.MaxPrice != nil && *s.MinPrice > *s.MaxPrice {
-		return fmt.Errorf("min price %d is above max price %d", *s.MinPrice, *s.MaxPrice)
+		field("max_price", "min price %d is above max price %d", *s.MinPrice, *s.MaxPrice)
 	}
 	if s.MinBeds != nil && s.MaxBeds != nil && *s.MinBeds > *s.MaxBeds {
-		return fmt.Errorf("min beds %d is above max beds %d", *s.MinBeds, *s.MaxBeds)
+		field("max_beds", "min beds %d is above max beds %d", *s.MinBeds, *s.MaxBeds)
 	}
-	return nil
+	if s.MaxAgeDays < 0 {
+		field("max_age_days", "max listing age must not be negative")
+	}
+	if s.Limit < 0 {
+		field("limit", "result limit must not be negative")
+	}
+	return errors.Join(errs...)
 }
 
 func (s Search) Query(m Mode) listing.Query {

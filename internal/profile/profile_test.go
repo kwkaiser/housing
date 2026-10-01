@@ -3,7 +3,6 @@ package profile
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"strings"
 	"testing"
 
@@ -85,30 +84,6 @@ func TestApplyRejectsInvalidDraft(t *testing.T) {
 	err := p.Apply(Draft{Want: []Criterion{dup, dup}}, Drafted{})
 	if err == nil || p.Want != nil {
 		t.Fatalf("expected duplicate id error without mutating profile, got %v", err)
-	}
-}
-
-func TestStoreRoundTrip(t *testing.T) {
-	s := Store{Root: t.TempDir()}
-	p := Profile{
-		ID:         "attic",
-		Name:       "Attic",
-		Want:       []Criterion{{ID: "skylights", Label: "Skylights", Importance: Essential, Evidence: EvidenceEither}},
-		Ignore:     DefaultIgnore,
-		References: []Reference{{Source: listing.SourceZillow, SourceID: "1", URL: "u", Collages: []string{"collages/x/0.jpg"}}},
-	}
-	if err := s.Save(p); err != nil {
-		t.Fatal(err)
-	}
-	got, err := s.Load("attic")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got.Want[0].ID != "skylights" || got.References[0].Collages[0] != "collages/x/0.jpg" {
-		t.Errorf("got %+v", got)
-	}
-	if _, err := s.Load("missing"); !errors.Is(err, ErrNotFound) {
-		t.Errorf("got %v", err)
 	}
 }
 

@@ -1,7 +1,6 @@
 package report
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 	"testing"
@@ -164,67 +163,9 @@ func TestBuildTemplates(t *testing.T) {
 		t.Errorf("uncalibrated = %v", r.Uncalibrated)
 	}
 
-	var page bytes.Buffer
-	if err := HTML(&page, r); err != nil {
-		t.Fatal(err)
-	}
-	for _, want := range []string{`<th>Profile</th>`, `<th data-type="num">loft</th>`, `<td class="num" data-sort="90">90%</td>`, `<td class="num" data-sort="25">25%</td>`} {
-		if !strings.Contains(page.String(), want) {
-			t.Errorf("html missing %q", want)
-		}
-	}
-
 	loftRef.Assessments = nil
 	templates[1].References = []listing.Listing{loftRef}
 	if r := Build(templates, []listing.Listing{loftOnly}, Options{}); r.Rows[0].Match != 20 || strings.Join(r.Uncalibrated, ",") != "loft" {
 		t.Errorf("without a graded reference, match should fall back to the score: %+v %v", r.Rows[0].Grade, r.Uncalibrated)
-	}
-}
-
-func TestRender(t *testing.T) {
-	r := Build(single, []listing.Listing{
-		assessed("both", listing.SourceZillow, 250000, map[string]float64{"a/m1": 80, "b/m2": 60}),
-	}, Options{})
-	r.Rows[0].AlsoListed = []Link{{Source: listing.SourceRedfin, URL: "https://example.com/r", Price: listing.Money{Cents: 260000, Currency: "USD"}}}
-
-	var page bytes.Buffer
-	if err := HTML(&page, r); err != nil {
-		t.Fatal(err)
-	}
-	for _, want := range []string{
-		"<title>Attic</title>",
-		`<td class="num score" data-sort="70">70.0</td>`,
-		`<td class="num" data-sort="80">80.0</td>`,
-		`<td class="num" data-sort="250000">$2,500/mo</td>`,
-		`<a href="https://example.com/both">both Main St</a>`,
-		`<a href="https://example.com/both">zillow</a>, <a href="https://example.com/r">redfin</a>`,
-		"both summary",
-		"<th data-hidden>Dealbreakers</th>",
-		"<summary>Profiles</summary>",
-		"<li>Skylights <span class=\"tags\">essential</span></li>",
-		`<details class="picker"><summary>Columns</summary><div id="columns"></div></details>`,
-	} {
-		if !strings.Contains(page.String(), want) {
-			t.Errorf("html missing %q:\n%s", want, page.String())
-		}
-	}
-
-	var table bytes.Buffer
-	if err := Table(&table, r); err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(table.String(), "https://example.com/both") || !strings.Contains(table.String(), "M1") || !strings.Contains(table.String(), "zillow+redfin") {
-		t.Errorf("table:\n%s", table.String())
-	}
-
-	var js bytes.Buffer
-	if err := JSON(&js, r); err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(js.String(), `"score": 70`) || !strings.Contains(js.String(), `"by_model"`) || !strings.Contains(js.String(), `"url": "https://example.com/both"`) {
-		t.Errorf("json:\n%s", js.String())
-	}
-	if strings.Contains(js.String(), `"assessments"`) || strings.Contains(js.String(), `"raw"`) {
-		t.Errorf("json rows should not repeat raw data or assessments:\n%s", js.String())
 	}
 }

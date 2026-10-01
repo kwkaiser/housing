@@ -1,0 +1,38 @@
+{{define "title"}}Jobs{{end}}
+{{define "content"}}{{with .Data}}
+<h1>Jobs</h1>
+<form method="get" action="/jobs" class="controls filters">
+  <select name="collection" aria-label="Collection">
+    <option value="">All collections</option>
+    {{range .Collections}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Value}}</option>
+    {{end}}
+  </select>
+  <select name="status" aria-label="Status">
+    <option value="">Any status</option>
+    {{range .Statuses}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Value}}</option>
+    {{end}}
+  </select>
+  {{if .CustomLimit}}<input type="hidden" name="limit" value="{{.Limit}}">{{end}}
+  <button type="submit">Filter</button>
+  {{if .Filtered}}<a class="button" href="/jobs">Clear</a>{{end}}
+</form>
+<div class="wrap">
+<table class="jobs">
+<thead><tr><th class="num">ID</th><th>Kind</th><th>Target</th><th>Trigger</th><th>Status</th><th>Created</th><th class="num">Duration</th><th class="num">Cost</th><th>Error</th></tr></thead>
+<tbody>
+{{range .Jobs}}<tr>
+  <td class="num"><a href="{{.Href}}">{{.ID}}</a></td>
+  <td>{{.KindLabel}}</td>
+  <td>{{if .TargetHref}}<a href="{{.TargetHref}}">{{.Target}}</a>{{else}}-{{end}}</td>
+  <td class="tags">{{.Trigger}}</td>
+  <td><span class="{{.StatusClass}}">{{.Status}}</span></td>
+  <td class="nowrap" title="{{.Ago}}">{{.Created}}</td>
+  <td class="num">{{.Duration}}</td>
+  <td class="num">{{.Cost}}</td>
+  <td class="bad" title="{{.Error}}">{{.ShortError}}</td>
+</tr>
+{{else}}<tr><td colspan="9" class="muted">{{if .Filtered}}No jobs match these filters.{{else}}No jobs yet.{{end}}</td></tr>
+{{end}}</tbody>
+</table>
+</div>
+{{end}}{{end}}

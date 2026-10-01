@@ -1,26 +1,16 @@
 package profile
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"strings"
 	"testing"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
-	"git.kwkaiser.io/kwkaiser/housing/internal/listing/jsonfile"
 )
 
-func saveAvoidProfile(t *testing.T, s Store) Profile {
-	t.Helper()
-	ref := listing.Listing{Source: listing.SourceZillow, SourceID: "165", URL: "u", Address: listing.Address{Formatted: "165 Main St"}}
-	if err := (jsonfile.Persister{}).Persist(context.Background(), s.ListingsDir("corporate"), []listing.Listing{ref}); err != nil {
-		t.Fatal(err)
-	}
-	if err := s.Media("corporate").Put(context.Background(), "collages/c/0.jpg", bytes.NewReader([]byte{7})); err != nil {
-		t.Fatal(err)
-	}
-	ap := Profile{
+func avoidProfile() Profile {
+	return Profile{
 		ID:   "corporate",
 		Kind: KindAvoid,
 		Avoid: []Criterion{
@@ -30,26 +20,18 @@ func saveAvoidProfile(t *testing.T, s Store) Profile {
 		Ignore:     DefaultIgnore,
 		References: []Reference{{Source: listing.SourceZillow, SourceID: "165", URL: "u", Collages: []string{"collages/c/0.jpg"}}},
 	}
-	if err := s.Save(ap); err != nil {
-		t.Fatal(err)
-	}
-	return ap
 }
 
 func TestEffectiveMergesAvoidProfiles(t *testing.T) {
-	s := Store{Root: t.TempDir()}
 	want := testProfile
 	want.References = nil
-	if err := s.Save(want); err != nil {
-		t.Fatal(err)
-	}
-	before, err := s.Effective(want.ID)
+	before, err := Effective(want, []Profile{want})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ap := saveAvoidProfile(t, s)
-	eff, err := s.Effective(want.ID)
+	ap := avoidProfile()
+	eff, err := Effective(want, []Profile{ap, want})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,27 +50,15 @@ func TestEffectiveMergesAvoidProfiles(t *testing.T) {
 	}
 
 	ap.Avoid[1].Importance = Low
-	if err := s.Save(ap); err != nil {
-		t.Fatal(err)
-	}
-	edited, _ := s.Effective(want.ID)
+	edited, _ := Effective(want, []Profile{ap, want})
 	if edited.Hash() == eff.Hash() {
 		t.Error("editing an avoid profile should change the effective hash")
 	}
 
-	refs, err := s.References(context.Background(), eff)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(refs) != 1 || !refs[0].Avoid || refs[0].Listing.SourceID != "165" || len(refs[0].Collages) != 1 {
-		t.Errorf("refs = %+v", refs)
-	}
-
-	if _, err := s.Effective("corporate"); err == nil {
+	if _, err := Effective(ap, []Profile{ap}); err == nil {
 		t.Error("an avoid profile should not be usable as the profile to assess against")
 	}
-	loaded, _ := s.Load(want.ID)
-	if len(loaded.Avoid) != 1 {
+	if len(want.Avoid) != 1 || want.References != nil {
 		t.Error("Effective should not modify the stored profile")
 	}
 }

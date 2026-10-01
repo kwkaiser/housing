@@ -20,8 +20,11 @@ type detailInput struct {
 }
 
 type detailItem struct {
-	Input         string `json:"scraperInput"`
+	Input         string         `json:"scraperInput"`
+	Error         string         `json:"error"`
+	Address       addressSection `json:"addressSectionInfo"`
 	MainHouseInfo struct {
+		ListingID        int64 `json:"listingId"`
 		MarketingRemarks []struct {
 			Remark string `json:"marketingRemark"`
 		} `json:"marketingRemarks"`

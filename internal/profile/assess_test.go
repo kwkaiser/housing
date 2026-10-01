@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -230,6 +231,46 @@ func TestAssessListingsContinuesPastFailures(t *testing.T) {
 	}
 }
 
+func TestAssessListingsObserve(t *testing.T) {
+	cc := &countingCompleter{reply: assessReply, cost: 0.01, fail: "addr-b"}
+	a := Assessor{Client: cc, Model: "test/model"}
+	ls := manyListings(5)
+	ls[4].Collages = nil
+	var (
+		mu     sync.Mutex
+		events []BatchEvent
+	)
+	opts := BatchOptions{Concurrency: 1, Budget: NewBudget(0.015), Observe: func(e BatchEvent) {
+		mu.Lock()
+		defer mu.Unlock()
+		events = append(events, e)
+	}}
+	a.AssessListings(context.Background(), testProfile, nil, ls, readAny, opts)
+
+	kinds := map[BatchEventKind]int{}
+	for _, e := range events {
+		kinds[e.Kind]++
+	}
+	if events[0].Kind != BatchPlanned || events[0].Total != 4 || events[0].Stats.NoCollages != 1 {
+		t.Errorf("first event = %+v, want the plan", events[0])
+	}
+	if kinds[BatchStarted] != 3 || kinds[BatchGraded] != 2 || kinds[BatchFailed] != 1 || kinds[BatchOverBudget] != 1 {
+		t.Errorf("event counts = %v", kinds)
+	}
+	for _, e := range events {
+		switch e.Kind {
+		case BatchFailed:
+			if e.Err == nil || e.Listing.SourceID != "b" || e.N != 2 || e.Total != 4 {
+				t.Errorf("failed event = %+v", e)
+			}
+		case BatchGraded:
+			if e.Assessment.Model != "test/model" || e.Listing.SourceID == "" || e.N == 0 {
+				t.Errorf("graded event = %+v", e)
+			}
+		}
+	}
+}
+
 type flakyCompleter struct {
 	replies []string
 	calls   atomic.Int32
@@ -271,7 +312,7 @@ func TestAssessRejectsEmptyReply(t *testing.T) {
 func TestAssessRequiresCriteria(t *testing.T) {
 	a := Assessor{Client: &fakeCompleter{}, Model: "m"}
 	_, err := a.Assess(context.Background(), Profile{ID: "empty"}, nil, Candidate{Collages: [][]byte{{1}}})
-	if err == nil || !strings.Contains(err.Error(), "profile draft") {
+	if err == nil || !strings.Contains(err.Error(), "has no criteria") {
 		t.Fatalf("got %v", err)
 	}
 }

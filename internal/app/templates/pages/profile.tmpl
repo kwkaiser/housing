@@ -1,0 +1,64 @@
+{{define "title"}}{{.Data.Title}}{{end}}
+{{define "content"}}{{with .Data}}
+<p><a href="/profiles">← Profiles</a></p>
+<h1>{{or .Profile.Name .Profile.ID}} <span class="muted">{{.Profile.ID}}</span> <span class="kind {{.Kind}}">{{.Kind}}</span></h1>
+<div class="controls">
+  <a class="button" href="{{.EditHref}}">Edit</a>
+  <a class="button" href="#redraft">Re-draft</a>
+  {{with .Job}}<span class="muted">Latest job: <span class="{{.StatusClass}}">{{.Status}}</span> {{.KindLabel}} {{.Ago}} · <a href="{{.Href}}">view</a></span>{{end}}
+</div>
+<dl class="fields">
+  <dt>Kind</dt><dd>{{.Kind}}</dd>
+  <dt>Collections</dt><dd>{{if eq .Kind "avoid"}}applied to every collection{{else}}{{range $i, $c := .Collections}}{{if $i}}, {{end}}<a href="{{$c.Href}}">{{$c.ID}}</a>{{else}}none{{end}}{{end}}</dd>
+  <dt>Last drafted</dt><dd>{{or .Drafted "never"}}{{with .Profile.Drafted}} <span class="muted">· {{cost .CostUSD}}</span>{{end}}</dd>
+</dl>
+{{with .Profile.Summary}}<h2>Summary</h2>
+<div class="description">{{.}}</div>{{end}}
+<h2>Notes</h2>
+{{with .Profile.Notes}}<ul class="notes">{{range .}}<li>{{.}}</li>{{end}}</ul>{{else}}<p>No notes.</p>{{end}}
+
+<h2>References</h2>
+{{range .References}}<section class="reference">
+<h3>{{if .Href}}<a href="{{.Href}}" target="_blank" rel="noopener">{{or .Address .URL}}</a>{{else}}{{or .Address .URL}}{{end}} <span class="muted">{{.Source}} {{.SourceID}}</span></h3>
+<p class="facts">Reference score: {{range $m, $s := .Scores}}<span class="tags">{{model $m}} {{fixed1 $s}}</span> {{else}}<span class="muted">not graded against the current profile</span>{{end}}</p>
+{{if .Collages}}<div class="collages">
+{{range $i, $src := .Collages}}<a href="{{$src}}"><img src="{{$src}}" alt="Reference collage {{$i}}" loading="lazy"></a>
+{{end}}</div>{{end}}
+</section>
+{{else}}<p>No reference listings.</p>
+{{end}}
+
+{{if ne .Kind "avoid"}}<h2>Want criteria</h2>
+{{template "criteria" .Profile.Want}}{{end}}
+<h2>Avoid criteria</h2>
+{{template "criteria" .Profile.Avoid}}
+{{range .Inherited}}<h3>Inherited from <a href="{{.Href}}">{{or .Name .ID}}</a> <span class="muted">{{.ID}} · read-only</span></h3>
+{{template "criteria" .Criteria}}
+{{end}}
+
+<h2 id="redraft">Re-draft</h2>
+{{if .References}}<form method="post" action="{{.DraftAction}}" class="form">
+<p>Asks the model to draft new criteria from the references and these notes. The drafted criteria replace the current ones, including any edits.</p>
+<div class="field">
+  <label for="f-draft-notes">Notes</label>
+  <textarea id="f-draft-notes" name="notes" rows="4">
+{{.DraftNotes}}</textarea>
+  <small>One per line.</small>
+</div>
+<div class="field">
+  <label for="f-draft-model">Model</label>
+  <input id="f-draft-model" name="model" value="" placeholder="{{.DefaultModel}}" spellcheck="false">
+  <small>Empty uses {{.DefaultModel}}.</small>
+</div>
+<div class="controls"><button type="submit" class="primary">Re-draft criteria</button></div>
+</form>{{else}}<p>This profile has no reference listings to draft from.</p>{{end}}
+{{end}}{{end}}
+
+{{define "criteria"}}{{if .}}<div class="wrap">
+<table class="criteria">
+<thead><tr><th>Criterion</th><th>Importance</th><th>Evidence</th><th>Look for</th><th>Not this</th><th>Keywords</th></tr></thead>
+<tbody>
+{{range .}}<tr><td>{{.Label}} <span class="muted">{{.ID}}</span></td><td class="tags">{{if eq .Importance "essential"}}<span class="bad">{{.Importance}}</span>{{else}}{{.Importance}}{{end}}</td><td class="tags">{{.Evidence}}</td><td class="summary">{{.LookFor}}</td><td class="summary">{{.NotThis}}</td><td class="tags">{{join .Keywords ", "}}</td></tr>
+{{end}}</tbody>
+</table>
+</div>{{else}}<p>None.</p>{{end}}{{end}}

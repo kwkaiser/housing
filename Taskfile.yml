@@ -13,6 +13,9 @@ tasks:
     sources:
       - "**/*.go"
       - "**/*.tmpl"
+      - "**/*.css"
+      - "**/*.js"
+      - "**/*.sql"
       - go.mod
       - go.sum
     generates:
@@ -38,6 +41,11 @@ tasks:
     deps: [build]
     cmds:
       - ./bin/{{.BINARY}} {{.CLI_ARGS}}
+
+  server:
+    deps: [build]
+    cmds:
+      - ./bin/{{.BINARY}} server {{.CLI_ARGS}}
 
   clean:
     cmds:

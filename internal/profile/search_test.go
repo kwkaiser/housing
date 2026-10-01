@@ -36,6 +36,10 @@ func TestSearchValidate(t *testing.T) {
 		{Amenities: []listing.Amenity{"pets_allowed"}},
 		{MinPrice: ptrInt(10), MaxPrice: ptrInt(5)},
 		{MinBeds: ptrInt(3), MaxBeds: ptrInt(1)},
+		{RadiusMiles: -1},
+		{MinPrice: ptrInt(-1)},
+		{MaxAgeDays: -1},
+		{Limit: -1},
 	}
 	for _, s := range bad {
 		if s.Validate() == nil {

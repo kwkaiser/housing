@@ -1,0 +1,61 @@
+{{define "title"}}{{.Data.Title}}{{end}}
+{{define "fielderror"}}{{with .}}<p class="field-error">{{.}}</p>{{end}}{{end}}
+{{define "content"}}{{with .Data}}
+<p><a href="{{.BackHref}}">← {{.ID}}</a></p>
+<h1>{{.Title}} <span class="kind {{.Kind}}">{{.Kind}}</span></h1>
+<p class="note">Edits change the profile, so listings already graded against it are considered stale and are regraded on the next run. Name and notes don't affect grading.</p>
+{{if or .Errors .General}}<div class="errors" role="alert">
+<p>The profile was not saved. Fix the problems below and try again.</p>
+{{with .General}}<ul>{{range .}}<li>{{.}}</li>{{end}}</ul>{{end}}
+</div>{{end}}
+<form method="post" action="{{.Action}}" class="form">
+<fieldset>
+<legend>Profile</legend>
+<div class="field{{if index .Errors "name"}} invalid{{end}}">
+  <label for="f-name">Name</label>
+  <input id="f-name" name="name" value="{{.Name}}">
+  {{template "fielderror" index .Errors "name"}}
+</div>
+<div class="field{{if index .Errors "summary"}} invalid{{end}}">
+  <label for="f-summary">Summary</label>
+  <textarea id="f-summary" name="summary" rows="4">
+{{.Summary}}</textarea>
+  {{template "fielderror" index .Errors "summary"}}
+</div>
+<div class="field{{if index .Errors "notes"}} invalid{{end}}">
+  <label for="f-notes">Notes</label>
+  <textarea id="f-notes" name="notes" rows="4">
+{{.Notes}}</textarea>
+  <small>One per line. Used the next time the profile is drafted.</small>
+  {{template "fielderror" index .Errors "notes"}}
+</div>
+</fieldset>
+{{if ne .Kind "avoid"}}<fieldset>
+<legend>Want criteria</legend>
+{{with .Want}}{{template "criteria-rows" .}}{{else}}<p>None.</p>{{end}}
+</fieldset>{{end}}
+<fieldset>
+<legend>Avoid criteria</legend>
+{{with .Avoid}}{{template "criteria-rows" .}}{{else}}<p>None.</p>{{end}}
+</fieldset>
+<div class="controls">
+  <button type="submit" class="primary">Save changes</button>
+  <a class="button" href="{{.BackHref}}">Cancel</a>
+</div>
+</form>
+{{end}}{{end}}
+
+{{define "criteria-rows"}}<div class="wrap">
+<table class="choices criteria-edit">
+<thead><tr><th>Label</th><th>Importance</th><th>Evidence</th><th>Look for</th><th>Remove</th></tr></thead>
+<tbody>
+{{range .}}<tr{{if or .LabelError .ImportanceError}} class="invalid"{{end}}>
+  <td><input type="hidden" name="criteria" value="{{.ID}}"><input name="label_{{.ID}}" value="{{.Label}}" aria-label="Label of {{.ID}}" required>{{template "fielderror" .LabelError}}</td>
+  <td><select name="importance_{{.ID}}" aria-label="Importance of {{.ID}}">{{range .Options}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Value}}</option>{{end}}</select>{{template "fielderror" .ImportanceError}}</td>
+  <td class="tags">{{.Evidence}}</td>
+  <td class="summary">{{.LookFor}}</td>
+  <td><label class="toggle"><input type="checkbox" name="remove_{{.ID}}" value="1"{{if .Remove}} checked{{end}}> remove</label></td>
+</tr>
+{{end}}</tbody>
+</table>
+</div>{{end}}

@@ -1,0 +1,83 @@
+{{define "title"}}Listings · {{.Data.Title}}{{if .Data.Day}} · {{.Data.Day}}{{end}}{{end}}
+{{define "content"}}{{with .Data}}
+<h1>Listings · {{.Collection.ID}}</h1>
+{{if .CollectionLink}}<nav class="controls collections" aria-label="Collections">
+  {{range .CollectionLink}}<a href="{{.Href}}"{{if .Active}} aria-current="page"{{end}}>{{.ID}}</a>
+  {{end}}
+</nav>{{end}}
+<div class="controls run">
+  <form method="post" action="/jobs/run"><input type="hidden" name="collection" value="{{.Collection.ID}}"><button type="submit">Run now</button></form>
+  <a class="button" href="{{.EditHref}}">Edit collection</a>
+  {{with .Run}}<span class="muted">{{if .Active}}<span class="{{.StatusClass}}">{{if eq .Status "queued"}}Queued…{{else}}Running…{{end}}</span>{{else}}Last run: <span class="{{.StatusClass}}">{{.Status}}</span> {{.Ago}}{{end}} · <a href="{{.Href}}">view</a></span>{{end}}
+</div>
+{{if not .Day}}
+<p>No listings have been fetched for this collection yet. Use Run now to fetch them.</p>
+{{else}}
+<div class="controls">
+  {{if .PrevHref}}<a class="button" href="{{.PrevHref}}" rel="prev" aria-label="Previous day">←</a>{{else}}<span class="button" aria-disabled="true">←</span>{{end}}
+  <form method="get" action="" class="day">
+    <input type="date" name="day" value="{{.Day}}" min="{{.First}}" max="{{.Last}}" aria-label="Day">
+    {{if .Sort}}<input type="hidden" name="sort" value="{{.Sort}}"><input type="hidden" name="dir" value="{{.Dir}}">{{end}}
+    {{if .Dealbreakers}}<input type="hidden" name="dealbreakers" value="1">{{end}}
+    <button type="submit">Go</button>
+  </form>
+  {{if .NextHref}}<a class="button" href="{{.NextHref}}" rel="next" aria-label="Next day">→</a>{{else}}<span class="button" aria-disabled="true">→</span>{{end}}
+  <a class="button" href="{{.ToggleHref}}">{{if .Dealbreakers}}Hide dealbreakers{{else}}Show dealbreakers{{end}}</a>
+  <details class="picker" hidden><summary>Columns</summary><div class="menu">
+    {{range .Columns}}<label><input type="checkbox" data-col="{{.Key}}"{{if not .Off}} checked{{end}}> {{.Label}}</label>
+    {{end}}
+  </div></details>
+  <span class="muted">{{.Graded}} of {{.Listings}} listings graded{{if .Hidden}} · {{.Hidden}} hidden by dealbreakers{{end}}</span>
+</div>
+{{if .Requested}}<p class="note">No run on {{.Requested}}; showing {{.Day}}.</p>{{end}}
+{{end}}
+<details class="section">
+<summary>Profiles</summary>
+<div class="wrap">
+<table class="profiles">
+<thead><tr><th>Profile</th><th>Summary</th><th>Wants</th><th>Avoids</th><th>Reference</th></tr></thead>
+<tbody>
+{{range .Profiles}}<tr>
+  <td><a href="{{profileURL .ID}}"><code>{{.ID}}</code></a><div>{{.Name}}</div></td>
+  <td class="summary">{{.Summary}}</td>
+  <td><ul>{{range .Wants}}<li>{{.Label}} <span class="tags">{{.Importance}}</span></li>{{end}}</ul></td>
+  <td><ul>{{range .Avoids}}<li>{{.Label}}{{if .Dealbreaker}} <span class="tags bad">dealbreaker</span>{{end}}</li>{{end}}</ul></td>
+  <td>{{range .References}}<div><a href="{{.URL}}" target="_blank" rel="noopener">{{or .Address .URL}}</a>{{range $m, $s := .Scores}} <span class="tags">{{model $m}} {{fixed1 $s}}</span>{{end}}</div>{{else}}-{{end}}</td>
+</tr>
+{{end}}</tbody>
+</table>
+</div>
+</details>
+{{if .Day}}
+<div class="wrap">
+<table class="listings">
+<thead><tr>
+{{range .Columns}}<th data-col="{{.Key}}" class="{{.Class}}{{if .Off}} off{{end}}"{{with .Sort}} aria-sort="{{.}}"{{end}}><a href="{{.Href}}">{{.Label}}</a></th>
+{{end}}</tr></thead>
+<tbody>
+{{range .Rows}}<tr>
+  <td data-col="rank" class="num">{{.Rank}}</td>
+  <td data-col="match" class="num score">{{match .Match .Calibrated .Stale}}</td>
+  <td data-col="score" class="num">{{fixed1 .Score}}</td>
+  {{if $.Data.Multi}}<td data-col="profile">{{.Profile}}</td>
+  {{range $i, $g := .Grades}}<td data-col="p:{{index $.Data.Collection.Profiles $i}}" class="num">{{if $g.OK}}{{match $g.Match $g.Calibrated $g.Stale}}{{else}}-{{end}}</td>
+  {{end}}{{end}}
+  <td data-col="coverage" class="num">{{percent .Coverage}}</td>
+  <td data-col="vibe" class="num">{{.Vibe}}</td>
+  <td data-col="price" class="num">{{money .Listing.Price.Cents .Listing.Offer}}</td>
+  <td data-col="beds" class="num">{{beds .Listing.Beds}}</td>
+  <td data-col="address"><a href="{{.Href}}">{{or (address .Listing) .Listing.SourceID}}</a> <a class="ext" href="{{.Listing.URL}}" target="_blank" rel="noopener" aria-label="Open on {{.Listing.Source}}">↗</a>{{if .New}}<span class="badge new">new</span>{{end}}{{if .Change}}<span class="badge {{.ChangeClass}}">{{.Change}}</span>{{end}}</td>
+  <td data-col="sources"><a href="{{.Listing.URL}}" target="_blank" rel="noopener">{{.Listing.Source}}</a>{{range .AlsoListed}}, <a href="{{.URL}}" target="_blank" rel="noopener">{{.Source}}</a>{{end}}</td>
+  <td data-col="dealbreakers" class="tags bad off">{{join .Dealbreakers ", "}}</td>
+  <td data-col="missing" class="tags off">{{join .MissingEssentials ", "}}</td>
+  <td data-col="avoids" class="tags off">{{join .AvoidsHit ", "}}</td>
+  <td data-col="summary" class="summary">{{.Summary}}</td>
+</tr>
+{{else}}<tr><td colspan="{{len .Columns}}" class="muted">No graded listings on {{.Day}}.</td></tr>
+{{end}}</tbody>
+</table>
+</div>
+{{if .Stale}}<p class="muted">* graded against an older profile or listing version.</p>{{end}}
+{{end}}
+<script src="{{static "listings.js"}}" defer></script>
+{{end}}{{end}}

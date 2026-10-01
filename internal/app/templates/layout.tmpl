@@ -1,0 +1,23 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{block "title" .}}{{end}} · housing</title>
+<link rel="stylesheet" href="{{static "app.css"}}">
+{{block "head" .}}{{end}}
+</head>
+<body>
+<header class="top">
+<nav>
+  <a class="brand" href="/">housing</a>
+  {{range .Nav}}<a href="{{.Href}}"{{if .Active}} aria-current="page"{{end}}>{{.Label}}</a>
+  {{end}}
+</nav>
+</header>
+<main>
+{{block "content" .}}{{end}}
+</main>
+</body>
+</html>
+{{end}}

@@ -1,0 +1,6 @@
+{{define "title"}}{{.Data.Title}}{{end}}
+{{define "content"}}
+<h1>{{.Data.Title}}</h1>
+{{with .Data.Message}}<p>{{.}}</p>{{end}}
+<p><a href="/">Back to listings</a></p>
+{{end}}

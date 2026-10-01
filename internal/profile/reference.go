@@ -1,35 +1,23 @@
 package profile
 
 import (
-	"context"
+	"os"
 	"sync"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
-	"git.kwkaiser.io/kwkaiser/housing/internal/listing/jsonfile"
+	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 )
 
-func (s Store) ReferenceListings(ctx context.Context, p Profile) ([]listing.Listing, error) {
-	own := map[string]bool{}
-	for _, r := range p.References {
-		if r.Profile == "" && !r.Avoid {
-			own[string(r.Source)+"/"+r.SourceID] = true
+func ReadCollages(store media.DiskStore, keys []string) ([][]byte, error) {
+	out := make([][]byte, 0, len(keys))
+	for _, key := range keys {
+		b, err := os.ReadFile(store.Path(key))
+		if err != nil {
+			return nil, err
 		}
-	}
-	all, err := (jsonfile.Persister{}).Load(ctx, s.ListingsDir(p.ID))
-	if err != nil {
-		return nil, err
-	}
-	var out []listing.Listing
-	for _, l := range all {
-		if own[string(l.Source)+"/"+l.SourceID] {
-			out = append(out, l)
-		}
+		out = append(out, b)
 	}
 	return out, nil
-}
-
-func (s Store) SaveReferenceListings(ctx context.Context, id string, ls []listing.Listing) error {
-	return (jsonfile.Persister{}).Persist(ctx, s.ListingsDir(id), ls)
 }
 
 func ReferenceScore(p Profile, refs []listing.Listing, model string) (float64, bool) {
