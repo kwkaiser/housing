@@ -6,3 +6,5 @@ bin/
 data/
 profiles/
 collections/
+result
+.direnv
