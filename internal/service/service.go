@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"math"
 	"os"
 	"path/filepath"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -31,13 +32,6 @@ const (
 	StageImport  Stage = "import"
 )
 
-type Event struct {
-	Stage   Stage
-	Message string
-}
-
-type Progress func(Event)
-
 type Clients struct {
 	OpenRouter func(apiKey string) openrouter.Completer
 	Apify      func(token string, maxChargeUSD float64) apify.Runner
@@ -53,15 +47,18 @@ type Config struct {
 	Keys           config.Config
 	Now            func() time.Time
 	Clients        Clients
+	Log            *slog.Logger
+	Exclusive      bool
 }
 
 type Service struct {
-	cfg  Config
-	mu   sync.Mutex
-	held atomic.Bool
+	cfg      Config
+	db       *store.Store
+	unlock   func()
+	imported atomic.Bool
 }
 
-func New(cfg Config) *Service {
+func Open(ctx context.Context, cfg Config) (*Service, error) {
 	if cfg.Now == nil {
 		cfg.Now = time.Now
 	}
@@ -82,46 +79,69 @@ func New(cfg Config) *Service {
 	if c.Lookup == nil {
 		c.Lookup = LookupFor
 	}
-	return &Service{cfg: cfg}
+	s := &Service{cfg: cfg}
+	if err := os.MkdirAll(cfg.DataDir, 0o755); err != nil {
+		return nil, err
+	}
+	if cfg.Exclusive {
+		unlock, err := s.lock()
+		if err != nil {
+			return nil, err
+		}
+		s.unlock = unlock
+	}
+	db, err := store.Open(ctx, filepath.Join(cfg.DataDir, store.FileName))
+	if err != nil {
+		if s.unlock != nil {
+			s.unlock()
+		}
+		return nil, err
+	}
+	s.db = db
+	return s, nil
+}
+
+func (s *Service) Close() error {
+	err := s.db.Close()
+	if s.unlock != nil {
+		s.unlock()
+	}
+	return err
 }
 
 func (s *Service) DataDir() string {
 	return s.cfg.DataDir
 }
 
-func (s *Service) emit(p Progress, stage Stage, format string, args ...any) {
-	if p == nil {
-		return
+func (s *Service) logger(log *slog.Logger) *slog.Logger {
+	if log != nil {
+		return log
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	p(Event{Stage: stage, Message: fmt.Sprintf(format, args...)})
+	if s.cfg.Log != nil {
+		return s.cfg.Log
+	}
+	return slog.New(slog.DiscardHandler)
+}
+
+func usd(f float64) float64 {
+	return math.Round(f*1e4) / 1e4
 }
 
 var ErrNotImported = errors.New("files have not been imported into the database")
 
-func (s *Service) OpenStore(ctx context.Context) (*store.Store, error) {
-	return s.openStore(ctx)
+func (s *Service) Store() *store.Store {
+	return s.db
 }
 
-func (s *Service) openStore(ctx context.Context) (*store.Store, error) {
-	dir := s.cfg.DataDir
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+func (s *Service) catalog(ctx context.Context) (*store.Store, error) {
+	if s.imported.Load() {
+		return s.db, nil
+	}
+	if err := s.checkImported(ctx, s.db); err != nil {
 		return nil, err
 	}
-	return store.Open(ctx, filepath.Join(dir, store.FileName))
-}
-
-func (s *Service) openCatalog(ctx context.Context) (*store.Store, error) {
-	db, err := s.openStore(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if err := s.checkImported(ctx, db); err != nil {
-		db.Close()
-		return nil, err
-	}
-	return db, nil
+	s.imported.Store(true)
+	return s.db, nil
 }
 
 func (s *Service) checkImported(ctx context.Context, db *store.Store) error {

@@ -1,16 +1,9 @@
 package openrouter
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
-	"io"
-	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -18,7 +11,7 @@ import (
 	"time"
 )
 
-const okBody = `{"id":"x","model":"m","object":"chat.completion","created":1,"choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"{\"ok\":true}"}}],"usage":{"prompt_tokens":10,"completion_tokens":2,"total_tokens":12,"cost":0.001}}`
+const okBody = `{"id":"x","model":"m","object":"chat.completion","created":1,"choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"{\"ok\":true}"}}],"usage":{"prompt_tokens":10,"completion_tokens":2,"total_tokens":12,"cost":0.001,"prompt_tokens_details":{"cached_tokens":4},"completion_tokens_details":{"reasoning_tokens":1}}}`
 
 func TestComplete(t *testing.T) {
 	var got map[string]any
@@ -34,15 +27,19 @@ func TestComplete(t *testing.T) {
 
 	temp := 0.0
 	c := NewClient("key", WithServerURL(srv.URL))
-	resp, err := c.Complete(context.Background(), Request{
-		Model:       "m",
-		System:      "be terse",
-		User:        []Part{TextPart("hi"), ImagePart("image/jpeg", []byte{1, 2})},
-		Schema:      &Schema{Name: "out", Schema: map[string]any{"type": "object"}},
-		Temperature: &temp,
+	resp, err := c.Complete(t.Context(), Request{
+		Model:           "m",
+		System:          "be terse",
+		User:            []Part{TextPart("hi"), ImagePart("image/jpeg", []byte{1, 2})},
+		Schema:          &Schema{Name: "out", Schema: map[string]any{"type": "object"}},
+		Temperature:     &temp,
+		ReasoningEffort: "low",
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if want := (Usage{PromptTokens: 10, CompletionTokens: 2, ReasoningTokens: 1, CachedTokens: 4}); resp.Usage != want {
+		t.Errorf("usage = %+v, want %+v", resp.Usage, want)
 	}
 	text, err := resp.Text()
 	if err != nil || text != `{"ok":true}` || resp.CostUSD != 0.001 || resp.Model != "m" {
@@ -50,7 +47,7 @@ func TestComplete(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(got)
-	for _, want := range []string{`"data:image/jpeg;base64,AQI="`, `"json_schema"`, `"strict":true`, `"be terse"`, `"role":"system"`, `"temperature":0`} {
+	for _, want := range []string{`"data:image/jpeg;base64,AQI="`, `"json_schema"`, `"strict":true`, `"be terse"`, `"role":"system"`, `"temperature":0`, `"reasoning":{"effort":"low"}`} {
 		if !strings.Contains(string(body), want) {
 			t.Errorf("request missing %s: %s", want, body)
 		}
@@ -70,7 +67,7 @@ func TestCompleteRetriesServerErrors(t *testing.T) {
 	defer srv.Close()
 
 	c := NewClient("key", WithServerURL(srv.URL), WithRetries(4, time.Millisecond, time.Millisecond))
-	if _, err := c.Complete(context.Background(), Request{Model: "m", User: []Part{TextPart("hi")}}); err != nil {
+	if _, err := c.Complete(t.Context(), Request{Model: "m", User: []Part{TextPart("hi")}}); err != nil {
 		t.Fatal(err)
 	}
 	if calls.Load() != 3 {
@@ -92,7 +89,7 @@ func TestCompleteRetriesRateLimits(t *testing.T) {
 	defer srv.Close()
 
 	c := NewClient("key", WithServerURL(srv.URL), WithRetries(4, time.Millisecond, time.Millisecond))
-	if _, err := c.Complete(context.Background(), Request{Model: "m", User: []Part{TextPart("hi")}}); err != nil {
+	if _, err := c.Complete(t.Context(), Request{Model: "m", User: []Part{TextPart("hi")}}); err != nil {
 		t.Fatal(err)
 	}
 	if calls.Load() != 2 {
@@ -110,7 +107,7 @@ func TestRateLimit(t *testing.T) {
 	c := NewClient("key", WithServerURL(srv.URL), WithRateLimit(20, 1))
 	start := time.Now()
 	for range 3 {
-		if _, err := c.Complete(context.Background(), Request{Model: "m", User: []Part{TextPart("hi")}}); err != nil {
+		if _, err := c.Complete(t.Context(), Request{Model: "m", User: []Part{TextPart("hi")}}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -130,7 +127,7 @@ func TestCompleteClientError(t *testing.T) {
 	defer srv.Close()
 
 	c := NewClient("key", WithServerURL(srv.URL))
-	_, err := c.Complete(context.Background(), Request{Model: "m", User: []Part{TextPart("hi")}})
+	_, err := c.Complete(t.Context(), Request{Model: "m", User: []Part{TextPart("hi")}})
 	if err == nil || calls.Load() != 1 {
 		t.Fatalf("err=%v calls=%d", err, calls.Load())
 	}
@@ -157,28 +154,10 @@ func TestCompleteRetriesBrokenBodies(t *testing.T) {
 	defer srv.Close()
 
 	c := NewClient("key", WithServerURL(srv.URL), WithRetries(4, time.Millisecond, time.Millisecond))
-	if _, err := c.Complete(context.Background(), Request{Model: "m", User: []Part{TextPart("hi")}}); err != nil {
+	if _, err := c.Complete(t.Context(), Request{Model: "m", User: []Part{TextPart("hi")}}); err != nil {
 		t.Fatal(err)
 	}
 	if calls.Load() != 2 {
 		t.Fatalf("calls = %d, want a retry after the body was cut off", calls.Load())
-	}
-}
-
-func TestTransient(t *testing.T) {
-	cases := map[string]struct {
-		err  error
-		want bool
-	}{
-		"tls alert while reading": {fmt.Errorf("error reading response body: %w", &net.OpError{Op: "remote error", Err: errors.New("tls: bad record MAC")}), true},
-		"truncated body":          {fmt.Errorf("error reading response body: %w", io.ErrUnexpectedEOF), true},
-		"request already retried": {&url.Error{Op: "Post", URL: "x", Err: &net.OpError{Op: "dial", Err: errors.New("refused")}}, false},
-		"timeout":                 {&net.OpError{Op: "read", Err: os.ErrDeadlineExceeded}, false},
-		"other":                   {errors.New("bad request"), false},
-	}
-	for name, c := range cases {
-		if got := transient(c.err); got != c.want {
-			t.Errorf("%s: got %v", name, got)
-		}
 	}
 }

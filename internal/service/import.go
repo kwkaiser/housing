@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -25,7 +26,8 @@ type profileFile struct {
 	listings map[string]listing.Listing
 }
 
-func (s *Service) Import(ctx context.Context, progress Progress) error {
+func (s *Service) Import(ctx context.Context, log *slog.Logger) error {
+	log = s.logger(log).With("stage", StageImport)
 	files, err := readProfiles(ctx, s.cfg.ProfilesDir)
 	if err != nil {
 		return err
@@ -37,11 +39,7 @@ func (s *Service) Import(ctx context.Context, progress Progress) error {
 	if len(files) == 0 && len(collections) == 0 {
 		return fmt.Errorf("nothing to import: no profiles in %s and no collections in %s", s.cfg.ProfilesDir, s.cfg.CollectionsDir)
 	}
-	db, err := s.openStore(ctx)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
+	db := s.db
 
 	all := make([]profile.Profile, len(files))
 	var refCount, copiedCount int
@@ -75,7 +73,7 @@ func (s *Service) Import(ctx context.Context, progress Progress) error {
 		}
 		refCount += len(refs)
 		copiedCount += copied
-		s.emit(progress, StageImport, "import: profile %s (%d references, %d media files copied)", p.ID, len(refs), copied)
+		log.Info("imported profile", "profile", p.ID, "references", len(refs), "media_copied", copied)
 	}
 	for _, p := range all {
 		if p.IsAvoid() {
@@ -97,10 +95,10 @@ func (s *Service) Import(ctx context.Context, progress Progress) error {
 		if err := db.SaveCollection(ctx, c); err != nil {
 			return err
 		}
-		s.emit(progress, StageImport, "import: collection %s (%s)", c.ID, strings.Join(c.Profiles, ", "))
+		log.Info("imported collection", "collection", c.ID, "profiles", c.Profiles)
 	}
-	s.emit(progress, StageImport, "import: %d profiles with %d reference listings, %d media files copied, %d collections written to %s",
-		len(files), refCount, copiedCount, len(collections), filepath.Join(s.cfg.DataDir, store.FileName))
+	log.Info("import finished", "profiles", len(files), "references", refCount, "media_copied", copiedCount, "collections", len(collections),
+		"db", filepath.Join(s.cfg.DataDir, store.FileName))
 	return nil
 }
 

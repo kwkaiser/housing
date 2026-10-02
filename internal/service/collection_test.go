@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"slices"
 	"testing"
@@ -19,8 +18,8 @@ func TestSupportedSources(t *testing.T) {
 }
 
 func TestCreateAndSaveCollection(t *testing.T) {
-	ctx := context.Background()
-	svc := New(Config{DataDir: t.TempDir()})
+	ctx := t.Context()
+	svc := openService(t, Config{DataDir: t.TempDir()})
 	for _, p := range []profile.Profile{
 		{ID: "attic", Ignore: profile.DefaultIgnore},
 		{ID: "corp", Kind: profile.KindAvoid, Ignore: profile.DefaultIgnore},

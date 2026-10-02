@@ -79,28 +79,28 @@ func TestBuildSearchURL(t *testing.T) {
 
 func TestResolve(t *testing.T) {
 	p, _ := newProvider(nil, zip02144)
-	a, err := p.resolve(context.Background(), listing.Area{Location: "02144"})
+	a, err := p.resolve(t.Context(), listing.Area{Location: "02144"})
 	if err != nil || a.subdomain != "boston" || a.postal != "02144" || a.radius != 2 || a.exact {
 		t.Errorf("zip area = %+v %v", a, err)
 	}
-	a, err = p.resolve(context.Background(), listing.Area{Location: "Somerville, MA", RadiusMiles: 1})
+	a, err = p.resolve(t.Context(), listing.Area{Location: "Somerville, MA", RadiusMiles: 1})
 	if err != nil || a.postal != "" || a.radius != 1 || !a.exact {
 		t.Errorf("radius area = %+v %v", a, err)
 	}
 
 	far, _ := newProvider(nil, zillow.Region{Name: "Nowhere", Type: "city", Center: listing.Coordinates{Lat: 44.0, Lng: -110.0}})
-	if _, err := far.resolve(context.Background(), listing.Area{Location: "Nowhere"}); !errors.Is(err, listing.ErrUnsupportedQuery) {
+	if _, err := far.resolve(t.Context(), listing.Area{Location: "Nowhere"}); !errors.Is(err, listing.ErrUnsupportedQuery) {
 		t.Errorf("location far from any region should be rejected: %v", err)
 	}
 	state, _ := newProvider(nil, zillow.Region{Name: "MA", Type: "state", Center: listing.Coordinates{Lat: 42.3, Lng: -71.8}})
-	if _, err := state.resolve(context.Background(), listing.Area{Location: "MA"}); !errors.Is(err, listing.ErrUnsupportedQuery) {
+	if _, err := state.resolve(t.Context(), listing.Area{Location: "MA"}); !errors.Is(err, listing.ErrUnsupportedQuery) {
 		t.Errorf("state without radius should be rejected: %v", err)
 	}
 }
 
 func TestSearch(t *testing.T) {
 	p, r := newProvider(fixture(t), zip02144)
-	got, err := p.Search(context.Background(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "02144"}, MinBeds: ptr(1), Limit: 5})
+	got, err := p.Search(t.Context(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "02144"}, MinBeds: ptr(1), Limit: 5})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func TestSearch(t *testing.T) {
 
 func TestSearchPostFilters(t *testing.T) {
 	p, _ := newProvider(fixture(t), zip02144)
-	got, err := p.Search(context.Background(), listing.Query{
+	got, err := p.Search(t.Context(), listing.Query{
 		Offer:     listing.OfferRent,
 		Area:      listing.Area{Location: "02144"},
 		MaxAge:    2 * time.Hour,
@@ -160,7 +160,7 @@ func TestSearchPostFilters(t *testing.T) {
 	}
 
 	near, _ := newProvider(fixture(t), zillow.Region{Name: "Davis", Type: "neighborhood", Center: listing.Coordinates{Lat: 42.3967, Lng: -71.1225}})
-	got, err = near.Search(context.Background(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "Davis Square", RadiusMiles: 0.5}})
+	got, err = near.Search(t.Context(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "Davis Square", RadiusMiles: 0.5}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestSearchRejectsUnsupported(t *testing.T) {
 		{Offer: listing.OfferSale, Area: listing.Area{Location: "02144"}},
 		{Offer: listing.OfferRent},
 	} {
-		if _, err := p.Search(context.Background(), q); !errors.Is(err, listing.ErrUnsupportedQuery) {
+		if _, err := p.Search(t.Context(), q); !errors.Is(err, listing.ErrUnsupportedQuery) {
 			t.Errorf("%+v: got %v", q, err)
 		}
 	}

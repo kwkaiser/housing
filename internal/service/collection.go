@@ -10,20 +10,18 @@ import (
 )
 
 func (s *Service) Collection(ctx context.Context, id string) (collection.Collection, error) {
-	db, err := s.openCatalog(ctx)
+	db, err := s.catalog(ctx)
 	if err != nil {
 		return collection.Collection{}, err
 	}
-	defer db.Close()
 	return db.Collection(ctx, id)
 }
 
 func (s *Service) Collections(ctx context.Context) ([]collection.Collection, error) {
-	db, err := s.openCatalog(ctx)
+	db, err := s.catalog(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
 	return db.Collections(ctx)
 }
 
@@ -36,11 +34,10 @@ func (s *Service) CreateCollection(ctx context.Context, c collection.Collection)
 }
 
 func (s *Service) saveCollection(ctx context.Context, c collection.Collection, create bool) error {
-	db, err := s.openCatalog(ctx)
+	db, err := s.catalog(ctx)
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 	var errs []error
 	if err := c.Validate(); err != nil {
 		errs = append(errs, err)

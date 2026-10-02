@@ -1,7 +1,6 @@
 package facebook
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"strings"
@@ -50,7 +49,7 @@ func TestListingURL(t *testing.T) {
 
 func TestLookup(t *testing.T) {
 	searchP, _ := newProvider(fixture(t), somerville)
-	found, err := searchP.Search(context.Background(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "Somerville, MA", RadiusMiles: 50}})
+	found, err := searchP.Search(t.Context(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "Somerville, MA", RadiusMiles: 50}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +64,7 @@ func TestLookup(t *testing.T) {
 	}
 
 	p, r := newProvider(assumedLookup(t), somerville)
-	got, err := p.Lookup(context.Background(), itemLink+"?ref=search")
+	got, err := p.Lookup(t.Context(), itemLink+"?ref=search")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +84,7 @@ func TestLookup(t *testing.T) {
 func TestLookupKeepsListingsWithoutRooms(t *testing.T) {
 	raw := json.RawMessage(`{"id":"42","marketplace_listing_title":"Sunny sublet","listing_price":{"amount":"1800.00","currency":"USD"}}`)
 	p, _ := newProvider([]json.RawMessage{raw}, somerville)
-	got, err := p.Lookup(context.Background(), "https://www.facebook.com/marketplace/item/42/")
+	got, err := p.Lookup(t.Context(), "https://www.facebook.com/marketplace/item/42/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +106,7 @@ func TestLookupErrors(t *testing.T) {
 		"not json":     {itemLink, []json.RawMessage{json.RawMessage(`"oops"`)}, "decode facebook item"},
 	} {
 		p, _ := newProvider(tc.items, somerville)
-		if _, err := p.Lookup(context.Background(), tc.url); err == nil || !strings.Contains(err.Error(), tc.want) {
+		if _, err := p.Lookup(t.Context(), tc.url); err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%s: err = %v, want %q", name, err, tc.want)
 		}
 	}

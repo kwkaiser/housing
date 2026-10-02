@@ -1,7 +1,6 @@
 package redfin
 
 import (
-	"context"
 	"encoding/json"
 	"reflect"
 	"strings"
@@ -53,7 +52,7 @@ func TestListingURL(t *testing.T) {
 
 func TestLookupSale(t *testing.T) {
 	searchP, _ := newProvider(fixture(t, "sale.json"))
-	found, err := searchP.Search(context.Background(), listing.Query{Offer: listing.OfferSale, Area: listing.Area{Location: "02144"}})
+	found, err := searchP.Search(t.Context(), listing.Query{Offer: listing.OfferSale, Area: listing.Area{Location: "02144"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,9 +63,9 @@ func TestLookupSale(t *testing.T) {
 	inner := p.Runner
 	p.Runner = runnerFunc(func(actor string, in any) ([]json.RawMessage, error) {
 		input = in.(detailInput)
-		return inner.Run(context.Background(), actor, in)
+		return inner.Run(t.Context(), actor, in)
 	})
-	got, err := p.Lookup(context.Background(), "https://www.redfin.com/MA/Somerville/91-Heath-St-02145/home/8714201?utm_source=x")
+	got, err := p.Lookup(t.Context(), "https://www.redfin.com/MA/Somerville/91-Heath-St-02145/home/8714201?utm_source=x")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,14 +92,14 @@ func TestLookupSale(t *testing.T) {
 
 func TestLookupRental(t *testing.T) {
 	searchP, _ := newProvider(fixture(t, "rent.json"))
-	found, err := searchP.Search(context.Background(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "02144"}})
+	found, err := searchP.Search(t.Context(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "02144"}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	fromSearch := found[0]
 
 	p, actors, searched := lookupProvider(t, fixture(t, "detail.json"), fixture(t, "rent.json"))
-	got, err := p.Lookup(context.Background(), "https://www.redfin.com/MA/Somerville/119-College-Ave-02144/apartment/8694910")
+	got, err := p.Lookup(t.Context(), "https://www.redfin.com/MA/Somerville/119-College-Ave-02144/apartment/8694910")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +119,7 @@ func TestLookupRental(t *testing.T) {
 }
 
 func TestLookupErrors(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	heath := "https://www.redfin.com/MA/Somerville/91-Heath-St-02145/home/8714201"
 	for name, tc := range map[string]struct {
 		url            string

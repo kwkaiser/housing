@@ -29,10 +29,9 @@
 <h2>Log</h2>
 <div class="wrap">
 <table class="events">
-<thead><tr><th>Time</th><th>Stage</th><th>Message</th></tr></thead>
 <tbody>
-{{range .Events}}<tr><td class="num">{{.Time}}</td><td class="tags">{{.Stage}}</td><td class="message">{{.Message}}</td></tr>
-{{else}}<tr><td colspan="3" class="muted">{{if .Active}}No events yet.{{else}}No events were recorded.{{end}}</td></tr>
+{{range .Events}}<tr class="{{.LevelClass}}"><td class="message">{{if ne .LevelClass "info"}}<span class="level">{{.Level}}</span> {{end}}{{.Message}}{{with .Attrs}}<div class="attrs">{{range .}}<span><span class="key">{{.Key}}</span> {{.Value}}</span>{{end}}</div>{{end}}</td><td class="meta">{{with .Stage}}{{.}} · {{end}}{{.Time}}</td></tr>
+{{else}}<tr><td colspan="2" class="muted">{{if .Active}}No events yet.{{else}}No events were recorded.{{end}}</td></tr>
 {{end}}</tbody>
 </table>
 </div>

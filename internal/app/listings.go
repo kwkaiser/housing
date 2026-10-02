@@ -223,7 +223,6 @@ func columns(profiles []string, multi bool) []column {
 	}
 	return append(cols,
 		column{Key: "coverage", Label: "Coverage", Class: "num", desc: true, cmp: num(func(r service.ListingRow) float64 { return r.Coverage })},
-		column{Key: "vibe", Label: "Vibe", Class: "num", desc: true, cmp: num(func(r service.ListingRow) float64 { return r.Vibe })},
 		column{Key: "price", Label: "Price", Class: "num", cmp: num(func(r service.ListingRow) float64 { return float64(r.Listing.Price.Cents) })},
 		column{Key: "beds", Label: "Beds", Class: "num", cmp: num(func(r service.ListingRow) float64 {
 			if r.Listing.Beds == nil {
@@ -236,7 +235,7 @@ func columns(profiles []string, multi bool) []column {
 		column{Key: "dealbreakers", Label: "Dealbreakers", Class: "tags bad", Off: true, cmp: text(func(r service.ListingRow) string { return strings.Join(r.Dealbreakers, ",") })},
 		column{Key: "missing", Label: "Missing", Class: "tags", Off: true, cmp: text(func(r service.ListingRow) string { return strings.Join(r.MissingEssentials, ",") })},
 		column{Key: "avoids", Label: "Avoids", Class: "tags", Off: true, cmp: text(func(r service.ListingRow) string { return strings.Join(r.AvoidsHit, ",") })},
-		column{Key: "summary", Label: "Summary", Class: "summary", cmp: text(func(r service.ListingRow) string { return r.Summary })},
+		column{Key: "summary", Label: "Summary", Class: "summary", Off: true, cmp: text(func(r service.ListingRow) string { return r.Summary })},
 	)
 }
 

@@ -90,7 +90,7 @@ func TestSearchURL(t *testing.T) {
 
 func TestSearch(t *testing.T) {
 	p, r := newProvider(fixture(t), somerville)
-	got, err := p.Search(context.Background(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "Somerville, MA"}, Limit: 5})
+	got, err := p.Search(t.Context(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "Somerville, MA"}, Limit: 5})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,12 +142,12 @@ func TestSearchRejects(t *testing.T) {
 		{Offer: listing.OfferRent},
 		{Offer: listing.OfferRent, Area: listing.Area{Location: "x"}, Amenities: []listing.Amenity{listing.AmenityDishwasher}},
 	} {
-		if _, err := p.Search(context.Background(), q); !errors.Is(err, listing.ErrUnsupportedQuery) {
+		if _, err := p.Search(t.Context(), q); !errors.Is(err, listing.ErrUnsupportedQuery) {
 			t.Errorf("%+v: got %v", q, err)
 		}
 	}
 	state, _ := newProvider(nil, zillow.Region{Name: "MA", Type: "state"})
-	if _, err := state.Search(context.Background(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "MA"}}); !errors.Is(err, listing.ErrUnsupportedQuery) {
+	if _, err := state.Search(t.Context(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "MA"}}); !errors.Is(err, listing.ErrUnsupportedQuery) {
 		t.Errorf("state without radius: %v", err)
 	}
 }
@@ -155,7 +155,7 @@ func TestSearchRejects(t *testing.T) {
 func TestSearchMaxAgePostFilter(t *testing.T) {
 	p, _ := newProvider(fixture(t), somerville)
 	p.Now = func() time.Time { return time.Unix(1790735658, 0).Add(2 * time.Hour) }
-	got, err := p.Search(context.Background(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "Somerville, MA"}, MaxAge: 3 * time.Hour})
+	got, err := p.Search(t.Context(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "Somerville, MA"}, MaxAge: 3 * time.Hour})
 	if err != nil {
 		t.Fatal(err)
 	}

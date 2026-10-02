@@ -31,7 +31,6 @@ type Grade struct {
 	Calibrated        bool                          `json:"calibrated"`
 	Score             float64                       `json:"score"`
 	Coverage          float64                       `json:"coverage"`
-	Vibe              float64                       `json:"vibe"`
 	MissingEssentials []string                      `json:"missing_essentials,omitempty"`
 	Dealbreakers      []string                      `json:"dealbreakers,omitempty"`
 	AvoidsHit         []string                      `json:"avoids_hit,omitempty"`
@@ -209,7 +208,6 @@ func combine(t Template, byModel map[string]listing.Assessment) Grade {
 		a := byModel[model]
 		grade.Score += a.Score
 		grade.Coverage += a.Coverage
-		grade.Vibe += float64(a.Vibe)
 		if ref, ok := profile.ReferenceScore(t.Profile, t.References, model); ok {
 			relative += 100 * a.Score / ref
 			calibrated++
@@ -230,7 +228,6 @@ func combine(t Template, byModel map[string]listing.Assessment) Grade {
 	n := float64(len(byModel))
 	grade.Score = round1(grade.Score / n)
 	grade.Coverage = round1(grade.Coverage / n)
-	grade.Vibe = round1(grade.Vibe / n)
 	grade.Match = grade.Score
 	if calibrated > 0 {
 		grade.Match = round1(relative / float64(calibrated))

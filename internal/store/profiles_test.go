@@ -1,7 +1,6 @@
 package store
 
 import (
-	"context"
 	"errors"
 	"reflect"
 	"testing"
@@ -50,7 +49,7 @@ func corporate() profile.Profile {
 }
 
 func TestProfileRoundTrip(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	s := open(t)
 	p := wantProfile()
 	if err := s.SaveProfile(ctx, p, reference("r1")); err == nil {
@@ -94,7 +93,7 @@ func TestProfileRoundTrip(t *testing.T) {
 }
 
 func TestEffectiveProfile(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	s := open(t)
 	want, ap := wantProfile(), corporate()
 	if err := s.SaveProfile(ctx, want, reference("r1"), reference("r2")); err != nil {
@@ -131,7 +130,7 @@ func TestEffectiveProfile(t *testing.T) {
 }
 
 func TestReferenceListingsArePinned(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	s := open(t)
 	p := wantProfile()
 	p.References = p.References[1:]
@@ -165,7 +164,7 @@ func TestReferenceListingsArePinned(t *testing.T) {
 }
 
 func TestCollectionRoundTrip(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	s := open(t)
 	maxPrice := 4000
 	c := collection.Collection{

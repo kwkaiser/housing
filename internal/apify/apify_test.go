@@ -29,7 +29,7 @@ func TestLimit(t *testing.T) {
 	var g errgroup.Group
 	for range 6 {
 		g.Go(func() error {
-			_, err := r.Run(context.Background(), "a/b", nil)
+			_, err := r.Run(t.Context(), "a/b", nil)
 			return err
 		})
 	}

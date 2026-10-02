@@ -1,7 +1,6 @@
 package craigslist
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"reflect"
@@ -51,14 +50,14 @@ func TestListingURL(t *testing.T) {
 
 func TestLookup(t *testing.T) {
 	searchP, _ := newProvider(fixture(t), zip02144)
-	found, err := searchP.Search(context.Background(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "02144"}})
+	found, err := searchP.Search(t.Context(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "02144"}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	fromSearch := found[0]
 
 	p, r := newProvider(assumedLookup(t), zip02144)
-	got, err := p.Lookup(context.Background(), viewURL+"?lang=en")
+	got, err := p.Lookup(t.Context(), viewURL+"?lang=en")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +88,7 @@ func TestLookupWithoutActorID(t *testing.T) {
 	item["id"] = ""
 	raw, _ := json.Marshal(item)
 	p, _ := newProvider([]json.RawMessage{raw}, zip02144)
-	got, err := p.Lookup(context.Background(), viewURL)
+	got, err := p.Lookup(t.Context(), viewURL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +113,7 @@ func TestLookupErrors(t *testing.T) {
 		"not json":     {viewURL, []json.RawMessage{json.RawMessage(`"oops"`)}, "decode craigslist item"},
 	} {
 		p, _ := newProvider(tc.items, zip02144)
-		if _, err := p.Lookup(context.Background(), tc.url); err == nil || !strings.Contains(err.Error(), tc.want) {
+		if _, err := p.Lookup(t.Context(), tc.url); err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%s: err = %v, want %q", name, err, tc.want)
 		}
 	}

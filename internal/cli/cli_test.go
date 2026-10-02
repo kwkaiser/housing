@@ -2,7 +2,6 @@ package cli
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -30,8 +29,12 @@ func run(t *testing.T, args ...string) (string, error) {
 func seedCollection(t *testing.T, id string) string {
 	t.Helper()
 	dir := t.TempDir()
-	ctx := context.Background()
-	svc := service.New(service.Config{DataDir: dir})
+	ctx := t.Context()
+	svc, err := service.Open(ctx, service.Config{DataDir: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer svc.Close()
 	if err := svc.SaveProfile(ctx, profile.Profile{ID: "attic", Ignore: profile.DefaultIgnore}); err != nil {
 		t.Fatal(err)
 	}
@@ -56,14 +59,14 @@ func TestRun(t *testing.T) {
 	if _, err := run(t, "run", "--data-dir", data); err == nil {
 		t.Error("run without a collection should be rejected")
 	}
-	unlock, err := service.New(service.Config{DataDir: data}).Lock()
+	held, err := service.Open(t.Context(), service.Config{DataDir: data, Exclusive: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := run(t, "run", "somerville", "--data-dir", data); !errors.Is(err, service.ErrLocked) {
 		t.Errorf("a locked data dir should fail fast: %v", err)
 	}
-	unlock()
+	held.Close()
 	if _, err := run(t, "run", "somerville", "--data-dir", data); err == nil || !strings.Contains(err.Error(), "OPENROUTER_API_KEY") {
 		t.Errorf("a missing key should fail before any work: %v", err)
 	}
@@ -82,11 +85,16 @@ func TestImport(t *testing.T) {
 	}
 	for range 2 {
 		out, err := run(t, append([]string{"import"}, dirs...)...)
-		if err != nil || !strings.Contains(out, "import: 1 profiles with 0 reference listings, 0 media files copied, 0 collections") {
+		if err != nil || !strings.Contains(out, `msg="import finished" stage=import profiles=1 references=0 media_copied=0 collections=0`) {
 			t.Fatalf("import: %v\n%s", err, out)
 		}
 	}
-	ps, err := service.New(service.Config{DataDir: filepath.Join(root, "data")}).Profiles(context.Background())
+	svc, err := service.Open(t.Context(), service.Config{DataDir: filepath.Join(root, "data")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer svc.Close()
+	ps, err := svc.Profiles(t.Context())
 	if err != nil || len(ps) != 1 || ps[0].Name != "Attic" {
 		t.Errorf("imported profiles: %v %+v", err, ps)
 	}

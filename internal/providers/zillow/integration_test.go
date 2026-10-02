@@ -50,7 +50,7 @@ func TestSearchLive(t *testing.T) {
 	for name, c := range queries {
 		q := c.query
 		t.Run(name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
 			defer cancel()
 
 			got, err := p.Search(ctx, q)
@@ -83,7 +83,7 @@ func TestEnrichLive(t *testing.T) {
 	client.MaxTotalChargeUSD = 0.05
 	p := New(client, NewAutocomplete())
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Minute)
 	defer cancel()
 
 	q := listing.Query{
@@ -125,7 +125,7 @@ func persist(t *testing.T, ls []listing.Listing) {
 	if dir == "" {
 		return
 	}
-	if err := (jsonfile.Persister{}).Persist(context.Background(), dir, ls); err != nil {
+	if err := (jsonfile.Persister{}).Persist(t.Context(), dir, ls); err != nil {
 		t.Fatal(err)
 	}
 }

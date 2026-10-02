@@ -4,9 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"path/filepath"
+	"slices"
+	"strings"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
@@ -41,39 +45,39 @@ type fakeExec struct {
 	err     error
 }
 
-func (f *fakeExec) RunCollection(ctx context.Context, id string, progress service.Progress) (service.RunResult, error) {
+func (f *fakeExec) RunCollection(ctx context.Context, id string, log *slog.Logger) (service.RunResult, error) {
 	f.mu.Lock()
 	f.runs = append(f.runs, id)
 	f.mu.Unlock()
-	progress(service.Event{Stage: service.StageFetch, Message: "fetched " + id})
+	log.Info("fetched "+id, "stage", service.StageFetch, "listings", 3)
 	if f.started != nil {
 		f.started <- id
 	}
 	if f.block {
 		<-ctx.Done()
-		progress(service.Event{Stage: service.StageRun, Message: "stopping"})
+		log.Warn("stopping", "stage", service.StageRun)
 		return service.RunResult{Collection: id}, ctx.Err()
 	}
 	res := service.RunResult{Collection: id, Mode: profile.ModeRent, Fetched: 3, Stats: profile.BatchStats{Calls: 2, CostUSD: 0.04}}
 	if f.err != nil {
 		return res, f.err
 	}
-	progress(service.Event{Stage: service.StageAssess, Message: "graded"})
+	log.Info("graded", "stage", service.StageAssess)
 	return res, nil
 }
 
-func (f *fakeExec) CreateProfileFromURL(_ context.Context, o service.CreateProfileOptions, progress service.Progress) (profile.Profile, error) {
-	progress(service.Event{Stage: service.StageProfile, Message: "reference " + o.URL})
+func (f *fakeExec) CreateProfileFromURL(_ context.Context, o service.CreateProfileOptions, log *slog.Logger) (profile.Profile, error) {
+	log.Info("reference "+o.URL, "stage", service.StageProfile)
 	return profile.Profile{ID: o.ID, Name: o.Name, Want: make([]profile.Criterion, 2), Drafted: &profile.Drafted{CostUSD: 0.01}}, nil
 }
 
-func (f *fakeExec) DraftProfile(context.Context, string, service.DraftOptions, service.Progress) (profile.Profile, error) {
+func (f *fakeExec) DraftProfile(context.Context, string, service.DraftOptions, *slog.Logger) (profile.Profile, error) {
 	return profile.Profile{}, errors.New("no references")
 }
 
 func openStore(t *testing.T) *store.Store {
 	t.Helper()
-	db, err := store.Open(context.Background(), filepath.Join(t.TempDir(), store.FileName))
+	db, err := store.Open(t.Context(), filepath.Join(t.TempDir(), store.FileName))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +87,7 @@ func openStore(t *testing.T) *store.Store {
 
 func seed(t *testing.T, db *store.Store, schedules map[string]string) {
 	t.Helper()
-	ctx := context.Background()
+	ctx := t.Context()
 	if err := db.SaveProfile(ctx, profile.Profile{ID: "attic", Ignore: profile.DefaultIgnore}); err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +102,7 @@ func seed(t *testing.T, db *store.Store, schedules map[string]string) {
 
 func start(t *testing.T, q *Queue, exec Executor) (context.CancelFunc, chan error) {
 	t.Helper()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
 	r := &Runner{Queue: q, Exec: exec, Poll: 10 * time.Millisecond}
 	go func() { done <- r.Run(ctx) }()
@@ -111,77 +115,83 @@ func start(t *testing.T, q *Queue, exec Executor) (context.CancelFunc, chan erro
 
 func wait(t *testing.T, q *Queue, id int64) Job {
 	t.Helper()
-	deadline := time.Now().Add(5 * time.Second)
-	for time.Now().Before(deadline) {
-		j, err := q.Job(context.Background(), id)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !j.Status.Active() {
-			return j
-		}
-		time.Sleep(5 * time.Millisecond)
+	synctest.Wait()
+	j, err := q.Job(t.Context(), id)
+	if err != nil {
+		t.Fatal(err)
 	}
-	t.Fatalf("job %d did not finish", id)
-	return Job{}
+	if j.Status.Active() {
+		t.Fatalf("job %d is still %s", id, j.Status)
+	}
+	return j
 }
 
 func TestRunnerRecordsJobs(t *testing.T) {
-	ctx := context.Background()
-	q := New(openStore(t), nil)
-	exec := &fakeExec{}
-	start(t, q, exec)
+	synctest.Test(t, func(t *testing.T) {
+		ctx := t.Context()
+		q := New(openStore(t), nil)
+		exec := &fakeExec{}
+		start(t, q, exec)
 
-	id, err := q.Enqueue(ctx, RunCollectionParams{CollectionID: "somerville"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	j := wait(t, q, id)
-	var res RunResult
-	if err := json.Unmarshal(j.Result, &res); err != nil {
-		t.Fatal(err)
-	}
-	if j.Status != StatusSucceeded || j.CostUSD != 0.04 || j.Error != "" || j.Trigger != string(TriggerManual) || res.Fetched != 3 || res.Stats.Calls != 2 || j.StartedAt.IsZero() || j.FinishedAt.IsZero() {
-		t.Errorf("job = %+v result = %+v", j, res)
-	}
-	events, err := q.Events(ctx, id)
-	if err != nil || len(events) != 2 || events[0].Stage != "fetch" || events[0].Message != "fetched somerville" || events[1].Message != "graded" {
-		t.Errorf("events = %+v %v", events, err)
-	}
-	if latest, ok, _ := q.LatestForCollection(ctx, "somerville"); !ok || latest.ID != id {
-		t.Errorf("latest = %+v", latest)
-	}
+		id, err := q.Enqueue(ctx, RunCollectionParams{CollectionID: "somerville"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		j := wait(t, q, id)
+		var res RunResult
+		if err := json.Unmarshal(j.Result, &res); err != nil {
+			t.Fatal(err)
+		}
+		if j.Status != StatusSucceeded || j.CostUSD != 0.04 || j.Error != "" || j.Trigger != string(TriggerManual) || res.Fetched != 3 || res.Stats.Calls != 2 || j.StartedAt.IsZero() || j.FinishedAt.IsZero() {
+			t.Errorf("job = %+v result = %+v", j, res)
+		}
+		events, err := q.Events(ctx, id)
+		if err != nil || len(events) != 2 || events[0].Message != "fetched somerville" || events[1].Message != "graded" {
+			t.Fatalf("events = %+v %v", events, err)
+		}
+		if attrs, err := EventAttrs(events[0]); err != nil || !slices.Equal(attrs, []Attr{{"stage", "fetch"}, {"listings", "3"}}) {
+			t.Errorf("attrs = %+v %v", attrs, err)
+		}
+		if !strings.Contains(string(events[0].Record), `"level":"INFO"`) {
+			t.Errorf("record %s should carry the level", events[0].Record)
+		}
+		if latest, ok, _ := q.LatestForCollection(ctx, "somerville"); !ok || latest.ID != id {
+			t.Errorf("latest = %+v", latest)
+		}
 
-	pid, err := q.Enqueue(ctx, CreateProfileParams{URL: "https://zillow.com/x", ID: "loft", Name: "Loft"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	p := wait(t, q, pid)
-	if p.Status != StatusSucceeded || p.ProfileID != "loft" || p.CostUSD != 0.01 || string(p.Result) != `{"profile_id":"loft","name":"Loft","want":2,"avoid":0}` {
-		t.Errorf("create profile job = %+v %s", p, p.Result)
-	}
+		pid, err := q.Enqueue(ctx, CreateProfileParams{URL: "https://zillow.com/x", ID: "loft", Name: "Loft"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := wait(t, q, pid)
+		if p.Status != StatusSucceeded || p.ProfileID != "loft" || p.CostUSD != 0.01 || string(p.Result) != `{"profile_id":"loft","name":"Loft","want":2,"avoid":0}` {
+			t.Errorf("create profile job = %+v %s", p, p.Result)
+		}
 
-	did, _ := q.Enqueue(ctx, DraftProfileParams{ProfileID: "loft"})
-	if d := wait(t, q, did); d.Status != StatusFailed || d.Error != "no references" || d.Result != nil {
-		t.Errorf("draft job = %+v", d)
-	}
-	if _, err := q.Enqueue(ctx, CreateProfileParams{ID: "Bad Id"}); err == nil {
-		t.Error("an invalid profile id should be rejected")
-	}
+		did, _ := q.Enqueue(ctx, DraftProfileParams{ProfileID: "loft"})
+		if d := wait(t, q, did); d.Status != StatusFailed || d.Error != "no references" || d.Result != nil {
+			t.Errorf("draft job = %+v", d)
+		}
+		if _, err := q.Enqueue(ctx, CreateProfileParams{ID: "Bad Id"}); err == nil {
+			t.Error("an invalid profile id should be rejected")
+		}
+	})
 }
 
 func TestRunnerRecordsFailure(t *testing.T) {
-	q := New(openStore(t), nil)
-	start(t, q, &fakeExec{err: errors.New("OPENROUTER_API_KEY is not set")})
-	id, _ := q.Enqueue(context.Background(), RunCollectionParams{CollectionID: "c"})
-	j := wait(t, q, id)
-	if j.Status != StatusFailed || j.Error != "OPENROUTER_API_KEY is not set" || j.CostUSD != 0.04 || j.Result != nil {
-		t.Errorf("job = %+v", j)
-	}
+	synctest.Test(t, func(t *testing.T) {
+		q := New(openStore(t), nil)
+		start(t, q, &fakeExec{err: errors.New("OPENROUTER_API_KEY is not set")})
+		id, _ := q.Enqueue(t.Context(), RunCollectionParams{CollectionID: "c"})
+		j := wait(t, q, id)
+		if j.Status != StatusFailed || j.Error != "OPENROUTER_API_KEY is not set" || j.CostUSD != 0.04 || j.Result != nil {
+			t.Errorf("job = %+v", j)
+		}
+	})
 }
 
 func TestEnqueueReusesActiveRun(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	q := New(openStore(t), nil)
 	first, err := q.Enqueue(ctx, RunCollectionParams{CollectionID: "c"})
 	if err != nil {
@@ -202,52 +212,52 @@ func TestEnqueueReusesActiveRun(t *testing.T) {
 }
 
 func TestRunnerRecoversInterruptedJobs(t *testing.T) {
-	ctx := context.Background()
-	db := openStore(t)
-	q := New(db, nil)
-	stale, _ := q.Enqueue(ctx, RunCollectionParams{CollectionID: "c"})
-	if _, _, err := db.ClaimJob(ctx, time.Now()); err != nil {
-		t.Fatal(err)
-	}
-	queued, _ := q.Enqueue(ctx, RunCollectionParams{CollectionID: "d"})
+	synctest.Test(t, func(t *testing.T) {
+		ctx := t.Context()
+		db := openStore(t)
+		q := New(db, nil)
+		stale, _ := q.Enqueue(ctx, RunCollectionParams{CollectionID: "c"})
+		if _, _, err := db.ClaimJob(ctx, time.Now()); err != nil {
+			t.Fatal(err)
+		}
+		queued, _ := q.Enqueue(ctx, RunCollectionParams{CollectionID: "d"})
 
-	start(t, q, &fakeExec{})
-	if j := wait(t, q, stale); j.Status != StatusFailed || j.Error != Interrupted {
-		t.Errorf("stale job = %+v", j)
-	}
-	if j := wait(t, q, queued); j.Status != StatusSucceeded {
-		t.Errorf("queued job should still run: %+v", j)
-	}
+		start(t, q, &fakeExec{})
+		if j := wait(t, q, stale); j.Status != StatusFailed || j.Error != Interrupted {
+			t.Errorf("stale job = %+v", j)
+		}
+		if j := wait(t, q, queued); j.Status != StatusSucceeded {
+			t.Errorf("queued job should still run: %+v", j)
+		}
+	})
 }
 
 func TestRunnerShutdownCancelsJob(t *testing.T) {
-	ctx := context.Background()
-	q := New(openStore(t), nil)
-	exec := &fakeExec{block: true, started: make(chan string, 1)}
-	cancel, done := start(t, q, exec)
-	id, _ := q.Enqueue(ctx, RunCollectionParams{CollectionID: "c"})
-	<-exec.started
-	cancel()
-	select {
-	case err := <-done:
+	synctest.Test(t, func(t *testing.T) {
+		ctx := t.Context()
+		q := New(openStore(t), nil)
+		exec := &fakeExec{block: true, started: make(chan string, 1)}
+		cancel, done := start(t, q, exec)
+		id, _ := q.Enqueue(ctx, RunCollectionParams{CollectionID: "c"})
+		<-exec.started
+		cancel()
+		err := <-done
 		done <- err
 		if err != nil {
 			t.Errorf("runner: %v", err)
 		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("runner did not stop")
-	}
-	j, err := q.Job(ctx, id)
-	if err != nil || j.Status != StatusCancelled || j.Error != context.Canceled.Error() || j.FinishedAt.IsZero() {
-		t.Errorf("job = %+v %v", j, err)
-	}
-	if events, _ := q.Events(ctx, id); len(events) != 2 || events[1].Message != "stopping" {
-		t.Errorf("events after cancel should still be recorded: %+v", events)
-	}
+		j, err := q.Job(ctx, id)
+		if err != nil || j.Status != StatusCancelled || j.Error != context.Canceled.Error() || j.FinishedAt.IsZero() {
+			t.Errorf("job = %+v %v", j, err)
+		}
+		if events, _ := q.Events(ctx, id); len(events) != 2 || events[1].Message != "stopping" || events[1].Level != slog.LevelWarn {
+			t.Errorf("events after cancel should still be recorded: %+v", events)
+		}
+	})
 }
 
 func TestScheduler(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	db := openStore(t)
 	seed(t, db, map[string]string{"morning": "07:00", "evening": "19:30", "manual": ""})
 	clk := &clock{now: time.Date(2026, 9, 30, 6, 59, 0, 0, time.Local)}
@@ -302,42 +312,38 @@ func TestScheduler(t *testing.T) {
 }
 
 func TestSchedulerCatchesUpOnStartup(t *testing.T) {
-	ctx := context.Background()
-	db := openStore(t)
-	seed(t, db, map[string]string{"morning": "07:00", "manual-today": "08:00"})
-	clk := &clock{now: time.Date(2026, 9, 30, 9, 0, 0, 0, time.Local)}
-	q := New(db, clk.Now)
+	synctest.Test(t, func(t *testing.T) {
+		ctx := t.Context()
+		db := openStore(t)
+		seed(t, db, map[string]string{"morning": "07:00", "manual-today": "08:00"})
+		clk := &clock{now: time.Date(2026, 9, 30, 9, 0, 0, 0, time.Local)}
+		q := New(db, clk.Now)
 
-	clk.Set(time.Date(2026, 9, 30, 7, 30, 0, 0, time.Local))
-	if _, err := q.Enqueue(ctx, RunCollectionParams{CollectionID: "manual-today"}); err != nil {
-		t.Fatal(err)
-	}
-	claimed, _, _ := db.ClaimJob(ctx, clk.Now())
-	claimed.Status, claimed.FinishedAt = StatusFailed, clk.Now()
-	db.FinishJob(ctx, claimed)
-
-	clk.Set(time.Date(2026, 9, 30, 9, 0, 0, 0, time.Local))
-	sched := &Scheduler{Queue: q, Now: clk.Now, Tick: time.Hour}
-	runCtx, cancel := context.WithCancel(ctx)
-	done := make(chan error, 1)
-	go func() { done <- sched.Run(runCtx) }()
-	deadline := time.Now().Add(5 * time.Second)
-	for {
-		if _, ok, _ := q.ActiveForCollection(ctx, "morning"); ok {
-			break
+		clk.Set(time.Date(2026, 9, 30, 7, 30, 0, 0, time.Local))
+		if _, err := q.Enqueue(ctx, RunCollectionParams{CollectionID: "manual-today"}); err != nil {
+			t.Fatal(err)
 		}
-		if time.Now().After(deadline) {
+		claimed, _, _ := db.ClaimJob(ctx, clk.Now())
+		claimed.Status, claimed.FinishedAt = StatusFailed, clk.Now()
+		db.FinishJob(ctx, claimed)
+
+		clk.Set(time.Date(2026, 9, 30, 9, 0, 0, 0, time.Local))
+		sched := &Scheduler{Queue: q, Now: clk.Now, Tick: time.Hour}
+		runCtx, cancel := context.WithCancel(ctx)
+		done := make(chan error, 1)
+		go func() { done <- sched.Run(runCtx) }()
+		synctest.Wait()
+		if _, ok, _ := q.ActiveForCollection(ctx, "morning"); !ok {
 			t.Fatal("a missed schedule should be enqueued on startup")
 		}
-		time.Sleep(5 * time.Millisecond)
-	}
-	cancel()
-	if err := <-done; err != nil {
-		t.Error(err)
-	}
-	if js, _ := q.Jobs(ctx, Filter{CollectionID: "manual-today"}); len(js) != 1 {
-		t.Errorf("a manual run earlier today should count as today's run: %d jobs", len(js))
-	}
+		cancel()
+		if err := <-done; err != nil {
+			t.Error(err)
+		}
+		if js, _ := q.Jobs(ctx, Filter{CollectionID: "manual-today"}); len(js) != 1 {
+			t.Errorf("a manual run earlier today should count as today's run: %d jobs", len(js))
+		}
+	})
 }
 
 func TestDraftParamsNotes(t *testing.T) {

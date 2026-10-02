@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -9,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/jobs"
@@ -20,12 +20,8 @@ import (
 func profileApp(t *testing.T) *App {
 	t.Helper()
 	a := seededApp(t)
-	ctx := context.Background()
-	db, err := a.svc.OpenStore(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
+	ctx := t.Context()
+	db := a.svc.Store()
 	p, err := db.Profile(ctx, "attic")
 	if err != nil {
 		t.Fatal(err)
@@ -71,7 +67,7 @@ func jobParams(t *testing.T, a *App, loc string, into any) jobs.Job {
 	if err != nil {
 		t.Fatalf("redirect %q is not a job", loc)
 	}
-	j, err := a.jobs.Job(context.Background(), id)
+	j, err := a.jobs.Job(t.Context(), id)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,49 +102,51 @@ func TestProfilesPage(t *testing.T) {
 }
 
 func TestProfilePage(t *testing.T) {
-	a := profileApp(t)
-	h := a.Handler()
-	runJobs(t, a.jobs.(*jobs.Queue), &fakeExec{}, jobs.DraftProfileParams{ProfileID: "attic"})
+	synctest.Test(t, func(t *testing.T) {
+		a := profileApp(t)
+		h := a.Handler()
+		runJobs(t, a.jobs.(*jobs.Queue), &fakeExec{}, jobs.DraftProfileParams{ProfileID: "attic"})
 
-	res, body := get(t, h, "/profiles/attic")
-	if res.StatusCode != http.StatusOK {
-		t.Fatalf("GET /profiles/attic = %d\n%s", res.StatusCode, body)
-	}
-	checkBody(t, "attic", body, []string{
-		"<title>Sunny attic · housing</title>",
-		`<a class="button" href="/profiles/attic/edit">Edit</a>`,
-		`Latest job: <span class="status failed">failed</span> Draft profile just now · <a href="/jobs/1">view</a>`,
-		`<dd><a href="/c/somerville">somerville</a>, <a href="/c/zempty">zempty</a></dd>`,
-		`<dd>draft · 2026-09-01`, `$0.020`,
-		`Top floor &lt;script&gt;alert(1)&lt;/script&gt; with skylights.`,
-		`<li>skylights</li><li>top floor</li>`,
-		`<a href="https://example.com/ref" target="_blank" rel="noopener">1 Reference Rd, Somerville, MA 02144</a>`,
-		`<span class="tags">model 80.0</span>`,
-		`<img src="/media/collages/ab/abcdef" alt="Reference collage 0"`,
-		`<h2>Want criteria</h2>`,
-		`<td>Skylights <span class="muted">skylights</span></td><td class="tags">high</td><td class="tags">either</td><td class="summary">Skylights</td><td class="summary">Solar tubes</td><td class="tags">skylight, roof window</td>`,
-		`<td>Basement unit <span class="muted">basement</span></td><td class="tags">low</td><td class="tags">photos</td>`,
-		`Inherited from <a href="/profiles/corp">Corporate</a> <span class="muted">corp · read-only</span>`,
-		`<td>Wall-to-wall carpet <span class="muted">carpet</span></td><td class="tags"><span class="bad">essential</span></td>`,
-		`<form method="post" action="/profiles/attic/draft" class="form">`,
-		"<textarea id=\"f-draft-notes\" name=\"notes\" rows=\"4\">\nskylights\ntop floor</textarea>",
-		`placeholder="` + profile.DefaultDraftModel + `"`,
-	}, []string{"<script>alert"})
-
-	_, body = get(t, h, "/profiles/corp")
-	checkBody(t, "corp", body, []string{
-		`<span class="kind avoid">avoid</span>`, `<dd>applied to every collection</dd>`, `<dd>never</dd>`,
-		"No reference listings.", "This profile has no reference listings to draft from.", "Wall-to-wall carpet",
-	}, []string{"Want criteria", "Inherited from", "Latest job"})
-
-	_, body = get(t, h, "/profiles/loft")
-	checkBody(t, "loft", body, []string{"Inherited from", `<dd><a href="/c/somerville">somerville</a></dd>`, "No reference listings."}, nil)
-
-	for _, target := range []string{"/profiles/ghost", "/profiles/ghost/edit"} {
-		if res, _ := get(t, h, target); res.StatusCode != http.StatusNotFound {
-			t.Errorf("GET %s = %d", target, res.StatusCode)
+		res, body := get(t, h, "/profiles/attic")
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("GET /profiles/attic = %d\n%s", res.StatusCode, body)
 		}
-	}
+		checkBody(t, "attic", body, []string{
+			"<title>Sunny attic · housing</title>",
+			`<a class="button" href="/profiles/attic/edit">Edit</a>`,
+			`Latest job: <span class="status failed">failed</span> Draft profile just now · <a href="/jobs/1">view</a>`,
+			`<dd><a href="/c/somerville">somerville</a>, <a href="/c/zempty">zempty</a></dd>`,
+			`<dd>draft · 2026-09-01`, `$0.020`,
+			`Top floor &lt;script&gt;alert(1)&lt;/script&gt; with skylights.`,
+			`<li>skylights</li><li>top floor</li>`,
+			`<a href="https://example.com/ref" target="_blank" rel="noopener">1 Reference Rd, Somerville, MA 02144</a>`,
+			`<span class="tags">model 80.0</span>`,
+			`<img src="/media/collages/ab/abcdef" alt="Reference collage 0"`,
+			`<h2>Want criteria</h2>`,
+			`<td>Skylights <span class="muted">skylights</span></td><td class="tags">high</td><td class="tags">either</td><td class="summary">Skylights</td><td class="summary">Solar tubes</td><td class="tags">skylight, roof window</td>`,
+			`<td>Basement unit <span class="muted">basement</span></td><td class="tags">low</td><td class="tags">photos</td>`,
+			`Inherited from <a href="/profiles/corp">Corporate</a> <span class="muted">corp · read-only</span>`,
+			`<td>Wall-to-wall carpet <span class="muted">carpet</span></td><td class="tags"><span class="bad">essential</span></td>`,
+			`<form method="post" action="/profiles/attic/draft" class="form">`,
+			"<textarea id=\"f-draft-notes\" name=\"notes\" rows=\"4\">\nskylights\ntop floor</textarea>",
+			`placeholder="` + profile.DefaultDraftModel + `"`,
+		}, []string{"<script>alert"})
+
+		_, body = get(t, h, "/profiles/corp")
+		checkBody(t, "corp", body, []string{
+			`<span class="kind avoid">avoid</span>`, `<dd>applied to every collection</dd>`, `<dd>never</dd>`,
+			"No reference listings.", "This profile has no reference listings to draft from.", "Wall-to-wall carpet",
+		}, []string{"Want criteria", "Inherited from", "Latest job"})
+
+		_, body = get(t, h, "/profiles/loft")
+		checkBody(t, "loft", body, []string{"Inherited from", `<dd><a href="/c/somerville">somerville</a></dd>`, "No reference listings."}, nil)
+
+		for _, target := range []string{"/profiles/ghost", "/profiles/ghost/edit"} {
+			if res, _ := get(t, h, target); res.StatusCode != http.StatusNotFound {
+				t.Errorf("GET %s = %d", target, res.StatusCode)
+			}
+		}
+	})
 }
 
 func TestProfileLinks(t *testing.T) {
@@ -157,7 +155,7 @@ func TestProfileLinks(t *testing.T) {
 	_, body := get(t, h, "/c/somerville")
 	checkBody(t, "listings", body, []string{`<a href="/profiles/attic"><code>attic</code></a>`, `<a href="/profiles/loft"><code>loft</code></a>`}, nil)
 	_, body = get(t, h, "/listing/zillow/z1?collection=somerville")
-	checkBody(t, "listing", body, []string{`<h2><a href="/profiles/attic">Sunny attic</a>`, `<h2><a href="/profiles/loft">Loft</a>`}, nil)
+	checkBody(t, "listing", body, []string{`<a href="/profiles/attic">Sunny attic</a>`, `<a href="/profiles/loft">Loft</a>`}, nil)
 }
 
 func TestNewProfileForm(t *testing.T) {
@@ -271,7 +269,7 @@ func TestCreateProfileErrors(t *testing.T) {
 			`<input type="checkbox" name="draft" value="1" checked>`,
 		), nil)
 	}
-	if js, _ := a.jobs.Jobs(context.Background(), jobs.Filter{}); len(js) != 0 {
+	if js, _ := a.jobs.Jobs(t.Context(), jobs.Filter{}); len(js) != 0 {
 		t.Errorf("invalid forms must not enqueue: %d jobs", len(js))
 	}
 }
@@ -279,7 +277,7 @@ func TestCreateProfileErrors(t *testing.T) {
 func TestEditProfile(t *testing.T) {
 	a := profileApp(t)
 	h := a.Handler()
-	ctx := context.Background()
+	ctx := t.Context()
 	before, _ := a.svc.Profile(ctx, "attic")
 
 	res, body := get(t, h, "/profiles/attic/edit")
@@ -391,7 +389,7 @@ func TestRedraftProfile(t *testing.T) {
 func TestProfileFormGuards(t *testing.T) {
 	a := profileApp(t)
 	h := a.Handler()
-	before, _ := a.svc.Profile(context.Background(), "attic")
+	before, _ := a.svc.Profile(t.Context(), "attic")
 	evil := map[string]string{"Origin": "https://evil.example"}
 	for _, tc := range []struct {
 		target string
@@ -409,10 +407,10 @@ func TestProfileFormGuards(t *testing.T) {
 	if res, _ := post(t, h, "/profiles", big, sameOriginHeader); res.StatusCode != http.StatusBadRequest {
 		t.Errorf("oversized form = %d", res.StatusCode)
 	}
-	if js, _ := a.jobs.Jobs(context.Background(), jobs.Filter{}); len(js) != 0 {
+	if js, _ := a.jobs.Jobs(t.Context(), jobs.Filter{}); len(js) != 0 {
 		t.Errorf("rejected requests must not enqueue: %d", len(js))
 	}
-	if after, _ := a.svc.Profile(context.Background(), "attic"); !reflect.DeepEqual(after, before) {
+	if after, _ := a.svc.Profile(t.Context(), "attic"); !reflect.DeepEqual(after, before) {
 		t.Error("rejected requests must not save")
 	}
 }

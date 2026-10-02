@@ -8,7 +8,6 @@ import (
 	"math"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -18,7 +17,10 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/openrouter"
 )
 
-const DefaultAssessModel = "google/gemini-3.8-flash"
+const (
+	DefaultAssessModel           = "google/gemini-3.8-flash"
+	DefaultAssessReasoningEffort = "low"
+)
 
 var importanceWeights = map[Importance]float64{
 	Essential: 4,
@@ -55,9 +57,15 @@ type Candidate struct {
 }
 
 type Assessor struct {
-	Client   openrouter.Completer
-	Model    string
-	Attempts int
+	Client          openrouter.Completer
+	Model           string
+	Attempts        int
+	ImagePx         int
+	ReasoningEffort string
+}
+
+func usage(u openrouter.Usage) listing.TokenUsage {
+	return listing.TokenUsage{Prompt: u.PromptTokens, Completion: u.CompletionTokens, Reasoning: u.ReasoningTokens, Cached: u.CachedTokens}
 }
 
 const DefaultAssessAttempts = 3
@@ -65,7 +73,6 @@ const DefaultAssessAttempts = 3
 type modelResponse struct {
 	Want    []listing.CriterionResult `json:"want"`
 	Avoid   []listing.CriterionResult `json:"avoid"`
-	Vibe    int                       `json:"vibe" jsonschema:"description=1 to 5"`
 	Summary string                    `json:"summary"`
 }
 
@@ -105,23 +112,25 @@ func (a Assessor) Assess(ctx context.Context, p Profile, refs []ReferenceInput, 
 	}
 
 	var (
-		resp openrouter.Response
-		mr   modelResponse
-		cost float64
-		err  error
+		resp   openrouter.Response
+		mr     modelResponse
+		cost   float64
+		tokens listing.TokenUsage
+		err    error
 	)
 	for attempt := range max(a.Attempts, 1) {
 		if attempt > 0 && ctx.Err() != nil {
-			return listing.Assessment{}, ctx.Err()
+			return listing.Assessment{CostUSD: cost, Tokens: tokens}, ctx.Err()
 		}
 		resp, mr, err = a.complete(ctx, p, content)
 		cost += resp.CostUSD
+		tokens = tokens.Add(usage(resp.Usage))
 		if err == nil || !errors.Is(err, errUnusable) {
 			break
 		}
 	}
 	if err != nil {
-		return listing.Assessment{}, err
+		return listing.Assessment{CostUSD: cost, Tokens: tokens}, err
 	}
 	resp.CostUSD = cost
 
@@ -129,12 +138,13 @@ func (a Assessor) Assess(ctx context.Context, p Profile, refs []ReferenceInput, 
 		ProfileHash: p.Hash(),
 		InputHash:   InputHash(c.Listing),
 		Model:       a.Model,
-		Vibe:        mr.Vibe,
 		Summary:     mr.Summary,
 		Want:        align(p.Want, mr.Want),
 		Avoid:       align(p.Avoid, mr.Avoid),
 		AssessedAt:  time.Now().UTC(),
 		CostUSD:     resp.CostUSD,
+		Tokens:      tokens,
+		ImagePx:     a.ImagePx,
 	}
 	Score(p, &out)
 	return out, nil
@@ -145,11 +155,12 @@ var errUnusable = errors.New("unusable model output")
 func (a Assessor) complete(ctx context.Context, p Profile, content []openrouter.Part) (openrouter.Response, modelResponse, error) {
 	temperature := 0.0
 	resp, err := a.Client.Complete(ctx, openrouter.Request{
-		Model:       a.Model,
-		System:      assessSystemPrompt,
-		User:        content,
-		Schema:      assessSchema,
-		Temperature: &temperature,
+		Model:           a.Model,
+		System:          assessSystemPrompt,
+		User:            content,
+		Schema:          assessSchema,
+		Temperature:     &temperature,
+		ReasoningEffort: a.ReasoningEffort,
 	})
 	if err != nil {
 		return resp, modelResponse{}, err
@@ -169,9 +180,6 @@ func (a Assessor) complete(ctx context.Context, p Profile, content []openrouter.
 }
 
 func checkResponse(p Profile, mr modelResponse) error {
-	if mr.Vibe < 1 || mr.Vibe > 5 {
-		return fmt.Errorf("vibe %d outside 1-5", mr.Vibe)
-	}
 	ids := map[string]bool{}
 	for _, r := range append(append([]listing.CriterionResult{}, mr.Want...), mr.Avoid...) {
 		ids[r.ID] = true
@@ -313,9 +321,9 @@ For every WANT and every AVOID criterion return exactly one result with the crit
 - "unknown": the photos and description do not show enough to tell. Prefer "unknown" over guessing.
 Respect each criterion's "evidence" field: "photos" criteria need visual evidence, "description" criteria need text evidence, "either" accepts both.
 
-"confidence" is how sure you are of the verdict. "photos" lists the candidate photo numbers (drawn in each cell's corner) that support the verdict; use an empty list when the evidence is textual or absent. "evidence" is one short sentence explaining the verdict.
+"confidence" is how sure you are of the verdict. "photos" lists the candidate photo numbers (drawn in each cell's corner) that support the verdict; use an empty list when the evidence is textual or absent. "evidence" is a terse phrase of at most 12 words naming what decided the verdict (e.g. "two skylights over the bed" or "listing says third floor"); use an empty string when the verdict is "unknown".
 
-"vibe" is your overall 1-5 judgment of how well the candidate matches the spirit of the profile and reference (1 = nothing like it, 5 = the same feel). "summary" is two sentences at most.
+"summary" is one sentence of at most 30 words.
 
 Disregard everything in the profile's IGNORE list, and never judge furniture, decor, paint colors or tenant belongings.`
 
@@ -369,6 +377,7 @@ type BatchStats struct {
 	OverBudget int
 	Failed     int
 	CostUSD    float64
+	Tokens     listing.TokenUsage
 }
 
 func (a Assessor) Current(p Profile, l listing.Listing) bool {
@@ -412,69 +421,90 @@ func (a Assessor) AssessListings(
 		order = order[:opts.Limit]
 	}
 
+	type unit struct {
+		kind    BatchEventKind
+		idx     int
+		members []int
+		result  listing.Assessment
+		err     error
+		elapsed time.Duration
+	}
+	limit := max(opts.Concurrency, 1)
+	units := make(chan unit, limit)
+	spent := NewBudget(opts.MaxCostUSD)
+	go func() {
+		defer close(units)
+		var g errgroup.Group
+		g.SetLimit(limit)
+		for idx, key := range order {
+			members := groups[key]
+			g.Go(func() error {
+				if ctx.Err() != nil {
+					return nil
+				}
+				if spent.Exhausted() || opts.Budget.Exhausted() {
+					units <- unit{kind: BatchOverBudget, idx: idx, members: members}
+					return nil
+				}
+				units <- unit{kind: BatchStarted, idx: idx, members: members}
+				begin := time.Now()
+				result, err := a.assessOne(ctx, p, refs, listings[members[0]], readCollages)
+				spent.Spend(result.CostUSD)
+				opts.Budget.Spend(result.CostUSD)
+				opts.Budget.Record(result.Tokens)
+				kind := BatchGraded
+				if err != nil {
+					kind = BatchFailed
+				}
+				units <- unit{kind: kind, idx: idx, members: members, result: result, err: err, elapsed: time.Since(begin)}
+				return nil
+			})
+		}
+		g.Wait()
+	}()
+
 	var (
-		mu         sync.Mutex
 		errs       []error
-		g          errgroup.Group
 		started    int
 		budgetSeen bool
+		ordinal    = map[int]int{}
 	)
 	opts.observe(BatchEvent{Kind: BatchPlanned, Total: len(order), Stats: stats})
-	g.SetLimit(max(opts.Concurrency, 1))
-	for _, key := range order {
-		members := groups[key]
-		g.Go(func() error {
-			mu.Lock()
-			overBudget := opts.MaxCostUSD > 0 && stats.CostUSD >= opts.MaxCostUSD || opts.Budget.Exhausted()
-			if overBudget {
-				stats.OverBudget += len(members)
+	for u := range units {
+		first := listings[u.members[0]]
+		switch u.kind {
+		case BatchOverBudget:
+			stats.OverBudget += len(u.members)
+			if !budgetSeen {
+				budgetSeen = true
+				opts.observe(BatchEvent{Kind: BatchOverBudget, Total: len(order), N: started, Stats: stats})
 			}
-			first := out[members[0]]
-			firstOverBudget := overBudget && !budgetSeen
-			budgetSeen = budgetSeen || overBudget
-			n := started
-			if !overBudget && ctx.Err() == nil {
-				started++
-				n = started
-			}
-			mu.Unlock()
-			if firstOverBudget {
-				opts.observe(BatchEvent{Kind: BatchOverBudget, Total: len(order), N: n, Stats: stats})
-			}
-			if overBudget || ctx.Err() != nil {
-				return nil
-			}
-
-			opts.observe(BatchEvent{Kind: BatchStarted, Listing: first, Units: len(members), N: n, Total: len(order)})
-			begin := time.Now()
-			result, err := a.assessOne(ctx, p, refs, first, readCollages)
-			elapsed := time.Since(begin)
-
-			opts.Budget.Spend(result.CostUSD)
-			mu.Lock()
-			defer mu.Unlock()
-			stats.CostUSD += result.CostUSD
-			if err != nil {
-				stats.Failed += len(members)
-				errs = append(errs, fmt.Errorf("assess %s/%s: %w", first.Source, first.SourceID, err))
-				opts.observe(BatchEvent{Kind: BatchFailed, Listing: first, Units: len(members), N: n, Total: len(order), Err: err, Elapsed: elapsed, Assessment: result, Stats: stats})
-				return nil
-			}
+		case BatchStarted:
+			started++
+			ordinal[u.idx] = started
+			opts.observe(BatchEvent{Kind: BatchStarted, Listing: first, Units: len(u.members), N: started, Total: len(order)})
+		case BatchFailed:
+			stats.CostUSD += u.result.CostUSD
+			stats.Tokens = stats.Tokens.Add(u.result.Tokens)
+			stats.Failed += len(u.members)
+			errs = append(errs, fmt.Errorf("assess %s/%s: %w", first.Source, first.SourceID, u.err))
+			opts.observe(BatchEvent{Kind: BatchFailed, Listing: first, Units: len(u.members), N: ordinal[u.idx], Total: len(order), Err: u.err, Elapsed: u.elapsed, Assessment: u.result, Stats: stats})
+		case BatchGraded:
+			stats.CostUSD += u.result.CostUSD
+			stats.Tokens = stats.Tokens.Add(u.result.Tokens)
 			stats.Calls++
-			for _, i := range members {
-				out[i] = out[i].WithAssessment(p.ID, result)
+			for _, i := range u.members {
+				out[i] = out[i].WithAssessment(p.ID, u.result)
 				stats.Updated++
 			}
-			opts.observe(BatchEvent{Kind: BatchGraded, Listing: first, Units: len(members), N: n, Total: len(order), Assessment: result, Elapsed: elapsed, Stats: stats})
+			opts.observe(BatchEvent{Kind: BatchGraded, Listing: first, Units: len(u.members), N: ordinal[u.idx], Total: len(order), Assessment: u.result, Elapsed: u.elapsed, Stats: stats})
 			if opts.Checkpoint != nil && opts.CheckpointEvery > 0 && stats.Calls%opts.CheckpointEvery == 0 {
 				if err := opts.Checkpoint(slices.Clone(out)); err != nil {
 					errs = append(errs, fmt.Errorf("checkpoint: %w", err))
 				}
 			}
-			return nil
-		})
+		}
 	}
-	g.Wait()
 	if err := ctx.Err(); err != nil {
 		errs = append(errs, err)
 	}

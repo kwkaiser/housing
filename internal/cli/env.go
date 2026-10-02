@@ -1,7 +1,8 @@
 package cli
 
 import (
-	"fmt"
+	"io"
+	"log/slog"
 
 	"github.com/spf13/cobra"
 
@@ -11,22 +12,31 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
 )
 
-func newService(dataDir string) *service.Service {
-	return newImportService(dataDir, profile.DefaultRoot, collection.DefaultRoot)
-}
-
-func newImportService(dataDir, profilesDir, collectionsDir string) *service.Service {
-	return service.New(service.Config{
+func openService(cmd *cobra.Command, dataDir string, edit ...func(*service.Config)) (*service.Service, error) {
+	cfg := service.Config{
 		DataDir:        dataDir,
-		ProfilesDir:    profilesDir,
-		CollectionsDir: collectionsDir,
+		ProfilesDir:    profile.DefaultRoot,
+		CollectionsDir: collection.DefaultRoot,
 		Keys:           config.Load(),
-	})
+		Log:            cliLogger(cmd.OutOrStdout()),
+	}
+	for _, e := range edit {
+		e(&cfg)
+	}
+	return service.Open(cmd.Context(), cfg)
 }
 
-func printProgress(cmd *cobra.Command) service.Progress {
-	out := cmd.OutOrStdout()
-	return func(e service.Event) {
-		fmt.Fprintln(out, e.Message)
-	}
+func exclusive(cfg *service.Config) {
+	cfg.Exclusive = true
+}
+
+func cliLogger(w io.Writer) *slog.Logger {
+	return slog.New(slog.NewTextHandler(w, &slog.HandlerOptions{
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if len(groups) == 0 && a.Key == slog.TimeKey {
+				return slog.Attr{}
+			}
+			return a
+		},
+	}))
 }

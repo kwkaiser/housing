@@ -79,11 +79,10 @@ type ReferenceView struct {
 }
 
 func (s *Service) CollectionDay(ctx context.Context, collectionID string, o DayOptions) (CollectionDayView, error) {
-	db, err := s.openCatalog(ctx)
+	db, err := s.catalog(ctx)
 	if err != nil {
 		return CollectionDayView{}, err
 	}
-	defer db.Close()
 	var v CollectionDayView
 	if v.Collection, err = db.Collection(ctx, collectionID); err != nil {
 		return v, err
@@ -232,11 +231,10 @@ type InheritedCriterion struct {
 }
 
 func (s *Service) ProfileDetail(ctx context.Context, id string) (ProfileDetailView, error) {
-	db, err := s.openCatalog(ctx)
+	db, err := s.catalog(ctx)
 	if err != nil {
 		return ProfileDetailView{}, err
 	}
-	defer db.Close()
 	var v ProfileDetailView
 	if v.Profile, err = db.Profile(ctx, id); err != nil {
 		return v, err
@@ -312,11 +310,10 @@ type ListingOptions struct {
 }
 
 func (s *Service) ListingDetail(ctx context.Context, source listing.Source, sourceID string, o ListingOptions) (ListingView, error) {
-	db, err := s.openCatalog(ctx)
+	db, err := s.catalog(ctx)
 	if err != nil {
 		return ListingView{}, err
 	}
-	defer db.Close()
 	v := ListingView{Collection: o.Collection}
 	if v.Listing, err = db.CurrentListing(ctx, source, sourceID); err != nil {
 		return v, err

@@ -2,7 +2,6 @@ package media
 
 import (
 	"bytes"
-	"context"
 	"image"
 	"image/color"
 	"image/jpeg"
@@ -78,7 +77,7 @@ func TestProcess(t *testing.T) {
 		{Source: listing.SourceZillow, SourceID: "none", Photos: []string{srv.URL + "/missing2.jpg"}},
 	}
 
-	got, err := p.Process(context.Background(), listings)
+	got, err := p.Process(t.Context(), listings)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,13 +111,13 @@ func TestProcess(t *testing.T) {
 		}
 		f.Close()
 	}
-	if ok, _ := store.Has(context.Background(), PhotoKey(shared[18])); ok {
+	if ok, _ := store.Has(t.Context(), PhotoKey(shared[18])); ok {
 		t.Error("photos beyond MaxPhotos should not be fetched")
 	}
 
 	before := srv.hits.Load()
 	info, _ := os.Stat(store.Path(got[0].Collages[0]))
-	again, err := p.Process(context.Background(), listings)
+	again, err := p.Process(t.Context(), listings)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +136,7 @@ func TestCollageIsOffline(t *testing.T) {
 	urls := photoURLs(srv.URL, 3)
 	listings := []listing.Listing{{Source: listing.SourceZillow, SourceID: "a", Photos: urls}}
 
-	got, err := p.Collage(context.Background(), listings)
+	got, err := p.Collage(t.Context(), listings)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,11 +144,11 @@ func TestCollageIsOffline(t *testing.T) {
 		t.Fatalf("collage without fetched photos should do nothing, got %v with %d fetches", got[0].Collages, srv.hits.Load())
 	}
 
-	if err := p.FetchPhotos(context.Background(), listings); err != nil {
+	if err := p.FetchPhotos(t.Context(), listings); err != nil {
 		t.Fatal(err)
 	}
 	fetched := srv.hits.Load()
-	got, err = p.Collage(context.Background(), listings)
+	got, err = p.Collage(t.Context(), listings)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,14 +156,17 @@ func TestCollageIsOffline(t *testing.T) {
 		t.Fatalf("collage should use stored photos only, got %v", got[0].Collages)
 	}
 
-	info, _ := os.Stat(store.Path(got[0].Collages[0]))
-	time.Sleep(10 * time.Millisecond)
-	p.Force = true
-	if _, err := p.Collage(context.Background(), listings); err != nil {
+	path := store.Path(got[0].Collages[0])
+	old := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+	if err := os.Chtimes(path, old, old); err != nil {
 		t.Fatal(err)
 	}
-	info2, _ := os.Stat(store.Path(got[0].Collages[0]))
-	if info.ModTime().Equal(info2.ModTime()) {
+	p.Force = true
+	if _, err := p.Collage(t.Context(), listings); err != nil {
+		t.Fatal(err)
+	}
+	info, _ := os.Stat(path)
+	if info.ModTime().Equal(old) {
 		t.Error("Force should rebuild existing collages")
 	}
 }
@@ -183,7 +185,7 @@ func TestHTTPFetcherRetries(t *testing.T) {
 
 	f := NewHTTPFetcher()
 	f.Client.RetryWaitMin, f.Client.RetryWaitMax = time.Millisecond, time.Millisecond
-	body, err := f.Fetch(context.Background(), srv.URL)
+	body, err := f.Fetch(t.Context(), srv.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,7 +201,7 @@ func TestHTTPFetcherRejectsNonImage(t *testing.T) {
 		w.Write([]byte("<html>"))
 	}))
 	defer srv.Close()
-	if _, err := NewHTTPFetcher().Fetch(context.Background(), srv.URL); err == nil {
+	if _, err := NewHTTPFetcher().Fetch(t.Context(), srv.URL); err == nil {
 		t.Fatal("expected error for non-image response")
 	}
 }

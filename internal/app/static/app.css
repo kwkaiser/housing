@@ -78,8 +78,6 @@ a.button, span.button { display: inline-block; padding: .3rem .6rem; border: 1px
 a.button:hover { text-decoration: none; border-color: var(--muted); }
 span.button[aria-disabled=true] { opacity: .4; }
 form.day { display: inline-flex; gap: .35rem; margin: 0; }
-.collections a { color: var(--muted); }
-.collections a[aria-current=page] { color: var(--fg); font-weight: 600; }
 .note { color: var(--fg); }
 th a { color: inherit; }
 th[aria-sort] { cursor: default; }
@@ -89,15 +87,28 @@ table.profiles ul { margin: 0; padding-left: 1rem; }
 table.profiles code + div { color: var(--muted); max-width: 16rem; }
 h3 { margin: 1rem 0 .5rem; font-size: 1rem; }
 .facts { color: var(--fg); }
-.description { white-space: pre-line; max-width: 70ch; margin: 0 0 1rem; }
-.grade { margin: 0 0 1.5rem; }
+.grade { margin: 0 0 1rem; padding: 1rem 1.25rem .5rem; border: 1px solid var(--line); border-radius: 8px; }
+.grade header { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.25rem; margin: 0 0 .75rem; }
+.grade .match { display: flex; flex-direction: column; align-items: center; min-width: 4.5rem; padding: .35rem .6rem; border: 1px solid var(--line); border-radius: 6px; background: var(--stripe); }
+.grade .match .score { font-size: 1.4rem; line-height: 1.2; }
+.grade .match .muted { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; }
+.grade .who { flex: 1 1 12rem; }
+.grade .who a { font-size: 1.05rem; font-weight: 600; }
+.grade .who .muted { font-size: .8rem; }
+.grade dl.stats { display: flex; gap: 1.25rem; margin: 0; }
+.grade dl.stats dt { color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; }
+.grade dl.stats dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.grade .assessment { color: var(--fg); margin: 0 0 .75rem; }
+.pills { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 .75rem; }
+.pill { padding: 0 .5rem; border-radius: 999px; font-size: .75rem; border: 1px solid currentColor; white-space: nowrap; }
 table.criteria .summary { min-width: 16rem; }
 table.criteria tr.group th { position: static; color: var(--muted); }
 .verdict.present, .verdict.avoid-absent { color: var(--good); }
 .verdict.absent, .verdict.avoid-present { color: var(--bad); }
 .verdict.unknown { color: var(--muted); }
-.collages { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; margin: 0 0 1rem; }
-.collages img { display: block; max-width: min(100%, 36rem); height: auto; border: 1px solid var(--line); border-radius: 6px; }
+.collages { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; margin: 0 0 1.5rem; }
+.collages a { flex: 0 1 36rem; }
+.collages img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; }
 table.history { width: auto; }
 .status { display: inline-block; padding: 0 .45rem; border-radius: 999px; font-size: .75rem; border: 1px solid currentColor; white-space: nowrap; color: var(--muted); }
 .status.running { color: var(--accent); }
@@ -113,6 +124,13 @@ dl.fields dd { margin: 0; overflow-wrap: anywhere; }
 pre.error { margin: 0 0 1rem; padding: .5rem .75rem; border: 1px solid var(--line); border-radius: 6px; color: var(--bad); white-space: pre-wrap; overflow-wrap: anywhere; font-size: .85rem; }
 .note.running { color: var(--accent); }
 table.events td.message { white-space: pre-wrap; overflow-wrap: anywhere; }
+table.events td.meta { width: 1%; white-space: nowrap; text-align: right; color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
+table.events .level { display: inline-block; padding: 0 .4rem; border-radius: 999px; font-size: .7rem; font-weight: 600; border: 1px solid currentColor; vertical-align: text-bottom; }
+table.events .attrs { display: flex; flex-wrap: wrap; gap: .1rem .9rem; margin-top: .15rem; color: var(--muted); font-size: .8rem; white-space: normal; }
+table.events .attrs .key { opacity: .75; }
+table.events tr.warn td.message { color: #b45309; }
+table.events tr.error td.message { color: var(--bad); }
+table.events tr.debug td.message { color: var(--muted); }
 table.jobs td.bad { max-width: 28rem; }
 table.collections-table td.actions { display: flex; gap: .35rem; align-items: center; }
 table.collections-table td.actions form { margin: 0; }

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"reflect"
 	"slices"
@@ -15,13 +14,9 @@ import (
 
 func seedProfiles(t *testing.T) (*Service, profile.Profile) {
 	t.Helper()
-	ctx := context.Background()
-	svc := New(Config{DataDir: t.TempDir()})
-	db, err := svc.OpenStore(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
+	ctx := t.Context()
+	svc := openService(t, Config{DataDir: t.TempDir()})
+	db := svc.Store()
 	crit := func(id, label string, imp profile.Importance) profile.Criterion {
 		return profile.Criterion{ID: id, Label: label, LookFor: label, Keywords: []string{id}, Importance: imp, Evidence: profile.EvidenceEither}
 	}
@@ -78,7 +73,7 @@ func fieldErrors(err error) map[string]string {
 
 func TestValidateNewProfile(t *testing.T) {
 	svc, _ := seedProfiles(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	valid := CreateProfileOptions{URL: "https://www.zillow.com/homedetails/1", ID: "loft", Kind: profile.KindWant}
 	if err := svc.ValidateNewProfile(ctx, valid); err != nil {
 		t.Fatalf("valid options: %v", err)
@@ -165,7 +160,7 @@ func TestLookupFor(t *testing.T) {
 
 func TestUpdateProfile(t *testing.T) {
 	svc, attic := seedProfiles(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	before, _ := svc.Profile(ctx, "attic")
 
 	same, err := svc.UpdateProfile(ctx, "attic", ProfileEdit{Name: "Attic", Summary: attic.Summary, Notes: attic.Notes, Criteria: []CriterionEdit{
@@ -228,7 +223,7 @@ func TestUpdateProfile(t *testing.T) {
 
 func TestProfileDetail(t *testing.T) {
 	svc, _ := seedProfiles(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	v, err := svc.ProfileDetail(ctx, "attic")
 	if err != nil {
 		t.Fatal(err)

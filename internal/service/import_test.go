@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -34,7 +33,7 @@ func writeJSON(t *testing.T, path string, v any) {
 func writeProfileFiles(t *testing.T, root string, p profile.Profile, ref listing.Listing) {
 	t.Helper()
 	writeJSON(t, filepath.Join(root, p.ID, "profile.json"), p)
-	if err := (jsonfile.Persister{}).Persist(context.Background(), filepath.Join(root, p.ID, "listings"), []listing.Listing{ref}); err != nil {
+	if err := (jsonfile.Persister{}).Persist(t.Context(), filepath.Join(root, p.ID, "listings"), []listing.Listing{ref}); err != nil {
 		t.Fatal(err)
 	}
 	for _, key := range append(ref.Collages, "photos/"+p.ID+".jpg") {
@@ -47,9 +46,9 @@ func writeProfileFiles(t *testing.T, root string, p profile.Profile, ref listing
 }
 
 func TestImport(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	root := t.TempDir()
-	svc := New(Config{DataDir: root + "/data", ProfilesDir: root + "/profiles", CollectionsDir: root + "/collections"})
+	svc := openService(t, Config{DataDir: root + "/data", ProfilesDir: root + "/profiles", CollectionsDir: root + "/collections"})
 	if err := svc.Import(ctx, nil); err == nil || !strings.Contains(err.Error(), "nothing to import") {
 		t.Fatalf("an empty import should say so: %v", err)
 	}
@@ -86,18 +85,18 @@ func TestImport(t *testing.T) {
 		t.Fatalf("unimported profiles should be reported: %v", err)
 	}
 
-	var rec recorder
-	if err := svc.Import(ctx, rec.progress); err != nil {
+	var logs logBuffer
+	if err := svc.Import(ctx, logs.logger()); err != nil {
 		t.Fatal(err)
 	}
-	if out := rec.messages(); !strings.Contains(out, "import: 2 profiles with 2 reference listings, 5 media files copied, 1 collections written to") {
+	if out := logs.String(); !strings.Contains(out, `msg="import finished" stage=import profiles=2 references=2 media_copied=5 collections=1 db=`) {
 		t.Errorf("summary missing:\n%s", out)
 	}
-	rec = recorder{}
-	if err := svc.Import(ctx, rec.progress); err != nil {
+	logs = logBuffer{}
+	if err := svc.Import(ctx, logs.logger()); err != nil {
 		t.Fatalf("import should be safe to repeat: %v", err)
 	}
-	if out := rec.messages(); !strings.Contains(out, "import: 2 profiles with 2 reference listings, 0 media files copied, 1 collections") {
+	if out := logs.String(); !strings.Contains(out, `msg="import finished" stage=import profiles=2 references=2 media_copied=0 collections=1`) {
 		t.Errorf("a repeat import should copy nothing:\n%s", out)
 	}
 
@@ -109,11 +108,10 @@ func TestImport(t *testing.T) {
 		t.Error("imported profiles must keep their hashes")
 	}
 
-	db, err := svc.openCatalog(ctx)
+	db, err := svc.catalog(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
 	fromFiles, err := profile.Effective(want, []profile.Profile{want, avoid})
 	if err != nil {
 		t.Fatal(err)

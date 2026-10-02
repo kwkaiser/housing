@@ -12,27 +12,31 @@
 </p>
 
 {{if .Collages}}
-<h2>Photos</h2>
 <div class="collages">
 {{range $i, $src := .Collages}}<a href="{{$src}}"><img src="{{$src}}" alt="Collage {{$i}}" loading="lazy"></a>
 {{end}}
 </div>
 {{end}}
 
-{{with .Listing.Description}}<div class="description">{{.}}</div>{{end}}
-
+{{if .Grades}}<h2>Profile matches</h2>{{end}}
 {{range .Grades}}
 <section class="grade">
-<h2><a href="{{profileURL .Profile.ID}}">{{or .Profile.Name .Profile.ID}}</a> <span class="muted">{{.Profile.ID}}</span></h2>
-<p class="facts">
-  Match <span class="score">{{match .Match .Calibrated .Stale}}</span>
-  · score {{fixed1 .Score}} · coverage {{percent .Coverage}} · vibe {{.Vibe}}
-  {{with .Dealbreakers}}· <span class="bad">dealbreakers: {{join . ", "}}</span>{{end}}
-</p>
-{{with .Summary}}<details class="section"><summary>Assessment summary</summary><p>{{.}}</p></details>{{end}}
+<header>
+  <div class="match"><span class="score">{{match .Match .Calibrated .Stale}}</span><span class="muted">match</span></div>
+  <div class="who">
+    <a href="{{profileURL .Profile.ID}}">{{or .Profile.Name .Profile.ID}}</a>
+    <div class="muted">{{.Profile.ID}}</div>
+  </div>
+  <dl class="stats">
+    <div><dt>Score</dt><dd>{{fixed1 .Score}}</dd></div>
+    <div><dt>Coverage</dt><dd>{{percent .Coverage}}</dd></div>
+  </dl>
+</header>
+{{with .Dealbreakers}}<p class="pills">{{range .}}<span class="pill bad">{{.}}</span>{{end}}</p>{{end}}
+{{with .Summary}}<p class="assessment">{{.}}</p>{{end}}
 {{range .Models}}
 <details class="section criteria-section">
-<summary>Criteria · {{model .Model}}{{if .Stale}} <span class="muted">* stale</span>{{end}} <span class="muted">score {{fixed1 .Score}} · coverage {{percent .Coverage}} · vibe {{.Vibe}}</span></summary>
+<summary>Criteria · {{model .Model}}{{if .Stale}} <span class="muted">* stale</span>{{end}} <span class="muted">score {{fixed1 .Score}} · coverage {{percent .Coverage}}</span></summary>
 <div class="wrap">
 <table class="criteria">
 <thead><tr><th>Criterion</th><th>Importance</th><th>Verdict</th><th>Confidence</th><th>Evidence</th><th class="num">Photos</th></tr></thead>

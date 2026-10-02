@@ -10,7 +10,6 @@ import (
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
-	"git.kwkaiser.io/kwkaiser/housing/internal/store"
 )
 
 const DefaultPoll = 5 * time.Second
@@ -68,15 +67,10 @@ func (r *Runner) next(ctx context.Context) (bool, error) {
 	log := r.logger().With("job", j.ID, "kind", j.Kind)
 	log.Info("job started")
 	persist := context.WithoutCancel(ctx)
-	progress := func(e service.Event) {
-		log.Info("job progress", "stage", e.Stage, "msg", e.Message)
-		ev := store.JobEvent{JobID: j.ID, At: q.now(), Stage: string(e.Stage), Message: e.Message}
-		if err := q.db.AppendJobEvent(persist, ev); err != nil {
-			log.Error("record job event", "err", err)
-		}
-	}
+	events := slog.NewJSONHandler(&eventWriter{ctx: persist, db: q.db, job: j.ID, now: q.now, fallback: log}, nil)
+	jobLog := slog.New(slog.NewMultiHandler(log.Handler(), events))
 
-	cost, result, runErr := r.execute(ctx, j, progress)
+	cost, result, runErr := r.execute(ctx, j, jobLog)
 	j.FinishedAt, j.CostUSD = q.now(), cost
 	switch {
 	case ctx.Err() != nil:
@@ -100,14 +94,14 @@ func (r *Runner) next(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func (r *Runner) execute(ctx context.Context, j Job, progress service.Progress) (float64, any, error) {
+func (r *Runner) execute(ctx context.Context, j Job, log *slog.Logger) (float64, any, error) {
 	switch Kind(j.Kind) {
 	case KindRunCollection:
 		var p RunCollectionParams
 		if err := decode(j, &p); err != nil {
 			return 0, nil, err
 		}
-		res, err := r.Exec.RunCollection(ctx, p.CollectionID, progress)
+		res, err := r.Exec.RunCollection(ctx, p.CollectionID, log)
 		if err != nil && res.Day == "" {
 			return res.Stats.CostUSD, nil, err
 		}
@@ -117,14 +111,14 @@ func (r *Runner) execute(ctx context.Context, j Job, progress service.Progress) 
 		if err := decode(j, &p); err != nil {
 			return 0, nil, err
 		}
-		prof, err := r.Exec.CreateProfileFromURL(ctx, p.options(), progress)
+		prof, err := r.Exec.CreateProfileFromURL(ctx, p.options(), log)
 		return draftCost(prof), profileResult(prof), err
 	case KindDraftProfile:
 		var p DraftProfileParams
 		if err := decode(j, &p); err != nil {
 			return 0, nil, err
 		}
-		prof, err := r.Exec.DraftProfile(ctx, p.ProfileID, service.DraftOptions{Model: p.Model, Notes: p.Notes}, progress)
+		prof, err := r.Exec.DraftProfile(ctx, p.ProfileID, service.DraftOptions{Model: p.Model, Notes: p.Notes}, log)
 		return draftCost(prof), profileResult(prof), err
 	default:
 		return 0, nil, fmt.Errorf("unsupported job kind %q", j.Kind)

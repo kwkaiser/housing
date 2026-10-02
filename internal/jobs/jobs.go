@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
@@ -134,9 +135,9 @@ type ProfileResult struct {
 }
 
 type Executor interface {
-	RunCollection(ctx context.Context, collectionID string, progress service.Progress) (service.RunResult, error)
-	CreateProfileFromURL(ctx context.Context, o service.CreateProfileOptions, progress service.Progress) (profile.Profile, error)
-	DraftProfile(ctx context.Context, id string, o service.DraftOptions, progress service.Progress) (profile.Profile, error)
+	RunCollection(ctx context.Context, collectionID string, log *slog.Logger) (service.RunResult, error)
+	CreateProfileFromURL(ctx context.Context, o service.CreateProfileOptions, log *slog.Logger) (profile.Profile, error)
+	DraftProfile(ctx context.Context, id string, o service.DraftOptions, log *slog.Logger) (profile.Profile, error)
 }
 
 type Queue struct {

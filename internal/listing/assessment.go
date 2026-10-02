@@ -1,6 +1,9 @@
 package listing
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type Verdict string
 
@@ -36,12 +39,13 @@ type Assessment struct {
 	MissingEssentials []string          `json:"missing_essentials,omitempty"`
 	AvoidsHit         []string          `json:"avoids_hit,omitempty"`
 	Dealbreakers      []string          `json:"dealbreakers,omitempty"`
-	Vibe              int               `json:"vibe"`
 	Summary           string            `json:"summary"`
 	Want              []CriterionResult `json:"want"`
 	Avoid             []CriterionResult `json:"avoid"`
 	AssessedAt        time.Time         `json:"assessed_at"`
 	CostUSD           float64           `json:"cost_usd"`
+	Tokens            TokenUsage        `json:"tokens"`
+	ImagePx           int               `json:"image_px,omitempty"`
 }
 
 func (l Listing) Assessment(profileID, model string) (Assessment, bool) {
@@ -62,4 +66,48 @@ func (l Listing) WithAssessment(profileID string, a Assessment) Listing {
 	byProfile[profileID] = byModel
 	l.Assessments = byProfile
 	return l
+}
+
+type TokenUsage struct {
+	Prompt     int64 `json:"prompt"`
+	Completion int64 `json:"completion"`
+	Reasoning  int64 `json:"reasoning"`
+	Cached     int64 `json:"cached"`
+}
+
+func (t TokenUsage) Add(o TokenUsage) TokenUsage {
+	return TokenUsage{
+		Prompt:     t.Prompt + o.Prompt,
+		Completion: t.Completion + o.Completion,
+		Reasoning:  t.Reasoning + o.Reasoning,
+		Cached:     t.Cached + o.Cached,
+	}
+}
+
+func (t TokenUsage) Total() int64 {
+	return t.Prompt + t.Completion
+}
+
+func (t TokenUsage) String() string {
+	out := Count(t.Prompt) + " in"
+	if t.Cached > 0 {
+		out += " (" + Count(t.Cached) + " cached)"
+	}
+	out += " / " + Count(t.Completion) + " out"
+	if t.Reasoning > 0 {
+		out += " (" + Count(t.Reasoning) + " reasoning)"
+	}
+	return out + " tokens"
+}
+
+func Count(n int64) string {
+	switch {
+	case n >= 1_000_000:
+		return fmt.Sprintf("%.2fM", float64(n)/1_000_000)
+	case n >= 10_000:
+		return fmt.Sprintf("%.0fk", float64(n)/1_000)
+	case n >= 1_000:
+		return fmt.Sprintf("%.1fk", float64(n)/1_000)
+	}
+	return fmt.Sprint(n)
 }

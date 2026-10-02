@@ -1,12 +1,12 @@
 package app
 
 import (
-	"context"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strings"
 	"testing"
+	"testing/synctest"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
 	"git.kwkaiser.io/kwkaiser/housing/internal/jobs"
@@ -71,33 +71,35 @@ func checkBody(t *testing.T, label, body string, contains, missing []string) {
 }
 
 func TestCollectionsPage(t *testing.T) {
-	a := seededApp(t)
-	ctx := context.Background()
-	c, err := a.svc.Collection(ctx, "zempty")
-	if err != nil {
-		t.Fatal(err)
-	}
-	c.Schedule, c.MaxRunCostUSD = "07:00", 2.5
-	if err := a.svc.SaveCollection(ctx, c); err != nil {
-		t.Fatal(err)
-	}
-	runJobs(t, a.jobs.(*jobs.Queue), &fakeExec{}, jobs.RunCollectionParams{CollectionID: "somerville"})
+	synctest.Test(t, func(t *testing.T) {
+		a := seededApp(t)
+		ctx := t.Context()
+		c, err := a.svc.Collection(ctx, "zempty")
+		if err != nil {
+			t.Fatal(err)
+		}
+		c.Schedule, c.MaxRunCostUSD = "07:00", 2.5
+		if err := a.svc.SaveCollection(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+		runJobs(t, a.jobs.(*jobs.Queue), &fakeExec{}, jobs.RunCollectionParams{CollectionID: "somerville"})
 
-	res, body := get(t, a.Handler(), "/collections")
-	if res.StatusCode != http.StatusOK {
-		t.Fatalf("GET /collections = %d", res.StatusCode)
-	}
-	checkBody(t, "list", body, []string{
-		"<title>Collections · housing</title>",
-		`<a class="button" href="/collections/new">New collection</a>`,
-		`<td><a href="/c/somerville">somerville</a></td>`,
-		`<td class="tags">attic, loft</td>`,
-		`<td class="nowrap">manual</td>`, `<td class="nowrap">daily at 07:00</td>`,
-		`<td class="num">$1.00 <span class="muted">default</span></td>`, `<td class="num">$2.50</td>`,
-		`<span class="status succeeded">succeeded</span>`, `<a href="/jobs/1">view</a>`, `<span class="muted">never</span>`,
-		`<a class="button" href="/collections/zempty/edit">Edit</a>`,
-		`<form method="post" action="/jobs/run"><input type="hidden" name="collection" value="zempty"><button type="submit">Run now</button></form>`,
-	}, []string{"There are no collections yet"})
+		res, body := get(t, a.Handler(), "/collections")
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("GET /collections = %d", res.StatusCode)
+		}
+		checkBody(t, "list", body, []string{
+			"<title>Collections · housing</title>",
+			`<a class="button" href="/collections/new">New collection</a>`,
+			`<td><a href="/c/somerville">somerville</a></td>`,
+			`<td class="tags">attic, loft</td>`,
+			`<td class="nowrap">manual</td>`, `<td class="nowrap">daily at 07:00</td>`,
+			`<td class="num">$1.00 <span class="muted">default</span></td>`, `<td class="num">$2.50</td>`,
+			`<span class="status succeeded">succeeded</span>`, `<a href="/jobs/1">view</a>`, `<span class="muted">never</span>`,
+			`<a class="button" href="/collections/zempty/edit">Edit</a>`,
+			`<form method="post" action="/jobs/run"><input type="hidden" name="collection" value="zempty"><button type="submit">Run now</button></form>`,
+		}, []string{"There are no collections yet"})
+	})
 }
 
 func TestNewCollectionForm(t *testing.T) {
@@ -134,7 +136,7 @@ func TestCreateCollection(t *testing.T) {
 	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/collections" {
 		t.Fatalf("POST /collections = %d %q", res.StatusCode, res.Header.Get("Location"))
 	}
-	got, err := a.svc.Collection(context.Background(), "cambridge")
+	got, err := a.svc.Collection(t.Context(), "cambridge")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +157,7 @@ func TestCreateCollection(t *testing.T) {
 	if res.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(body, "collection already exists: somerville") {
 		t.Errorf("duplicate id = %d\n%s", res.StatusCode, body)
 	}
-	if c, _ := a.svc.Collection(context.Background(), "somerville"); c.Mode != profile.ModeRent || c.Search.Location != "Somerville, MA" {
+	if c, _ := a.svc.Collection(t.Context(), "somerville"); c.Mode != profile.ModeRent || c.Search.Location != "Somerville, MA" {
 		t.Errorf("duplicate create overwrote the collection: %+v", c)
 	}
 
@@ -163,7 +165,7 @@ func TestCreateCollection(t *testing.T) {
 	if res.StatusCode != http.StatusSeeOther {
 		t.Fatalf("unordered create = %d", res.StatusCode)
 	}
-	if c, _ := a.svc.Collection(context.Background(), "unordered"); !reflect.DeepEqual(c.Profiles, []string{"attic", "loft"}) {
+	if c, _ := a.svc.Collection(t.Context(), "unordered"); !reflect.DeepEqual(c.Profiles, []string{"attic", "loft"}) {
 		t.Errorf("profiles without an order keep form order: %v", c.Profiles)
 	}
 }
@@ -171,7 +173,7 @@ func TestCreateCollection(t *testing.T) {
 func TestEditCollection(t *testing.T) {
 	a := seededApp(t)
 	h := a.Handler()
-	ctx := context.Background()
+	ctx := t.Context()
 	c, _ := a.svc.Collection(ctx, "somerville")
 	c.Search.MaxPrice, c.Search.MinBeds, c.Search.Amenities = intp(4000), intp(1), []listing.Amenity{listing.AmenityParking}
 	c.Sources, c.Model, c.MaxRunCostUSD = []listing.Source{listing.SourceZillow, listing.SourceFacebook}, "test/m", 1
@@ -274,10 +276,10 @@ func TestCollectionFormErrors(t *testing.T) {
 		}
 		checkBody(t, tc.name, body, append(tc.contains, `<div class="errors" role="alert">`, `name="location" value="`+tc.form.Get("location")+`"`), nil)
 	}
-	if _, err := a.svc.Collection(context.Background(), "cambridge"); err == nil {
+	if _, err := a.svc.Collection(t.Context(), "cambridge"); err == nil {
 		t.Error("invalid forms must not save")
 	}
-	if c, _ := a.svc.Collection(context.Background(), "somerville"); c.Search.Location != "Somerville, MA" {
+	if c, _ := a.svc.Collection(t.Context(), "somerville"); c.Search.Location != "Somerville, MA" {
 		t.Errorf("invalid update saved: %+v", c)
 	}
 }
@@ -295,7 +297,7 @@ func TestCollectionFormGuards(t *testing.T) {
 	if res, _ := post(t, h, "/collections", big, sameOriginHeader); res.StatusCode != http.StatusBadRequest {
 		t.Errorf("oversized form = %d", res.StatusCode)
 	}
-	if _, err := a.svc.Collection(context.Background(), "cambridge"); err == nil {
+	if _, err := a.svc.Collection(t.Context(), "cambridge"); err == nil {
 		t.Error("rejected requests must not save")
 	}
 }

@@ -1,9 +1,10 @@
 package store
 
 import (
-	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"log/slog"
 	"path/filepath"
 	"testing"
 	"time"
@@ -14,7 +15,7 @@ import (
 )
 
 func TestJobLifecycle(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	s := open(t)
 	at := time.Date(2026, 9, 30, 7, 0, 0, 0, time.UTC)
 	run := Job{Kind: "run_collection", Trigger: "manual", CollectionID: "somerville", Params: []byte(`{"collection_id":"somerville"}`), CreatedAt: at}
@@ -38,8 +39,8 @@ func TestJobLifecycle(t *testing.T) {
 	if err != nil || !ok || j.ID != id || j.Status != JobRunning || !j.StartedAt.Equal(at.Add(time.Second)) || string(j.Params) != `{"collection_id":"somerville"}` {
 		t.Fatalf("claim = %+v %v %v", j, ok, err)
 	}
-	for _, msg := range []string{"one", "two"} {
-		if err := s.AppendJobEvent(ctx, JobEvent{JobID: id, At: at, Stage: "fetch", Message: msg}); err != nil {
+	for i, msg := range []string{"one", "two"} {
+		if err := s.AppendJobEvent(ctx, JobEvent{JobID: id, At: at, Level: slog.Level(4 * i), Message: msg, Record: json.RawMessage(`{"msg":"` + msg + `","stage":"fetch"}`)}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -52,7 +53,7 @@ func TestJobLifecycle(t *testing.T) {
 		t.Errorf("finished = %+v %v", got, err)
 	}
 	events, err := s.JobEvents(ctx, id)
-	if err != nil || len(events) != 2 || events[0].Seq != 1 || events[1].Seq != 2 || events[1].Message != "two" {
+	if err != nil || len(events) != 2 || events[0].Seq != 1 || events[1].Seq != 2 || events[1].Message != "two" || events[0].Level != slog.LevelInfo || events[1].Level != slog.LevelWarn || string(events[1].Record) != `{"msg":"two","stage":"fetch"}` {
 		t.Errorf("events = %+v %v", events, err)
 	}
 	if _, ok, _ := s.ActiveJob(ctx, "run_collection", "somerville"); ok {
@@ -90,7 +91,7 @@ func TestJobLifecycle(t *testing.T) {
 }
 
 func TestEnqueueNoneSince(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	s := open(t)
 	day := time.Date(2026, 9, 30, 0, 0, 0, 0, time.Local)
 	j := Job{Kind: "run_collection", Trigger: "schedule", CollectionID: "c", CreatedAt: day.Add(-time.Hour)}
@@ -117,7 +118,7 @@ func TestEnqueueNoneSince(t *testing.T) {
 }
 
 func TestFailRunningJobs(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	s := open(t)
 	at := time.Date(2026, 9, 30, 7, 0, 0, 0, time.UTC)
 	for _, c := range []string{"a", "b"} {
@@ -138,7 +139,7 @@ func TestFailRunningJobs(t *testing.T) {
 }
 
 func TestMigrateJobsOverExistingDatabase(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	path := filepath.Join(t.TempDir(), FileName)
 	db, err := sql.Open("sqlite", "file:"+path+"?_pragma=foreign_keys(1)")
 	if err != nil {

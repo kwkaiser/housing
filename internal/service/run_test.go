@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"image"
 	"image/color"
 	"image/jpeg"
 	"io"
+	"log/slog"
 	"slices"
 	"strings"
 	"sync"
@@ -40,7 +42,6 @@ const gradeReply = `{
     {"id": "wood_floors", "verdict": "present", "confidence": "medium", "photos": [2], "evidence": "Oak boards."}
   ],
   "avoid": [],
-  "vibe": 4,
   "summary": "Close to the reference."
 }`
 
@@ -54,7 +55,8 @@ func (f *fakeCompleter) Complete(_ context.Context, req openrouter.Request) (ope
 		return openrouter.Response{Model: "test/draft", CostUSD: 0.01, Content: draftReply}, nil
 	}
 	f.grades.Add(1)
-	return openrouter.Response{Model: req.Model, CostUSD: 0.02, Content: gradeReply}, nil
+	return openrouter.Response{Model: req.Model, CostUSD: 0.02, Content: gradeReply,
+		Usage: openrouter.Usage{PromptTokens: 6000, CompletionTokens: 1500, ReasoningTokens: 900, CachedTokens: 2000}}, nil
 }
 
 type fakePhotos struct{ body []byte }
@@ -78,23 +80,42 @@ type fakeLookup struct{ ref listing.Listing }
 
 func (f fakeLookup) Lookup(context.Context, string) (listing.Listing, error) { return f.ref, nil }
 
-type recorder struct {
-	mu     sync.Mutex
-	events []Event
+type logBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
 }
 
-func (r *recorder) progress(e Event) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.events = append(r.events, e)
+func (b *logBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
 }
 
-func (r *recorder) messages() string {
-	var b strings.Builder
-	for _, e := range r.events {
-		b.WriteString(string(e.Stage) + ": " + e.Message + "\n")
+func (b *logBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
+
+func (b *logBuffer) logger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(b, &slog.HandlerOptions{
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if len(groups) == 0 && a.Key == slog.TimeKey {
+				return slog.Attr{}
+			}
+			return a
+		},
+	}))
+}
+
+func openService(t *testing.T, cfg Config) *Service {
+	t.Helper()
+	svc, err := Open(t.Context(), cfg)
+	if err != nil {
+		t.Fatal(err)
 	}
-	return b.String()
+	t.Cleanup(func() { svc.Close() })
+	return svc
 }
 
 func jpegBytes(t *testing.T) []byte {
@@ -132,7 +153,7 @@ func newTestService(t *testing.T, fc *fakeCompleter) *Service {
 		listing.SourceZillow: {rental(listing.SourceZillow, "z1", "7 Windom St"), rental(listing.SourceZillow, "z2", "31 Fairmount Ave")},
 		listing.SourceRedfin: {rental(listing.SourceRedfin, "r1", "7 Windom St")},
 	}
-	return New(Config{
+	return openService(t, Config{
 		DataDir:        root + "/data",
 		ProfilesDir:    root + "/profiles",
 		CollectionsDir: root + "/collections",
@@ -153,21 +174,25 @@ func newTestService(t *testing.T, fc *fakeCompleter) *Service {
 }
 
 func TestCreateAndDraftProfile(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	fc := &fakeCompleter{}
 	svc := newTestService(t, fc)
-	var rec recorder
+	var logs logBuffer
 	p, err := svc.CreateProfileFromURL(ctx, CreateProfileOptions{
 		URL: "https://www.zillow.com/homedetails/ref", ID: "attic", Kind: profile.KindWant, Notes: []string{"skylights"}, Model: "m",
-	}, rec.progress)
+	}, logs.logger())
 	if err != nil {
 		t.Fatal(err)
 	}
 	if p.Name != "Sunny attic" || len(p.Want) != 2 || len(p.References) != 1 || len(p.References[0].Collages) == 0 || fc.drafts.Load() != 1 {
 		t.Errorf("profile = %+v", p)
 	}
-	out := rec.messages()
-	for _, want := range []string{"profile: reference: 1 Attic Way, Somerville, MA 02144 (2 photos)\n", "profile: drafted: 2 want, 0 avoid with test/draft ($0.0100)\n", "profile: saved: "} {
+	out := logs.String()
+	for _, want := range []string{
+		`msg="fetched reference" stage=profile address="1 Attic Way, Somerville, MA 02144" photos=2`,
+		`msg="drafted profile" stage=profile want=2 avoid=0 model=test/draft cost_usd=0.01`,
+		`msg="saved profile" stage=profile profile=attic`,
+	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in\n%s", want, out)
 		}
@@ -197,7 +222,7 @@ func TestCreateAndDraftProfile(t *testing.T) {
 }
 
 func TestRunCollection(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	fc := &fakeCompleter{}
 	svc := newTestService(t, fc)
 	if _, err := svc.CreateProfileFromURL(ctx, CreateProfileOptions{URL: "https://www.zillow.com/homedetails/ref", ID: "attic", Kind: profile.KindWant, Model: "m"}, nil); err != nil {
@@ -211,8 +236,8 @@ func TestRunCollection(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var rec recorder
-	res, err := svc.RunCollection(ctx, "somerville", rec.progress)
+	var logs logBuffer
+	res, err := svc.RunCollection(ctx, "somerville", logs.logger())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,22 +245,23 @@ func TestRunCollection(t *testing.T) {
 		res.Stats.Updated != 3 || res.Stats.Calls != 3 || res.Stats.Failed != 0 || res.AssessErr != nil || res.BudgetReached {
 		t.Errorf("result = %+v", res)
 	}
-	out := rec.messages()
+	out := logs.String()
 	for _, want := range []string{
-		"fetch: zillow search (rent): 2 listings\n",
-		"fetch: redfin search (rent): 1 listings\n",
-		"fetch: stored: 3 listings observed on 2026-09-30 in " + svc.cfg.DataDir + "\n",
-		"dedupe: dedupe: 2 distinct listings, 1 duplicates across sources\n",
-		"photos: photos: downloaded\n",
-		"collage: collage: 2 listings, 2 collages, 0 listings without collages\n",
-		"assess: assess (attic, test/grader): 2 model calls ($0.0400), 2 listings updated, 0 already current, 0 failed, 0 without collages, 0 over limit, 0 over budget\n",
-		"assess: reference (attic): grading 1 listings with test/grader, 1 at a time (0 already current, 0 without collages, 0 over limit)\n",
-		"assess: reference (attic): [1/1] graded 1 Attic Way, Somerville, MA 02144: score 100.0, coverage 100%, vibe 4",
-		"assess: assess (attic): grading 2 listings with test/grader, 4 at a time (0 already current, 0 without collages, 0 over limit)\n",
-		"grading 31 Fairmount Ave, Somerville, MA 02144\n",
-		"graded 31 Fairmount Ave, Somerville, MA 02144: score 100.0, coverage 100%, vibe 4",
-		"graded 7 Windom St, Somerville, MA 02144: score 100.0",
-		"(run total $0.0600)\n",
+		`msg=searched stage=fetch source=zillow mode=rent listings=2`,
+		`msg=searched stage=fetch source=redfin mode=rent listings=1`,
+		`msg="stored observations" stage=fetch listings=3 day=2026-09-30`,
+		`msg=deduplicated stage=dedupe distinct=2 duplicates=1`,
+		`msg="photos downloaded" stage=photos`,
+		`msg=collaged stage=collage listings=2 collages=2 without_collages=0`,
+		`msg="assessed profile" stage=assess profile=attic model=test/grader calls=2 cost_usd=0.04 tokens=15000 updated=2 cached=0 failed=0`,
+		`msg="grading listings" stage=assess profile=attic model=test/grader batch=reference listings=1 concurrency=1`,
+		`batch=reference step=1/1 listing="1 Attic Way, Somerville, MA 02144" score=100 coverage=100`,
+		fmt.Sprintf(`batch=listings listings=2 concurrency=%d cached=0`, DefaultAssessConcurrency),
+		`msg=grading stage=assess profile=attic model=test/grader batch=listings step=`,
+		`listing="31 Fairmount Ave, Somerville, MA 02144" score=100 coverage=100`,
+		`listing="7 Windom St, Somerville, MA 02144" score=100`,
+		`tokens=7500 cost_usd=0.02`,
+		`run_cost_usd=0.06 run_tokens=22500`,
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in\n%s", want, out)
@@ -262,7 +288,7 @@ func TestRunCollection(t *testing.T) {
 func TestRunNeedsOpenRouterKey(t *testing.T) {
 	svc := newTestService(t, &fakeCompleter{})
 	svc.cfg.Keys.OpenRouterAPIKey = ""
-	ctx := context.Background()
+	ctx := t.Context()
 	if err := svc.SaveProfile(ctx, profile.Profile{ID: "x", Ignore: profile.DefaultIgnore}); err != nil {
 		t.Fatal(err)
 	}
@@ -290,7 +316,7 @@ func TestCollectionRunOptions(t *testing.T) {
 func TestRunUsesHeldLock(t *testing.T) {
 	fc := &fakeCompleter{}
 	svc := newTestService(t, fc)
-	ctx := context.Background()
+	ctx := t.Context()
 	if _, err := svc.CreateProfileFromURL(ctx, CreateProfileOptions{URL: "https://www.zillow.com/homedetails/ref", ID: "attic", Kind: profile.KindWant, Model: "m"}, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -298,21 +324,21 @@ func TestRunUsesHeldLock(t *testing.T) {
 	if err := svc.SaveCollection(ctx, c); err != nil {
 		t.Fatal(err)
 	}
-	unlock, err := svc.HoldLock()
+	held, err := Open(ctx, Config{DataDir: svc.cfg.DataDir, Exclusive: true, Clients: svc.cfg.Clients, Keys: svc.cfg.Keys, Now: svc.cfg.Now})
 	if err != nil {
 		t.Fatal(err)
 	}
-	other := New(Config{DataDir: svc.cfg.DataDir})
-	if _, err := other.Lock(); !errors.Is(err, ErrLocked) {
+	if _, err := svc.RunCollection(ctx, "c", nil); !errors.Is(err, ErrLocked) {
 		t.Errorf("another run should be locked out: %v", err)
 	}
-	if _, err := svc.RunCollection(ctx, "c", nil); err != nil {
+	if _, err := held.RunCollection(ctx, "c", nil); err != nil {
 		t.Errorf("the lock holder should still run: %v", err)
 	}
-	unlock()
-	if again, err := other.Lock(); err != nil {
-		t.Errorf("lock after release: %v", err)
-	} else {
-		again()
+	if _, err := Open(ctx, Config{DataDir: svc.cfg.DataDir, Exclusive: true}); !errors.Is(err, ErrLocked) {
+		t.Errorf("a second exclusive service should be locked out: %v", err)
+	}
+	held.Close()
+	if _, err := svc.RunCollection(ctx, "c", nil); err != nil {
+		t.Errorf("run after release: %v", err)
 	}
 }

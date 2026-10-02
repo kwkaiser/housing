@@ -15,13 +15,12 @@ func newRunCmd(dataDir *string) *cobra.Command {
 			"fast while `housing server` is up; use `housing jobs run` to queue a run on the server instead.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			svc := newService(*dataDir)
-			unlock, err := svc.HoldLock()
+			svc, err := openService(cmd, *dataDir, exclusive)
 			if err != nil {
 				return err
 			}
-			defer unlock()
-			res, err := svc.RunCollection(cmd.Context(), args[0], printProgress(cmd))
+			defer svc.Close()
+			res, err := svc.RunCollection(cmd.Context(), args[0], nil)
 			if err != nil {
 				return err
 			}

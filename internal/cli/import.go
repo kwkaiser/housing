@@ -5,6 +5,7 @@ import (
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
+	"git.kwkaiser.io/kwkaiser/housing/internal/service"
 )
 
 func newImportCmd(dataDir *string) *cobra.Command {
@@ -17,7 +18,12 @@ func newImportCmd(dataDir *string) *cobra.Command {
 			"re-running updates what was imported before.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return newImportService(*dataDir, profilesDir, collectionsDir).Import(cmd.Context(), printProgress(cmd))
+			svc, err := openService(cmd, *dataDir, func(c *service.Config) { c.ProfilesDir, c.CollectionsDir = profilesDir, collectionsDir })
+			if err != nil {
+				return err
+			}
+			defer svc.Close()
+			return svc.Import(cmd.Context(), nil)
 		},
 	}
 	cmd.Flags().StringVar(&profilesDir, "profiles-dir", profile.DefaultRoot, "directory of profile files to import")

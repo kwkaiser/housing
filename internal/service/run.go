@@ -3,6 +3,7 @@ package service
 import (
 	"cmp"
 	"context"
+	"log/slog"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/apify"
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
@@ -57,15 +58,16 @@ func CollectionRunOptions(c collection.Collection) RunOptions {
 	}
 }
 
-func (s *Service) RunCollection(ctx context.Context, collectionID string, progress Progress) (RunResult, error) {
+func (s *Service) RunCollection(ctx context.Context, collectionID string, log *slog.Logger) (RunResult, error) {
 	c, err := s.Collection(ctx, collectionID)
 	if err != nil {
 		return RunResult{}, err
 	}
-	return s.Run(ctx, CollectionRunOptions(c), progress)
+	return s.Run(ctx, CollectionRunOptions(c), log)
 }
 
-func (s *Service) Run(ctx context.Context, o RunOptions, progress Progress) (RunResult, error) {
+func (s *Service) Run(ctx context.Context, o RunOptions, log *slog.Logger) (RunResult, error) {
+	log = s.logger(log)
 	res := RunResult{Collection: o.Fetch.Collection, Mode: o.Fetch.Mode}
 	if _, err := s.cfg.Keys.OpenRouter(); err != nil {
 		return res, err
@@ -76,17 +78,17 @@ func (s *Service) Run(ctx context.Context, o RunOptions, progress Progress) (Run
 	}
 	defer unlock()
 
-	fetched, err := s.Fetch(ctx, o.Fetch, progress)
+	fetched, err := s.Fetch(ctx, o.Fetch, log)
 	if err != nil {
 		return res, err
 	}
 	res.Day, res.Fetched, res.Distinct, res.Duplicates = fetched.Day, fetched.Observed, fetched.Distinct, fetched.Duplicates
 	if len(fetched.Listings) == 0 {
-		s.emit(progress, StageRun, "no listings matched; nothing to assess")
+		log.Info("no listings matched; nothing to assess", "stage", StageRun)
 		return res, nil
 	}
 
-	collaged, err := s.Collage(ctx, o.Collage, fetched.Listings, progress)
+	collaged, err := s.Collage(ctx, o.Collage, fetched.Listings, log)
 	if err != nil {
 		return res, err
 	}
@@ -95,14 +97,14 @@ func (s *Service) Run(ctx context.Context, o RunOptions, progress Progress) (Run
 	assess := o.Assess
 	assess.Collection = o.Fetch.Collection
 	assess.Mode = o.Fetch.Mode
-	assessed, err := s.Assess(ctx, assess, collaged.Listings, progress)
+	assessed, err := s.Assess(ctx, assess, collaged.Listings, log)
 	res.Stats, res.BudgetReached = assessed.Stats, assessed.BudgetReached
 	if err != nil {
 		if ctx.Err() != nil || res.Stats.Updated == 0 && res.Stats.Failed == 0 {
 			return res, err
 		}
 		res.AssessErr = err
-		s.emit(progress, StageRun, "warning: %d listings could not be assessed; continuing to the report\n%v", res.Stats.Failed, err)
+		log.Warn("some listings could not be assessed; continuing to the report", "stage", StageRun, "failed", res.Stats.Failed, "err", err)
 	}
 	return res, nil
 }

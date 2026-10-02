@@ -154,7 +154,7 @@ func TestSearchMapsRentals(t *testing.T) {
 	runner := &fakeRunner{items: loadFixture(t, "rent.json")}
 	p := New(runner, fakeRegions{austin})
 
-	got, err := p.Search(context.Background(), listing.Query{
+	got, err := p.Search(t.Context(), listing.Query{
 		Offer:     listing.OfferRent,
 		Area:      listing.Area{Location: "Austin, TX"},
 		Amenities: []listing.Amenity{listing.AmenityInUnitLaundry},
@@ -200,7 +200,7 @@ func TestSearchMapsRentals(t *testing.T) {
 
 func TestSearchPostFilters(t *testing.T) {
 	p := New(&fakeRunner{items: loadFixture(t, "rent.json")}, fakeRegions{austin})
-	got, err := p.Search(context.Background(), listing.Query{
+	got, err := p.Search(t.Context(), listing.Query{
 		Offer:    listing.OfferRent,
 		Area:     listing.Area{Location: "Austin, TX"},
 		MaxPrice: &listing.Money{Cents: 250000},
@@ -221,7 +221,7 @@ func TestSearchPostFilters(t *testing.T) {
 
 func TestSearchMapsSales(t *testing.T) {
 	p := New(&fakeRunner{items: loadFixture(t, "sale.json")}, fakeRegions{austin})
-	got, err := p.Search(context.Background(), listing.Query{Offer: listing.OfferSale, Area: listing.Area{Location: "Austin, TX"}})
+	got, err := p.Search(t.Context(), listing.Query{Offer: listing.OfferSale, Area: listing.Area{Location: "Austin, TX"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -245,7 +245,7 @@ func TestSearchRejectsUnsupportedAmenity(t *testing.T) {
 		{Offer: listing.OfferSale, Area: listing.Area{Location: "x"}, Amenities: []listing.Amenity{listing.AmenityParking}},
 	}
 	for _, q := range cases {
-		if _, err := p.Search(context.Background(), q); !errors.Is(err, listing.ErrUnsupportedQuery) {
+		if _, err := p.Search(t.Context(), q); !errors.Is(err, listing.ErrUnsupportedQuery) {
 			t.Errorf("%v: got %v", q, err)
 		}
 	}
@@ -253,7 +253,7 @@ func TestSearchRejectsUnsupportedAmenity(t *testing.T) {
 
 func TestNoResultsItem(t *testing.T) {
 	p := New(&fakeRunner{items: []json.RawMessage{json.RawMessage(`{"error":"No results found."}`)}}, fakeRegions{austin})
-	got, err := p.Search(context.Background(), listing.Query{Offer: listing.OfferSale, Area: listing.Area{Location: "x"}})
+	got, err := p.Search(t.Context(), listing.Query{Offer: listing.OfferSale, Area: listing.Area{Location: "x"}})
 	if err != nil || len(got) != 0 {
 		t.Fatalf("got %v, %v", got, err)
 	}

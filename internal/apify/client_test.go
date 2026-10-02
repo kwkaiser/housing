@@ -1,7 +1,6 @@
 package apify
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -28,7 +27,7 @@ func TestRunInputMaxItems(t *testing.T) {
 
 	c := NewClient("tok")
 	c.BaseURL = srv.URL
-	items, err := c.Run(context.Background(), "a/b", RunInput{Input: map[string]any{"x": 1}, MaxItems: 7})
+	items, err := c.Run(t.Context(), "a/b", RunInput{Input: map[string]any{"x": 1}, MaxItems: 7})
 	if err != nil || len(items) != 1 {
 		t.Fatalf("items=%v err=%v", items, err)
 	}

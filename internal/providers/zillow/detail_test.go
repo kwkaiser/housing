@@ -1,7 +1,6 @@
 package zillow
 
 import (
-	"context"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -27,7 +26,7 @@ func TestEnrich(t *testing.T) {
 		{Source: listing.SourceCraigslist, SourceID: "cl", URL: "https://example.com"},
 	}
 
-	got, err := p.Enrich(context.Background(), in)
+	got, err := p.Enrich(t.Context(), in)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +106,7 @@ func TestLookup(t *testing.T) {
 	runner := &fakeRunner{items: loadFixture(t, "detail_offmarket.json")}
 	p := New(runner, fakeRegions{austin})
 
-	l, err := p.Lookup(context.Background(), "https://www.zillow.com/homedetails/7-Adams-St-APT-4-Somerville-MA-02145/71142320_zpid/?utm=x#photos")
+	l, err := p.Lookup(t.Context(), "https://www.zillow.com/homedetails/7-Adams-St-APT-4-Somerville-MA-02145/71142320_zpid/?utm=x#photos")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +127,7 @@ func TestLookup(t *testing.T) {
 
 func TestLookupRejectsOtherHosts(t *testing.T) {
 	p := New(&fakeRunner{}, fakeRegions{austin})
-	if _, err := p.Lookup(context.Background(), "https://www.redfin.com/x"); err == nil {
+	if _, err := p.Lookup(t.Context(), "https://www.redfin.com/x"); err == nil {
 		t.Fatal("expected error")
 	}
 }
@@ -141,7 +140,7 @@ func TestEnrichSmallBuildingUnits(t *testing.T) {
 			Amenities: map[listing.Amenity]bool{listing.AmenityInUnitLaundry: true}},
 		{Source: listing.SourceZillow, SourceID: "42.38487--71.08078#1", URL: building, Offer: listing.OfferRent},
 	}
-	got, err := p.Enrich(context.Background(), in)
+	got, err := p.Enrich(t.Context(), in)
 	if err != nil {
 		t.Fatal(err)
 	}

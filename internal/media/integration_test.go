@@ -16,7 +16,7 @@ func TestProcessDataDir(t *testing.T) {
 	if dir == "" {
 		t.Skip("HOUSING_DATA_DIR not set")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Minute)
 	defer cancel()
 
 	persister := jsonfile.Persister{}

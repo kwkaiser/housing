@@ -45,7 +45,7 @@ func NewProcessor(fetcher Fetcher, store ImageStore, collager Collager) *Process
 		Collager:    collager,
 		MaxPhotos:   DefaultMaxPhotos,
 		Concurrency: DefaultConcurrency,
-		Logger:      slog.Default(),
+		Logger:      slog.New(slog.DiscardHandler),
 	}
 }
 

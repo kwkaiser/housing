@@ -1,7 +1,6 @@
 package profile
 
 import (
-	"context"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -88,7 +87,7 @@ func TestDraftAvoid(t *testing.T) {
 		"avoid": [{"id": "large_building", "label": "Large building", "look_for": "x", "not_this": "", "keywords": ["concierge"], "importance": "essential", "evidence": "either"}],
 		"ignore": []}`}
 	d := Drafter{Client: fc, Model: "m"}
-	draft, meta, err := d.Draft(context.Background(), KindAvoid, []string{"soulless!!"}, []ReferenceInput{{Collages: [][]byte{{1}}}})
+	draft, meta, err := d.Draft(t.Context(), KindAvoid, []string{"soulless!!"}, []ReferenceInput{{Collages: [][]byte{{1}}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +110,7 @@ func TestAssessLabelsAvoidExamples(t *testing.T) {
 	a := Assessor{Client: fc, Model: "m"}
 	refs := []ReferenceInput{{Collages: [][]byte{{1}}}, {Collages: [][]byte{{2}}, Avoid: true}}
 	c := Candidate{Listing: listing.Listing{Collages: []string{"x"}}, Collages: [][]byte{{3}}}
-	if _, err := a.Assess(context.Background(), testProfile, refs, c); err != nil {
+	if _, err := a.Assess(t.Context(), testProfile, refs, c); err != nil {
 		t.Fatal(err)
 	}
 	req, _ := json.Marshal(fc.req)
@@ -119,7 +118,7 @@ func TestAssessLabelsAvoidExamples(t *testing.T) {
 		t.Errorf("request should label want and avoid references separately")
 	}
 
-	if _, err := a.Assess(context.Background(), Profile{ID: "corporate", Kind: KindAvoid}, nil, c); err == nil {
+	if _, err := a.Assess(t.Context(), Profile{ID: "corporate", Kind: KindAvoid}, nil, c); err == nil {
 		t.Error("assessing against an avoid profile should fail")
 	}
 }

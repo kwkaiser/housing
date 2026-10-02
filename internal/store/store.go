@@ -219,6 +219,7 @@ type Run struct {
 	CostUSD    float64
 	Failed     int
 	OverBudget int
+	Tokens     listing.TokenUsage
 	Error      string
 }
 
@@ -228,10 +229,12 @@ func (s *Store) RecordRun(ctx context.Context, r Run) error {
 		return err
 	}
 	_, err = s.db.ExecContext(ctx, `
-		INSERT INTO runs (kind, collection, day, started_at, finished_at, model, profiles, calls, cost_usd, failed, over_budget, error)
-		VALUES (?, nullif(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		INSERT INTO runs (kind, collection, day, started_at, finished_at, model, profiles, calls, cost_usd, failed, over_budget, error,
+			prompt_tokens, completion_tokens, reasoning_tokens, cached_tokens)
+		VALUES (?, nullif(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		r.Kind, r.Collection, r.Day, timestamp(r.StartedAt), timestamp(r.FinishedAt), r.Model, string(profiles),
-		r.Calls, r.CostUSD, r.Failed, r.OverBudget, r.Error)
+		r.Calls, r.CostUSD, r.Failed, r.OverBudget, r.Error,
+		r.Tokens.Prompt, r.Tokens.Completion, r.Tokens.Reasoning, r.Tokens.Cached)
 	return err
 }
 
@@ -308,17 +311,16 @@ func save(ctx context.Context, tx *sql.Tx, l listing.Listing, observed bool) (in
 			}
 			_, err = tx.ExecContext(ctx, `
 				INSERT INTO assessments (source, source_id, profile_id, model, profile_hash, input_hash,
-					score, coverage, vibe, assessed_at, cost_usd, data)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					score, coverage, assessed_at, cost_usd, data)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				ON CONFLICT (source, source_id, profile_id, model, profile_hash, input_hash) DO UPDATE SET
 					score = excluded.score,
 					coverage = excluded.coverage,
-					vibe = excluded.vibe,
 					assessed_at = excluded.assessed_at,
 					cost_usd = excluded.cost_usd,
 					data = excluded.data`,
 				l.Source, l.SourceID, profileID, model, a.ProfileHash, a.InputHash,
-				a.Score, a.Coverage, a.Vibe, timestamp(a.AssessedAt), a.CostUSD, string(b))
+				a.Score, a.Coverage, timestamp(a.AssessedAt), a.CostUSD, string(b))
 			if err != nil {
 				return 0, err
 			}

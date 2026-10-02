@@ -17,11 +17,11 @@ func newJobsCmd(dataDir *string) *cobra.Command {
 		limit        int
 	)
 	queue := func(cmd *cobra.Command) (*jobs.Queue, func(), error) {
-		db, err := newService(*dataDir).OpenStore(cmd.Context())
+		svc, err := openService(cmd, *dataDir)
 		if err != nil {
 			return nil, nil, err
 		}
-		return jobs.New(db, nil), func() { db.Close() }, nil
+		return jobs.New(svc.Store(), nil), func() { svc.Close() }, nil
 	}
 	cmd := &cobra.Command{
 		Use:   "jobs",
@@ -82,7 +82,15 @@ func newJobsCmd(dataDir *string) *cobra.Command {
 				fmt.Fprintf(out, "result: %s\n", j.Result)
 			}
 			for _, e := range events {
-				fmt.Fprintf(out, "%s %s: %s\n", e.At.Local().Format(time.TimeOnly), e.Stage, e.Message)
+				attrs, err := jobs.EventAttrs(e)
+				if err != nil {
+					return err
+				}
+				fmt.Fprintf(out, "%s %-5s %s", e.At.Local().Format(time.TimeOnly), e.Level, e.Message)
+				for _, a := range attrs {
+					fmt.Fprintf(out, " %s=%q", a.Key, a.Value)
+				}
+				fmt.Fprintln(out)
 			}
 			return nil
 		},
@@ -93,15 +101,15 @@ func newJobsCmd(dataDir *string) *cobra.Command {
 		Short: "Queue a run of a collection for `housing server` to pick up",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if _, err := newService(*dataDir).Collection(cmd.Context(), args[0]); err != nil {
-				return err
-			}
-			q, done, err := queue(cmd)
+			svc, err := openService(cmd, *dataDir)
 			if err != nil {
 				return err
 			}
-			defer done()
-			id, err := q.Enqueue(cmd.Context(), jobs.RunCollectionParams{CollectionID: args[0]})
+			defer svc.Close()
+			if _, err := svc.Collection(cmd.Context(), args[0]); err != nil {
+				return err
+			}
+			id, err := jobs.New(svc.Store(), nil).Enqueue(cmd.Context(), jobs.RunCollectionParams{CollectionID: args[0]})
 			if err != nil {
 				return err
 			}

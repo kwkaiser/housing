@@ -1,7 +1,6 @@
 package store
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -9,7 +8,7 @@ import (
 )
 
 func TestCurrentListingAndHistory(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	s := open(t)
 	l := sample().WithAssessment("attic", listing.Assessment{Model: "m", Score: 42})
 	if err := s.Observe(ctx, "2026-09-29", "c", []listing.Listing{l}); err != nil {

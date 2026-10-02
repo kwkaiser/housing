@@ -89,28 +89,28 @@ func TestBuildSearchURL(t *testing.T) {
 
 func TestResolve(t *testing.T) {
 	p, _ := newProvider(nil)
-	zip, err := p.resolve(context.Background(), listing.Area{Location: "02144"})
+	zip, err := p.resolve(t.Context(), listing.Area{Location: "02144"})
 	if err != nil || !zip.outline || zip.zip != "02144" || zip.viewport {
 		t.Errorf("plain zip should use redfin's own boundary: %+v %v", zip, err)
 	}
-	radius, err := p.resolve(context.Background(), listing.Area{Location: "02144", RadiusMiles: 1})
+	radius, err := p.resolve(t.Context(), listing.Area{Location: "02144", RadiusMiles: 1})
 	if err != nil || !radius.viewport || radius.radius != 1 || radius.zip != "02144" {
 		t.Errorf("zip with radius should use a viewport: %+v %v", radius, err)
 	}
-	city, err := p.resolve(context.Background(), listing.Area{Location: "Somerville, MA"})
+	city, err := p.resolve(t.Context(), listing.Area{Location: "Somerville, MA"})
 	if err != nil || !city.viewport || city.radius != 0 || city.zip != viewportAnchorZip {
 		t.Errorf("city should use a viewport around its center: %+v %v", city, err)
 	}
 
 	state := New(&fakeRunner{}, fakeRegions{zillow.Region{Name: "MA", Type: "state"}})
-	if _, err := state.resolve(context.Background(), listing.Area{Location: "MA"}); !errors.Is(err, listing.ErrUnsupportedQuery) {
+	if _, err := state.resolve(t.Context(), listing.Area{Location: "MA"}); !errors.Is(err, listing.ErrUnsupportedQuery) {
 		t.Errorf("state without radius should be rejected: %v", err)
 	}
 }
 
 func TestSearchRentals(t *testing.T) {
 	p, r := newProvider(fixture(t, "rent.json"))
-	got, err := p.Search(context.Background(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "02144"}, MinBeds: ptr(1), Limit: 5})
+	got, err := p.Search(t.Context(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "02144"}, MinBeds: ptr(1), Limit: 5})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +138,7 @@ func TestSearchRentals(t *testing.T) {
 
 func TestSearchSales(t *testing.T) {
 	p, _ := newProvider(fixture(t, "sale.json"))
-	got, err := p.Search(context.Background(), listing.Query{Offer: listing.OfferSale, Area: listing.Area{Location: "02144"}})
+	got, err := p.Search(t.Context(), listing.Query{Offer: listing.OfferSale, Area: listing.Area{Location: "02144"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +171,7 @@ func TestSearchSales(t *testing.T) {
 
 func TestSearchRadiusFiltersByDistance(t *testing.T) {
 	p, _ := newProvider(fixture(t, "sale.json"))
-	got, err := p.Search(context.Background(), listing.Query{Offer: listing.OfferSale, Area: listing.Area{Location: "Somerville, MA", RadiusMiles: 1}})
+	got, err := p.Search(t.Context(), listing.Query{Offer: listing.OfferSale, Area: listing.Area{Location: "Somerville, MA", RadiusMiles: 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func TestSearchRadiusFiltersByDistance(t *testing.T) {
 
 func TestSearchRejectsAmenities(t *testing.T) {
 	p, _ := newProvider(nil)
-	_, err := p.Search(context.Background(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "02144"}, Amenities: []listing.Amenity{listing.AmenityDishwasher}})
+	_, err := p.Search(t.Context(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "02144"}, Amenities: []listing.Amenity{listing.AmenityDishwasher}})
 	if !errors.Is(err, listing.ErrUnsupportedQuery) {
 		t.Fatalf("got %v", err)
 	}
@@ -207,7 +207,7 @@ func bounds(n, s, e, w float64) geo.Bounds { return geo.Bounds{North: n, South: 
 
 func TestEnrichSales(t *testing.T) {
 	sales, _ := newProvider(fixture(t, "sale.json"))
-	found, err := sales.Search(context.Background(), listing.Query{Offer: listing.OfferSale, Area: listing.Area{Location: "02144"}})
+	found, err := sales.Search(t.Context(), listing.Query{Offer: listing.OfferSale, Area: listing.Area{Location: "02144"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +224,7 @@ func TestEnrichSales(t *testing.T) {
 		input = in.(detailInput)
 		return r.items, nil
 	})
-	got, err := p.Enrich(context.Background(), in)
+	got, err := p.Enrich(t.Context(), in)
 	if err != nil {
 		t.Fatal(err)
 	}

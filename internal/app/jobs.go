@@ -73,7 +73,10 @@ type jobData struct {
 
 type eventView struct {
 	jobs.Event
-	Time string
+	Time       string
+	LevelClass string
+	Stage      string
+	Attrs      []jobs.Attr
 }
 
 func (a *App) jobView(j jobs.Job, now time.Time) jobView {
@@ -162,7 +165,20 @@ func (a *App) jobPage(w http.ResponseWriter, r *http.Request) {
 	}
 	d := jobData{jobView: a.jobView(j, a.now()), Title: "Job " + strconv.FormatInt(j.ID, 10), Params: paramFields(j.Params)}
 	for _, e := range events {
-		d.Events = append(d.Events, eventView{Event: e, Time: e.At.Local().Format(time.TimeOnly)})
+		v := eventView{Event: e, Time: e.At.Local().Format(time.TimeOnly), LevelClass: strings.ToLower(e.Level.String())}
+		attrs, err := jobs.EventAttrs(e)
+		if err != nil {
+			a.fail(w, r, err)
+			return
+		}
+		for _, at := range attrs {
+			if at.Key == "stage" {
+				v.Stage = at.Value
+				continue
+			}
+			v.Attrs = append(v.Attrs, at)
+		}
+		d.Events = append(d.Events, v)
 	}
 	if len(j.Result) > 0 {
 		switch jobs.Kind(j.Kind) {
@@ -301,6 +317,7 @@ func runFields(r jobs.RunResult) []field {
 		field{Label: "Over budget", Value: n(r.Stats.OverBudget)},
 		field{Label: "Model calls", Value: n(r.Stats.Calls)},
 		field{Label: "Model cost", Value: view.Cost(r.Stats.CostUSD)},
+		field{Label: "Tokens", Value: r.Stats.Tokens.String()},
 		field{Label: "Budget reached", Value: yes[r.BudgetReached]},
 	)
 	if r.AssessError != "" {

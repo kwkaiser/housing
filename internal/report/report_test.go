@@ -32,7 +32,6 @@ func assessed(id string, source listing.Source, cents int64, scores map[string]f
 			Model:       model,
 			Score:       s,
 			Coverage:    100,
-			Vibe:        3,
 			ProfileHash: testProfile.Hash(),
 			InputHash:   profile.InputHash(l),
 			Summary:     id + " summary",

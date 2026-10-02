@@ -42,7 +42,7 @@ func TestDraftAndApply(t *testing.T) {
 		Collages: [][]byte{{1}, {2}},
 	}}
 
-	draft, meta, err := d.Draft(context.Background(), KindWant, []string{"skylights!!", "wood floors"}, refs)
+	draft, meta, err := d.Draft(t.Context(), KindWant, []string{"skylights!!", "wood floors"}, refs)
 	if err != nil {
 		t.Fatal(err)
 	}

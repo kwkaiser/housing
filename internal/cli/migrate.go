@@ -12,12 +12,12 @@ func newMigrateCmd(dataDir *string) *cobra.Command {
 		Short: "Apply pending database migrations and print the schema version",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			db, err := newService(*dataDir).OpenStore(cmd.Context())
+			svc, err := openService(cmd, *dataDir)
 			if err != nil {
 				return err
 			}
-			defer db.Close()
-			v, err := db.SchemaVersion(cmd.Context())
+			defer svc.Close()
+			v, err := svc.Store().SchemaVersion(cmd.Context())
 			if err != nil {
 				return err
 			}

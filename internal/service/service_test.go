@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -22,7 +21,7 @@ func TestSplitAmenities(t *testing.T) {
 }
 
 func TestFetchValidates(t *testing.T) {
-	svc := New(Config{DataDir: t.TempDir(), Keys: config.Config{ApifyToken: "x"}})
+	svc := openService(t, Config{DataDir: t.TempDir(), Keys: config.Config{ApifyToken: "x"}})
 	cases := map[string]FetchOptions{
 		"location":           {Sources: []listing.Source{listing.SourceZillow}, Mode: profile.ModeRent, Search: profile.Search{Limit: 1}},
 		"limit":              {Sources: []listing.Source{listing.SourceZillow}, Mode: profile.ModeRent, Search: profile.Search{Location: "x"}},
@@ -32,7 +31,7 @@ func TestFetchValidates(t *testing.T) {
 			Search: profile.Search{Location: "x", Limit: 1, Amenities: []listing.Amenity{listing.AmenityDishwasher}}},
 	}
 	for want, o := range cases {
-		if _, err := svc.Fetch(context.Background(), o, nil); err == nil || !strings.Contains(err.Error(), want) {
+		if _, err := svc.Fetch(t.Context(), o, nil); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%s: got %v", want, err)
 		}
 	}
@@ -72,19 +71,23 @@ func TestFreshGroups(t *testing.T) {
 	}
 }
 
-func TestLock(t *testing.T) {
-	svc := New(Config{DataDir: t.TempDir()})
-	unlock, err := svc.Lock()
+func TestExclusive(t *testing.T) {
+	dir := t.TempDir()
+	svc, err := Open(t.Context(), Config{DataDir: dir, Exclusive: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.Lock(); !errors.Is(err, ErrLocked) {
-		t.Errorf("second lock should fail: %v", err)
+	if _, err := Open(t.Context(), Config{DataDir: dir, Exclusive: true}); !errors.Is(err, ErrLocked) {
+		t.Errorf("second exclusive open should fail: %v", err)
 	}
-	unlock()
-	again, err := svc.Lock()
+	shared := openService(t, Config{DataDir: dir})
+	if _, err := shared.Collections(t.Context()); err != nil {
+		t.Errorf("a shared service should still read: %v", err)
+	}
+	svc.Close()
+	again, err := Open(t.Context(), Config{DataDir: dir, Exclusive: true})
 	if err != nil {
-		t.Fatalf("lock after unlock: %v", err)
+		t.Fatalf("open after close: %v", err)
 	}
-	again()
+	again.Close()
 }

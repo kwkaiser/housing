@@ -2,7 +2,6 @@ package jsonfile
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -31,7 +30,7 @@ func mk(source listing.Source, id string, cents int64) listing.Listing {
 
 func TestRoundTrip(t *testing.T) {
 	dir := t.TempDir()
-	ctx := context.Background()
+	ctx := t.Context()
 	p := Persister{}
 
 	first := []listing.Listing{mk(listing.SourceZillow, "b", 100), mk(listing.SourceZillow, "a", 100), mk(listing.SourceCraigslist, "c", 100)}
@@ -81,7 +80,7 @@ func TestRoundTrip(t *testing.T) {
 }
 
 func TestLoadMissingDir(t *testing.T) {
-	got, err := Persister{}.Load(context.Background(), filepath.Join(t.TempDir(), "nope"))
+	got, err := Persister{}.Load(t.Context(), filepath.Join(t.TempDir(), "nope"))
 	if err != nil || len(got) != 0 {
 		t.Fatalf("got %v, %v", got, err)
 	}

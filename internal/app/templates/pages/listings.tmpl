@@ -1,11 +1,11 @@
 {{define "title"}}Listings · {{.Data.Title}}{{if .Data.Day}} · {{.Data.Day}}{{end}}{{end}}
 {{define "content"}}{{with .Data}}
 <h1>Listings · {{.Collection.ID}}</h1>
-{{if .CollectionLink}}<nav class="controls collections" aria-label="Collections">
-  {{range .CollectionLink}}<a href="{{.Href}}"{{if .Active}} aria-current="page"{{end}}>{{.ID}}</a>
-  {{end}}
-</nav>{{end}}
 <div class="controls run">
+  {{if .CollectionLink}}<select class="collection" aria-label="Collection">
+    {{range .CollectionLink}}<option value="{{.Href}}"{{if .Active}} selected{{end}}>{{.ID}}</option>
+    {{end}}
+  </select>{{end}}
   <form method="post" action="/jobs/run"><input type="hidden" name="collection" value="{{.Collection.ID}}"><button type="submit">Run now</button></form>
   <a class="button" href="{{.EditHref}}">Edit collection</a>
   {{with .Run}}<span class="muted">{{if .Active}}<span class="{{.StatusClass}}">{{if eq .Status "queued"}}Queued…{{else}}Running…{{end}}</span>{{else}}Last run: <span class="{{.StatusClass}}">{{.Status}}</span> {{.Ago}}{{end}} · <a href="{{.Href}}">view</a></span>{{end}}
@@ -63,7 +63,6 @@
   {{range $i, $g := .Grades}}<td data-col="p:{{index $.Data.Collection.Profiles $i}}" class="num">{{if $g.OK}}{{match $g.Match $g.Calibrated $g.Stale}}{{else}}-{{end}}</td>
   {{end}}{{end}}
   <td data-col="coverage" class="num">{{percent .Coverage}}</td>
-  <td data-col="vibe" class="num">{{.Vibe}}</td>
   <td data-col="price" class="num">{{money .Listing.Price.Cents .Listing.Offer}}</td>
   <td data-col="beds" class="num">{{beds .Listing.Beds}}</td>
   <td data-col="address"><a href="{{.Href}}">{{or (address .Listing) .Listing.SourceID}}</a> <a class="ext" href="{{.Listing.URL}}" target="_blank" rel="noopener" aria-label="Open on {{.Listing.Source}}">↗</a>{{if .New}}<span class="badge new">new</span>{{end}}{{if .Change}}<span class="badge {{.ChangeClass}}">{{.Change}}</span>{{end}}</td>
@@ -71,7 +70,7 @@
   <td data-col="dealbreakers" class="tags bad off">{{join .Dealbreakers ", "}}</td>
   <td data-col="missing" class="tags off">{{join .MissingEssentials ", "}}</td>
   <td data-col="avoids" class="tags off">{{join .AvoidsHit ", "}}</td>
-  <td data-col="summary" class="summary">{{.Summary}}</td>
+  <td data-col="summary" class="summary off">{{.Summary}}</td>
 </tr>
 {{else}}<tr><td colspan="{{len .Columns}}" class="muted">No graded listings on {{.Day}}.</td></tr>
 {{end}}</tbody>

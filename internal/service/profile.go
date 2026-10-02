@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"net/url"
 	"slices"
@@ -35,13 +36,13 @@ type DraftOptions struct {
 	Notes []string
 }
 
-func (s *Service) CreateProfileFromURL(ctx context.Context, o CreateProfileOptions, progress Progress) (profile.Profile, error) {
+func (s *Service) CreateProfileFromURL(ctx context.Context, o CreateProfileOptions, log *slog.Logger) (profile.Profile, error) {
 	o = o.withDefaults()
-	db, err := s.openCatalog(ctx)
+	log = s.logger(log).With("stage", StageProfile)
+	db, err := s.catalog(ctx)
 	if err != nil {
 		return profile.Profile{}, err
 	}
-	defer db.Close()
 	if err := s.checkNewProfile(ctx, db, o); err != nil {
 		return profile.Profile{}, err
 	}
@@ -63,9 +64,10 @@ func (s *Service) CreateProfileFromURL(ctx context.Context, o CreateProfileOptio
 	if err != nil {
 		return profile.Profile{}, err
 	}
-	s.emit(progress, StageProfile, "reference: %s (%d photos)", ref.Address.Formatted, len(ref.Photos))
+	log.Info("fetched reference", "address", ref.Address.Formatted, "photos", len(ref.Photos))
 
 	processor := media.NewProcessor(s.photoFetcher(), s.images(), media.NewGrid())
+	processor.Logger = log
 	processed, err := processor.Process(ctx, []listing.Listing{ref})
 	if err != nil {
 		return profile.Profile{}, err
@@ -74,7 +76,7 @@ func (s *Service) CreateProfileFromURL(ctx context.Context, o CreateProfileOptio
 	if len(ref.Collages) == 0 {
 		return profile.Profile{}, fmt.Errorf("no photos could be downloaded for %s", ref.URL)
 	}
-	s.emit(progress, StageProfile, "collages: %s", strings.Join(ref.Collages, ", "))
+	log.Info("collaged reference", "collages", ref.Collages)
 
 	p := profile.Profile{
 		ID:     o.ID,
@@ -90,22 +92,22 @@ func (s *Service) CreateProfileFromURL(ctx context.Context, o CreateProfileOptio
 		}},
 	}
 	if !o.NoDraft {
-		if err := s.draft(ctx, &p, o.Model, []listing.Listing{ref}, progress); err != nil {
+		if err := s.draft(ctx, &p, o.Model, []listing.Listing{ref}, log); err != nil {
 			if saveErr := db.SaveProfile(ctx, p, ref); saveErr != nil {
 				return p, fmt.Errorf("%w (and saving undrafted profile failed: %w)", err, saveErr)
 			}
 			return p, fmt.Errorf("%w; saved undrafted profile, re-draft it from its profile page", err)
 		}
 	}
-	return p, s.saveProfile(ctx, db, p, progress, ref)
+	return p, s.saveProfile(ctx, db, p, log, ref)
 }
 
-func (s *Service) DraftProfile(ctx context.Context, id string, o DraftOptions, progress Progress) (profile.Profile, error) {
-	db, err := s.openCatalog(ctx)
+func (s *Service) DraftProfile(ctx context.Context, id string, o DraftOptions, log *slog.Logger) (profile.Profile, error) {
+	log = s.logger(log).With("stage", StageProfile)
+	db, err := s.catalog(ctx)
 	if err != nil {
 		return profile.Profile{}, err
 	}
-	defer db.Close()
 	p, err := db.Profile(ctx, id)
 	if err != nil {
 		return profile.Profile{}, err
@@ -117,10 +119,10 @@ func (s *Service) DraftProfile(ctx context.Context, id string, o DraftOptions, p
 	if o.Notes != nil {
 		p.Notes = o.Notes
 	}
-	if err := s.draft(ctx, &p, o.Model, refs, progress); err != nil {
+	if err := s.draft(ctx, &p, o.Model, refs, log); err != nil {
 		return p, err
 	}
-	return p, s.saveProfile(ctx, db, p, progress)
+	return p, s.saveProfile(ctx, db, p, log)
 }
 
 func (o CreateProfileOptions) withDefaults() CreateProfileOptions {
@@ -134,11 +136,10 @@ func (o CreateProfileOptions) withDefaults() CreateProfileOptions {
 }
 
 func (s *Service) ValidateNewProfile(ctx context.Context, o CreateProfileOptions) error {
-	db, err := s.openCatalog(ctx)
+	db, err := s.catalog(ctx)
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 	return s.checkNewProfile(ctx, db, o.withDefaults())
 }
 
@@ -198,11 +199,10 @@ type CriterionEdit struct {
 }
 
 func (s *Service) UpdateProfile(ctx context.Context, id string, e ProfileEdit) (profile.Profile, error) {
-	db, err := s.openCatalog(ctx)
+	db, err := s.catalog(ctx)
 	if err != nil {
 		return profile.Profile{}, err
 	}
-	defer db.Close()
 	p, err := db.Profile(ctx, id)
 	if err != nil {
 		return profile.Profile{}, err
@@ -267,37 +267,34 @@ func applyEdit(p profile.Profile, e ProfileEdit) (profile.Profile, error) {
 }
 
 func (s *Service) Profile(ctx context.Context, id string) (profile.Profile, error) {
-	db, err := s.openCatalog(ctx)
+	db, err := s.catalog(ctx)
 	if err != nil {
 		return profile.Profile{}, err
 	}
-	defer db.Close()
 	return db.Profile(ctx, id)
 }
 
 func (s *Service) Profiles(ctx context.Context) ([]profile.Profile, error) {
-	db, err := s.openCatalog(ctx)
+	db, err := s.catalog(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
 	return db.Profiles(ctx)
 }
 
 func (s *Service) SaveProfile(ctx context.Context, p profile.Profile) error {
-	db, err := s.openCatalog(ctx)
+	db, err := s.catalog(ctx)
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 	return db.SaveProfile(ctx, p)
 }
 
-func (s *Service) saveProfile(ctx context.Context, db *store.Store, p profile.Profile, progress Progress, refs ...listing.Listing) error {
+func (s *Service) saveProfile(ctx context.Context, db *store.Store, p profile.Profile, log *slog.Logger, refs ...listing.Listing) error {
 	if err := db.SaveProfile(ctx, p, refs...); err != nil {
 		return err
 	}
-	s.emit(progress, StageProfile, "saved: profile %s", p.ID)
+	log.Info("saved profile", "profile", p.ID)
 	return nil
 }
 
@@ -313,7 +310,7 @@ func (s *Service) references(p profile.Profile, listings []listing.Listing) ([]p
 	return refs, nil
 }
 
-func (s *Service) draft(ctx context.Context, p *profile.Profile, model string, listings []listing.Listing, progress Progress) error {
+func (s *Service) draft(ctx context.Context, p *profile.Profile, model string, listings []listing.Listing, log *slog.Logger) error {
 	key, err := s.cfg.Keys.OpenRouter()
 	if err != nil {
 		return err
@@ -331,6 +328,6 @@ func (s *Service) draft(ctx context.Context, p *profile.Profile, model string, l
 	if err := p.Apply(draft, meta); err != nil {
 		return err
 	}
-	s.emit(progress, StageProfile, "drafted: %d want, %d avoid with %s ($%.4f)", len(p.Want), len(p.Avoid), meta.Model, meta.CostUSD)
+	log.Info("drafted profile", "want", len(p.Want), "avoid", len(p.Avoid), "model", meta.Model, "cost_usd", usd(meta.CostUSD))
 	return nil
 }

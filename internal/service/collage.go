@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log/slog"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/media"
@@ -24,14 +25,12 @@ func DefaultCollageOptions() CollageOptions {
 	return CollageOptions{Grid: media.NewGrid(), MaxPhotos: media.DefaultMaxPhotos}
 }
 
-func (s *Service) Collage(ctx context.Context, o CollageOptions, listings []listing.Listing, progress Progress) (CollageResult, error) {
+func (s *Service) Collage(ctx context.Context, o CollageOptions, listings []listing.Listing, log *slog.Logger) (CollageResult, error) {
 	var res CollageResult
-	db, err := s.openStore(ctx)
-	if err != nil {
-		return res, err
-	}
-	defer db.Close()
+	log = s.logger(log).With("stage", StageCollage)
+	db := s.db
 	if listings == nil {
+		var err error
 		if listings, err = db.Load(ctx); err != nil {
 			return res, err
 		}
@@ -42,6 +41,7 @@ func (s *Service) Collage(ctx context.Context, o CollageOptions, listings []list
 		p.MaxPhotos = o.MaxPhotos
 	}
 	p.Force = o.Force
+	p.Logger = log
 	if o.FetchMissing {
 		if err := p.FetchPhotos(ctx, listings); err != nil {
 			return res, err
@@ -66,6 +66,6 @@ func (s *Service) Collage(ctx context.Context, o CollageOptions, listings []list
 	}
 	res.Listings = processed
 	res.Collages = len(distinct)
-	s.emit(progress, StageCollage, "collage: %d listings, %d collages, %d listings without collages", len(processed), res.Collages, res.WithoutCollages)
+	log.Info("collaged", "listings", len(processed), "collages", res.Collages, "without_collages", res.WithoutCollages)
 	return res, nil
 }

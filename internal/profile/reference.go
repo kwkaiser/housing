@@ -46,12 +46,14 @@ func (s *BatchStats) Add(o BatchStats) {
 	s.OverBudget += o.OverBudget
 	s.Failed += o.Failed
 	s.CostUSD += o.CostUSD
+	s.Tokens = s.Tokens.Add(o.Tokens)
 }
 
 type Budget struct {
-	mu    sync.Mutex
-	max   float64
-	spent float64
+	mu     sync.Mutex
+	max    float64
+	spent  float64
+	tokens listing.TokenUsage
 }
 
 func NewBudget(maxUSD float64) *Budget {
@@ -83,4 +85,22 @@ func (b *Budget) Spent() float64 {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return b.spent
+}
+
+func (b *Budget) Record(t listing.TokenUsage) {
+	if b == nil {
+		return
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.tokens = b.tokens.Add(t)
+}
+
+func (b *Budget) Tokens() listing.TokenUsage {
+	if b == nil {
+		return listing.TokenUsage{}
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.tokens
 }

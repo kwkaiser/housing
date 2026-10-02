@@ -5,22 +5,27 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"runtime"
 	"slices"
 	"strings"
 	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing/dedupe"
+	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/report"
 	"git.kwkaiser.io/kwkaiser/housing/internal/store"
 )
 
+var DefaultAssessConcurrency = runtime.NumCPU()
+
 const (
-	DefaultAssessConcurrency = 4
-	DefaultAssessLimit       = 20
-	DefaultMaxCostUSD        = 1.0
-	checkpointEvery          = 5
+	DefaultAssessImagePx = 1024
+	DefaultAssessLimit   = 20
+	DefaultMaxCostUSD    = 1.0
+	checkpointEvery      = 5
 )
 
 type AssessOptions struct {
@@ -96,18 +101,18 @@ func reportTemplates(ts []template) []report.Template {
 	return out
 }
 
-func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listing.Listing, progress Progress) (AssessResult, error) {
+func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listing.Listing, log *slog.Logger) (AssessResult, error) {
 	var res AssessResult
+	log = s.logger(log).With("stage", StageAssess)
 	started := s.cfg.Now()
 	key, err := s.cfg.Keys.OpenRouter()
 	if err != nil {
 		return res, err
 	}
-	db, err := s.openCatalog(ctx)
+	db, err := s.catalog(ctx)
 	if err != nil {
 		return res, err
 	}
-	defer db.Close()
 	templates, err := s.templates(ctx, db, o.ProfileIDs)
 	if err != nil {
 		return res, err
@@ -132,7 +137,7 @@ func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listin
 		if listings, err = db.LoadDay(ctx, day, o.Collection); err != nil {
 			return res, err
 		}
-		s.emit(progress, StageAssess, "assess: %d listings observed on %s", len(listings), day)
+		log.Info("loaded listings", "listings", len(listings), "day", day)
 	}
 	res.Day = day
 	selected := listings
@@ -166,12 +171,17 @@ func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listin
 		if err != nil {
 			return res, err
 		}
-		assessor := profile.Assessor{Client: client, Model: o.Model, Attempts: profile.DefaultAssessAttempts}
+		for i := range refs {
+			if refs[i].Collages, err = shrinkAll(refs[i].Collages); err != nil {
+				return res, err
+			}
+		}
+		assessor := profile.Assessor{Client: client, Model: o.Model, Attempts: profile.DefaultAssessAttempts, ImagePx: DefaultAssessImagePx, ReasoningEffort: profile.DefaultAssessReasoningEffort}
 
 		calibrated, cs, cerr := assessor.AssessListings(ctx, p, refs, t.References,
-			func(keys []string) ([][]byte, error) { return profile.ReadCollages(images, keys) },
+			readShrunk(images),
 			profile.BatchOptions{Force: o.Force, Concurrency: 1, Budget: budget,
-				Observe: s.assessObserver(progress, "reference ("+p.ID+")", o.Model, 1, budget)},
+				Observe: assessObserver(log.With("profile", p.ID, "model", o.Model, "batch", "reference"), 1, budget)},
 		)
 		res.Stats.Add(cs)
 		if cs.Updated > 0 {
@@ -184,11 +194,11 @@ func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listin
 			errs = append(errs, fmt.Errorf("%s reference: %w", p.ID, cerr))
 		}
 		if ref, ok := profile.ReferenceScore(p, calibrated, o.Model); ok {
-			s.emit(progress, StageAssess, "reference (%s, %s): scores %.1f against its own profile", p.ID, o.Model, ref)
+			log.Info("reference scored against its own profile", "profile", p.ID, "model", o.Model, "score", ref)
 		}
 
 		assessed, st, aerr := assessor.AssessListings(ctx, p, refs, res.Listings,
-			func(keys []string) ([][]byte, error) { return profile.ReadCollages(images, keys) },
+			readShrunk(images),
 			profile.BatchOptions{
 				Force:           o.Force,
 				Limit:           o.Limit,
@@ -197,7 +207,7 @@ func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listin
 				Budget:          budget,
 				Checkpoint:      checkpoint,
 				CheckpointEvery: checkpointEvery,
-				Observe:         s.assessObserver(progress, "assess ("+p.ID+")", o.Model, cmpOr(o.Concurrency, DefaultAssessConcurrency), budget),
+				Observe:         assessObserver(log.With("profile", p.ID, "model", o.Model, "batch", "listings"), cmpOr(o.Concurrency, DefaultAssessConcurrency), budget),
 			},
 		)
 		res.Stats.Add(st)
@@ -210,12 +220,12 @@ func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listin
 		if aerr != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", p.ID, aerr))
 		}
-		s.emit(progress, StageAssess, "assess (%s, %s): %d model calls ($%.4f), %d listings updated, %d already current, %d failed, %d without collages, %d over limit, %d over budget",
-			p.ID, o.Model, st.Calls, st.CostUSD, st.Updated, st.Cached, st.Failed, st.NoCollages, st.OverLimit, st.OverBudget)
+		log.Info("assessed profile", "profile", p.ID, "model", o.Model, "calls", st.Calls, "cost_usd", usd(st.CostUSD), "tokens", st.Tokens.Total(),
+			"updated", st.Updated, "cached", st.Cached, "failed", st.Failed, "no_collages", st.NoCollages, "over_limit", st.OverLimit, "over_budget", st.OverBudget)
 	}
 	if budget.Exhausted() {
 		res.BudgetReached = true
-		s.emit(progress, StageAssess, "assess: run budget of $%.2f reached; remaining listings will be graded on the next run", o.MaxRunUSD)
+		log.Info("run budget reached; remaining listings will be graded on the next run", "max_run_usd", o.MaxRunUSD)
 	}
 
 	err = errors.Join(errs...)
@@ -231,6 +241,7 @@ func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listin
 		CostUSD:    res.Stats.CostUSD,
 		Failed:     res.Stats.Failed,
 		OverBudget: res.Stats.OverBudget,
+		Tokens:     res.Stats.Tokens,
 	}
 	if err != nil {
 		run.Error = err.Error()
@@ -241,49 +252,73 @@ func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listin
 	return res, err
 }
 
-func (s *Service) assessObserver(progress Progress, label, model string, concurrency int, budget *profile.Budget) func(profile.BatchEvent) {
+func assessObserver(log *slog.Logger, concurrency int, budget *profile.Budget) func(profile.BatchEvent) {
 	return func(e profile.BatchEvent) {
-		step := fmt.Sprintf("[%d/%d]", e.N, e.Total)
+		step := fmt.Sprintf("%d/%d", e.N, e.Total)
 		switch e.Kind {
 		case profile.BatchPlanned:
 			if e.Total == 0 {
-				s.emit(progress, StageAssess, "%s: nothing to grade (%d already current, %d without collages)", label, e.Stats.Cached, e.Stats.NoCollages)
+				log.Info("nothing to grade", "cached", e.Stats.Cached, "no_collages", e.Stats.NoCollages)
 				return
 			}
-			s.emit(progress, StageAssess, "%s: grading %d listings with %s, %d at a time (%d already current, %d without collages, %d over limit)",
-				label, e.Total, model, concurrency, e.Stats.Cached, e.Stats.NoCollages, e.Stats.OverLimit)
+			log.Info("grading listings", "listings", e.Total, "concurrency", concurrency,
+				"cached", e.Stats.Cached, "no_collages", e.Stats.NoCollages, "over_limit", e.Stats.OverLimit)
 		case profile.BatchStarted:
-			s.emit(progress, StageAssess, "%s: %s grading %s", label, step, batchListing(e))
+			log.Info("grading", append([]any{"step", step}, listingAttrs(e)...)...)
 		case profile.BatchGraded:
 			a := e.Assessment
-			s.emit(progress, StageAssess, "%s: %s graded %s: score %.1f, coverage %.0f%%, vibe %d%s · %s · $%.4f (run total $%.4f)",
-				label, step, batchListing(e), a.Score, a.Coverage, a.Vibe, gradeFlags(a), e.Elapsed.Round(100*time.Millisecond), a.CostUSD, budget.Spent())
+			attrs := append([]any{"step", step}, listingAttrs(e)...)
+			attrs = append(attrs, "score", a.Score, "coverage", a.Coverage)
+			if len(a.Dealbreakers) > 0 {
+				attrs = append(attrs, "dealbreakers", a.Dealbreakers)
+			}
+			if len(a.MissingEssentials) > 0 {
+				attrs = append(attrs, "missing", a.MissingEssentials)
+			}
+			attrs = append(attrs, "elapsed", e.Elapsed.Round(100*time.Millisecond).String(), "tokens", a.Tokens.Total(),
+				"cost_usd", usd(a.CostUSD), "run_cost_usd", usd(budget.Spent()), "run_tokens", budget.Tokens().Total())
+			log.Info("graded", attrs...)
 		case profile.BatchFailed:
-			s.emit(progress, StageAssess, "%s: %s failed %s after %s: %v", label, step, batchListing(e), e.Elapsed.Round(100*time.Millisecond), e.Err)
+			attrs := append([]any{"step", step}, listingAttrs(e)...)
+			attrs = append(attrs, "elapsed", e.Elapsed.Round(100*time.Millisecond).String(), "tokens", e.Assessment.Tokens.Total(),
+				"cost_usd", usd(e.Assessment.CostUSD), "err", e.Err)
+			log.Warn("grading failed", attrs...)
 		case profile.BatchOverBudget:
-			s.emit(progress, StageAssess, "%s: budget reached at $%.4f after %d of %d listings; the rest wait for the next run", label, budget.Spent(), e.N, e.Total)
+			log.Info("budget reached; the rest wait for the next run", "spent_usd", usd(budget.Spent()), "started", e.N, "total", e.Total)
 		}
 	}
 }
 
-func batchListing(e profile.BatchEvent) string {
+func listingAttrs(e profile.BatchEvent) []any {
 	name := e.Listing.Address.Formatted
 	if name == "" {
 		name = string(e.Listing.Source) + "/" + e.Listing.SourceID
 	}
+	attrs := []any{"listing", name}
 	if e.Units > 1 {
-		name += fmt.Sprintf(" (+%d units with the same photos)", e.Units-1)
+		attrs = append(attrs, "same_photo_units", e.Units-1)
 	}
-	return name
+	return attrs
 }
 
-func gradeFlags(a listing.Assessment) string {
-	var out string
-	if len(a.Dealbreakers) > 0 {
-		out += ", dealbreakers: " + strings.Join(a.Dealbreakers, ", ")
+func readShrunk(images media.DiskStore) func([]string) ([][]byte, error) {
+	return func(keys []string) ([][]byte, error) {
+		collages, err := profile.ReadCollages(images, keys)
+		if err != nil {
+			return nil, err
+		}
+		return shrinkAll(collages)
 	}
-	if len(a.MissingEssentials) > 0 {
-		out += ", missing: " + strings.Join(a.MissingEssentials, ", ")
+}
+
+func shrinkAll(images [][]byte) ([][]byte, error) {
+	out := make([][]byte, len(images))
+	for i, b := range images {
+		small, err := media.Shrink(b, DefaultAssessImagePx)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = small
 	}
-	return out
+	return out, nil
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 )
@@ -46,8 +47,9 @@ type JobEvent struct {
 	JobID   int64
 	Seq     int
 	At      time.Time
-	Stage   string
+	Level   slog.Level
 	Message string
+	Record  json.RawMessage
 }
 
 type JobFilter struct {
@@ -122,9 +124,9 @@ func (s *Store) ClaimJob(ctx context.Context, at time.Time) (Job, bool, error) {
 
 func (s *Store) AppendJobEvent(ctx context.Context, e JobEvent) error {
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO job_events (job_id, seq, at, stage, message)
-		SELECT ?1, coalesce(max(seq), 0) + 1, ?2, ?3, ?4 FROM job_events WHERE job_id = ?1`,
-		e.JobID, jobTime(e.At), e.Stage, e.Message)
+		INSERT INTO job_events (job_id, seq, at, level, message, record)
+		SELECT ?1, coalesce(max(seq), 0) + 1, ?2, ?3, ?4, ?5 FROM job_events WHERE job_id = ?1`,
+		e.JobID, jobTime(e.At), e.Level.String(), e.Message, string(e.Record))
 	return err
 }
 
@@ -212,7 +214,7 @@ func (s *Store) oneJob(ctx context.Context, where string, args ...any) (Job, boo
 
 func (s *Store) JobEvents(ctx context.Context, jobID int64) ([]JobEvent, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT job_id, seq, at, stage, message FROM job_events WHERE job_id = ? ORDER BY seq`, jobID)
+		SELECT job_id, seq, at, level, message, record FROM job_events WHERE job_id = ? ORDER BY seq`, jobID)
 	if err != nil {
 		return nil, err
 	}
@@ -220,12 +222,16 @@ func (s *Store) JobEvents(ctx context.Context, jobID int64) ([]JobEvent, error) 
 	var out []JobEvent
 	for rows.Next() {
 		var (
-			e  JobEvent
-			at string
+			e                 JobEvent
+			at, level, record string
 		)
-		if err := rows.Scan(&e.JobID, &e.Seq, &at, &e.Stage, &e.Message); err != nil {
+		if err := rows.Scan(&e.JobID, &e.Seq, &at, &level, &e.Message, &record); err != nil {
 			return nil, err
 		}
+		if err := e.Level.UnmarshalText([]byte(level)); err != nil {
+			return nil, err
+		}
+		e.Record = json.RawMessage(record)
 		if e.At, err = parseJobTime(at); err != nil {
 			return nil, err
 		}

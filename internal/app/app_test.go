@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -17,29 +16,28 @@ import (
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/jobs"
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
-	"git.kwkaiser.io/kwkaiser/housing/internal/store"
 )
 
 func newApp(t *testing.T) (*App, *bytes.Buffer) {
 	t.Helper()
 	var logs bytes.Buffer
 	dir := t.TempDir()
-	svc := service.New(service.Config{DataDir: dir, ProfilesDir: dir, CollectionsDir: dir})
-	a, err := New(svc, openQueue(t, dir), slog.New(slog.NewTextHandler(&logs, nil)))
+	svc := openService(t, service.Config{DataDir: dir, ProfilesDir: dir, CollectionsDir: dir})
+	a, err := New(svc, jobs.New(svc.Store(), nil), slog.New(slog.NewTextHandler(&logs, nil)))
 	if err != nil {
 		t.Fatal(err)
 	}
 	return a, &logs
 }
 
-func openQueue(t *testing.T, dir string) *jobs.Queue {
+func openService(t *testing.T, cfg service.Config) *service.Service {
 	t.Helper()
-	db, err := store.Open(context.Background(), filepath.Join(dir, store.FileName))
+	svc, err := service.Open(t.Context(), cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { db.Close() })
-	return jobs.New(db, nil)
+	t.Cleanup(func() { svc.Close() })
+	return svc
 }
 
 func get(t *testing.T, h http.Handler, target string) (*http.Response, string) {
@@ -178,7 +176,7 @@ func TestServe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
 	go func() { done <- a.Serve(ctx, ln) }()
 
@@ -204,7 +202,7 @@ func TestServe(t *testing.T) {
 
 func TestRunBadAddr(t *testing.T) {
 	a, _ := newApp(t)
-	if err := a.Run(context.Background(), "127.0.0.1:-1"); err == nil {
+	if err := a.Run(t.Context(), "127.0.0.1:-1"); err == nil {
 		t.Fatal("expected listen error")
 	}
 }

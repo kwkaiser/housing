@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"context"
 	"image"
 	"image/jpeg"
 	"log/slog"
@@ -14,6 +13,7 @@ import (
 	"testing"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
+	"git.kwkaiser.io/kwkaiser/housing/internal/jobs"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
@@ -43,7 +43,7 @@ func rental(source listing.Source, id, street string, cents int64) listing.Listi
 func assessed(l listing.Listing, p profile.Profile, score float64, dealbreakers ...string) listing.Listing {
 	a := listing.Assessment{
 		ProfileHash: p.Hash(), InputHash: profile.InputHash(l), Model: model,
-		Score: score, Coverage: 90, Vibe: 4, Summary: "summary of " + l.SourceID, Dealbreakers: dealbreakers,
+		Score: score, Coverage: 90, Summary: "summary of " + l.SourceID, Dealbreakers: dealbreakers,
 	}
 	for _, c := range p.Want {
 		a.Want = append(a.Want, listing.CriterionResult{ID: c.ID, Verdict: listing.VerdictPresent, Confidence: listing.ConfidenceHigh, Photos: []int{1, 2}, Evidence: "seen " + c.ID})
@@ -56,7 +56,7 @@ func assessed(l listing.Listing, p profile.Profile, score float64, dealbreakers 
 
 func seededApp(t *testing.T) *App {
 	t.Helper()
-	ctx := context.Background()
+	ctx := t.Context()
 	dir := t.TempDir()
 	db, err := store.Open(ctx, filepath.Join(dir, store.FileName))
 	if err != nil {
@@ -151,7 +151,8 @@ func seededApp(t *testing.T) *App {
 		}
 	}
 
-	a, err := New(service.New(service.Config{DataDir: dir}), openQueue(t, dir), slog.New(slog.DiscardHandler))
+	svc := openService(t, service.Config{DataDir: dir})
+	a, err := New(svc, jobs.New(svc.Store(), nil), slog.New(slog.DiscardHandler))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +201,7 @@ func TestCollectionPage(t *testing.T) {
 			`<a class="button" href="/c/somerville?dealbreakers=1">Show dealbreakers</a>`,
 			`<th data-col="price" class="num"><a href="/c/somerville?dir=asc&amp;sort=price">Price</a></th>`,
 			`<th data-col="dealbreakers" class="tags bad off">`,
-			`<a href="/c/zempty">zempty</a>`, `<a href="/c/somerville" aria-current="page">somerville</a>`,
+			`<option value="/c/zempty">zempty</option>`, `<option value="/c/somerville" selected>somerville</option>`,
 			"Sunny attic", "Skylights", "dealbreaker</span>", "model 80.0",
 			`/static/listings.js?v=`,
 		}, []string{"9 Carpet Ct", "No run on", "&lt;script&gt;"}},
@@ -254,7 +255,7 @@ func TestListingPage(t *testing.T) {
 		"<title>7 Windom St, Somerville, MA 02144 · housing</title>",
 		`<a href="/c/somerville">← somerville · 2026-09-30</a>`,
 		"$2,900/mo", `<a href="https://example.com/r1" target="_blank" rel="noopener">redfin</a>`,
-		"Sunny attic", `Match <span class="score">88%</span>`, "Loft",
+		"Sunny attic", `<div class="match"><span class="score">88%</span>`, "Loft",
 		`<tr><td>Skylights</td><td class="tags">high</td><td class="verdict present">present</td><td class="tags">high</td><td class="summary">seen skylights</td><td class="num">1, 2</td></tr>`,
 		`<td>Wall-to-wall carpet</td><td class="tags"><span class="bad">dealbreaker</span></td>`,
 		`<img src="/media/collages/ab/abcdef"`,
@@ -265,16 +266,16 @@ func TestListingPage(t *testing.T) {
 		}
 	}
 
-	if !strings.Contains(body, `<details class="section criteria-section">`) || !strings.Contains(body, "<summary>Assessment summary</summary>") || strings.Contains(body, "<details class=\"section criteria-section\" open") {
-		t.Errorf("criteria and the assessment summary should be collapsed by default")
+	if !strings.Contains(body, `<details class="section criteria-section">`) || strings.Contains(body, "<details class=\"section criteria-section\" open") {
+		t.Errorf("criteria should be collapsed by default")
 	}
 	if strings.Index(body, `<div class="collages">`) > strings.Index(body, `<section class="grade">`) {
 		t.Errorf("photos should come before the grades")
 	}
 
 	_, body = get(t, h, "/listing/zillow/z2")
-	if strings.Contains(body, "<script>alert") || !strings.Contains(body, "&lt;script&gt;alert(1)&lt;/script&gt; sunny") {
-		t.Errorf("description not escaped")
+	if strings.Contains(body, "alert(1)") {
+		t.Errorf("description should not be shown")
 	}
 	if !strings.Contains(body, "Sunny attic") || strings.Contains(body, "Loft") {
 		t.Errorf("profiles without collection context should come from assessments")

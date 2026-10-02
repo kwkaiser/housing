@@ -38,7 +38,6 @@ const assessReply = `{
   "avoid": [
     {"id": "basement", "verdict": "present", "confidence": "high", "photos": [1], "evidence": "Garden level."}
   ],
-  "vibe": 2,
   "summary": "Not much like the reference."
 }`
 
@@ -101,7 +100,7 @@ func TestScore(t *testing.T) {
 
 func TestAssess(t *testing.T) {
 	fc := &fakeCompleter{reply: assessReply}
-	a := Assessor{Client: fc, Model: "test/model"}
+	a := Assessor{Client: fc, Model: "test/model", ReasoningEffort: "low"}
 	beds := 1
 	c := Candidate{
 		Listing:  listing.Listing{Source: listing.SourceZillow, SourceID: "1", Address: listing.Address{Formatted: "1 Main St"}, Beds: &beds, Collages: []string{"c/0.jpg"}},
@@ -109,17 +108,20 @@ func TestAssess(t *testing.T) {
 	}
 	refs := []ReferenceInput{{Collages: [][]byte{{1}, {2}}}}
 
-	got, err := a.Assess(context.Background(), testProfile, refs, c)
+	got, err := a.Assess(t.Context(), testProfile, refs, c)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(got.Want) != 3 || got.Want[2].ID != "radiators" || got.Want[2].Verdict != listing.VerdictUnknown {
 		t.Errorf("criteria missing from the reply should be unknown: %+v", got.Want)
 	}
-	if got.Score != 12.5 || got.Vibe != 2 || got.Model != "test/model" || got.ProfileHash != testProfile.Hash() || got.InputHash != InputHash(c.Listing) {
+	if got.Score != 12.5 || got.Model != "test/model" || got.ProfileHash != testProfile.Hash() || got.InputHash != InputHash(c.Listing) {
 		t.Errorf("assessment = %+v", got)
 	}
 
+	if fc.req.ReasoningEffort != "low" {
+		t.Errorf("reasoning effort = %q, want the assessor's setting", fc.req.ReasoningEffort)
+	}
 	req, _ := json.Marshal(fc.req)
 	for _, want := range []string{"REFERENCE listing 1", "CANDIDATE collage 1", "vinyl plank", "Bedrooms: 1", "listing_assessment"} {
 		if !strings.Contains(string(req), want) {
@@ -151,7 +153,7 @@ func readAny(keys []string) ([][]byte, error) { return [][]byte{{1}}, nil }
 func TestAssessListingsConcurrency(t *testing.T) {
 	cc := &countingCompleter{reply: assessReply, delay: 20 * time.Millisecond}
 	a := Assessor{Client: cc, Model: "test/model"}
-	out, stats, err := a.AssessListings(context.Background(), testProfile, nil, manyListings(8), readAny, BatchOptions{Concurrency: 4})
+	out, stats, err := a.AssessListings(t.Context(), testProfile, nil, manyListings(8), readAny, BatchOptions{Concurrency: 4})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +170,7 @@ func TestAssessListingsConcurrency(t *testing.T) {
 func TestAssessListingsBudget(t *testing.T) {
 	cc := &countingCompleter{reply: assessReply, cost: 0.01}
 	a := Assessor{Client: cc, Model: "test/model"}
-	_, stats, err := a.AssessListings(context.Background(), testProfile, nil, manyListings(6), readAny, BatchOptions{Concurrency: 1, MaxCostUSD: 0.025})
+	_, stats, err := a.AssessListings(t.Context(), testProfile, nil, manyListings(6), readAny, BatchOptions{Concurrency: 1, MaxCostUSD: 0.025})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,13 +179,36 @@ func TestAssessListingsBudget(t *testing.T) {
 	}
 }
 
+func TestAssessListingsBudgetConcurrent(t *testing.T) {
+	cc := &countingCompleter{reply: assessReply, cost: 0.01}
+	a := Assessor{Client: cc, Model: "test/model"}
+	var events []BatchEvent
+	opts := BatchOptions{Concurrency: 4, MaxCostUSD: 0.02, Observe: func(e BatchEvent) { events = append(events, e) }}
+	_, stats, err := a.AssessListings(t.Context(), testProfile, nil, manyListings(12), readAny, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stats.Calls+stats.OverBudget != 12 || stats.OverBudget == 0 || stats.Calls > 5 {
+		t.Errorf("stats=%+v, want the cap to stop new calls", stats)
+	}
+	over := 0
+	for _, e := range events {
+		if e.Kind == BatchOverBudget {
+			over++
+		}
+	}
+	if over != 1 {
+		t.Errorf("over-budget events = %d, want 1", over)
+	}
+}
+
 func TestAssessListingsSharedBudget(t *testing.T) {
 	cc := &countingCompleter{reply: assessReply, cost: 0.01}
 	a := Assessor{Client: cc, Model: "test/model"}
 	budget := NewBudget(0.035)
 	opts := BatchOptions{Concurrency: 1, MaxCostUSD: 1, Budget: budget}
-	_, first, _ := a.AssessListings(context.Background(), testProfile, nil, manyListings(2), readAny, opts)
-	_, second, _ := a.AssessListings(context.Background(), testProfile, nil, manyListings(4), readAny, opts)
+	_, first, _ := a.AssessListings(t.Context(), testProfile, nil, manyListings(2), readAny, opts)
+	_, second, _ := a.AssessListings(t.Context(), testProfile, nil, manyListings(4), readAny, opts)
 	if first.Calls != 2 || second.Calls != 2 || second.OverBudget != 2 || budget.Spent() < 0.039 || !budget.Exhausted() {
 		t.Errorf("first=%+v second=%+v spent=%v, want the budget shared across batches", first, second, budget.Spent())
 	}
@@ -205,7 +230,7 @@ func TestAssessListingsCheckpoints(t *testing.T) {
 		saved = append(saved, n)
 		return nil
 	}}
-	if _, _, err := a.AssessListings(context.Background(), testProfile, nil, manyListings(5), readAny, opts); err != nil {
+	if _, _, err := a.AssessListings(t.Context(), testProfile, nil, manyListings(5), readAny, opts); err != nil {
 		t.Fatal(err)
 	}
 	if len(saved) != 2 || saved[0] != 2 || saved[1] != 4 {
@@ -216,7 +241,7 @@ func TestAssessListingsCheckpoints(t *testing.T) {
 func TestAssessListingsContinuesPastFailures(t *testing.T) {
 	cc := &countingCompleter{reply: assessReply, fail: "addr-c"}
 	a := Assessor{Client: cc, Model: "test/model"}
-	out, stats, err := a.AssessListings(context.Background(), testProfile, nil, manyListings(6), readAny, BatchOptions{Concurrency: 2})
+	out, stats, err := a.AssessListings(t.Context(), testProfile, nil, manyListings(6), readAny, BatchOptions{Concurrency: 2})
 	if err == nil || !strings.Contains(err.Error(), "boom") || !strings.Contains(err.Error(), "/c") {
 		t.Fatalf("got %v", err)
 	}
@@ -245,7 +270,7 @@ func TestAssessListingsObserve(t *testing.T) {
 		defer mu.Unlock()
 		events = append(events, e)
 	}}
-	a.AssessListings(context.Background(), testProfile, nil, ls, readAny, opts)
+	a.AssessListings(t.Context(), testProfile, nil, ls, readAny, opts)
 
 	kinds := map[BatchEventKind]int{}
 	for _, e := range events {
@@ -278,32 +303,40 @@ type flakyCompleter struct {
 
 func (f *flakyCompleter) Complete(context.Context, openrouter.Request) (openrouter.Response, error) {
 	i := int(f.calls.Add(1)) - 1
-	return openrouter.Response{Model: "m", CostUSD: 0.01, Content: f.replies[min(i, len(f.replies)-1)]}, nil
+	return openrouter.Response{Model: "m", CostUSD: 0.01, Content: f.replies[min(i, len(f.replies)-1)],
+		Usage: openrouter.Usage{PromptTokens: 100, CompletionTokens: 10, ReasoningTokens: 5, CachedTokens: 20}}, nil
 }
 
 func TestAssessRetriesUnusableOutput(t *testing.T) {
 	c := Candidate{Listing: listing.Listing{Collages: []string{"x"}}, Collages: [][]byte{{1}}}
 	fc := &flakyCompleter{replies: []string{"", "{}", assessReply}}
 	a := Assessor{Client: fc, Model: "m", Attempts: 3}
-	got, err := a.Assess(context.Background(), testProfile, nil, c)
+	got, err := a.Assess(t.Context(), testProfile, nil, c)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if fc.calls.Load() != 3 || got.CostUSD != 0.03 {
 		t.Errorf("calls=%d cost=%v, want 3 attempts with their cost summed", fc.calls.Load(), got.CostUSD)
 	}
+	if want := (listing.TokenUsage{Prompt: 300, Completion: 30, Reasoning: 15, Cached: 60}); got.Tokens != want {
+		t.Errorf("tokens = %+v, want every attempt summed", got.Tokens)
+	}
 
 	always := &flakyCompleter{replies: []string{""}}
-	if _, err := (Assessor{Client: always, Model: "m", Attempts: 2}).Assess(context.Background(), testProfile, nil, c); err == nil || always.calls.Load() != 2 {
+	failed, err := (Assessor{Client: always, Model: "m", Attempts: 2}).Assess(t.Context(), testProfile, nil, c)
+	if err == nil || always.calls.Load() != 2 {
 		t.Errorf("err=%v calls=%d, want failure after 2 attempts", err, always.calls.Load())
+	}
+	if failed.CostUSD != 0.02 || failed.Tokens.Prompt != 200 {
+		t.Errorf("a failed assessment should still report what it cost: %+v", failed)
 	}
 }
 
 func TestAssessRejectsEmptyReply(t *testing.T) {
 	c := Candidate{Listing: listing.Listing{Collages: []string{"x"}}, Collages: [][]byte{{1}}}
-	for _, reply := range []string{`{}`, `{"want": [], "avoid": [], "vibe": 3, "summary": ""}`, strings.Replace(assessReply, `"vibe": 2`, `"vibe": 0`, 1)} {
+	for _, reply := range []string{`{}`, `{"want": [], "avoid": [], "summary": ""}`} {
 		a := Assessor{Client: &fakeCompleter{reply: reply}, Model: "m"}
-		if _, err := a.Assess(context.Background(), testProfile, nil, c); err == nil || !strings.Contains(err.Error(), "unusable") {
+		if _, err := a.Assess(t.Context(), testProfile, nil, c); err == nil || !strings.Contains(err.Error(), "unusable") {
 			t.Errorf("reply %.40s: got %v", reply, err)
 		}
 	}
@@ -311,7 +344,7 @@ func TestAssessRejectsEmptyReply(t *testing.T) {
 
 func TestAssessRequiresCriteria(t *testing.T) {
 	a := Assessor{Client: &fakeCompleter{}, Model: "m"}
-	_, err := a.Assess(context.Background(), Profile{ID: "empty"}, nil, Candidate{Collages: [][]byte{{1}}})
+	_, err := a.Assess(t.Context(), Profile{ID: "empty"}, nil, Candidate{Collages: [][]byte{{1}}})
 	if err == nil || !strings.Contains(err.Error(), "has no criteria") {
 		t.Fatalf("got %v", err)
 	}
@@ -330,7 +363,7 @@ func TestAssessListings(t *testing.T) {
 		{SourceID: "nophotos"},
 	}
 
-	out, stats, err := a.AssessListings(context.Background(), testProfile, nil, listings, read, BatchOptions{Limit: 2})
+	out, stats, err := a.AssessListings(t.Context(), testProfile, nil, listings, read, BatchOptions{Limit: 2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -349,7 +382,7 @@ func TestAssessListings(t *testing.T) {
 		t.Error("listing over the limit should not be assessed")
 	}
 
-	out, stats, err = a.AssessListings(context.Background(), testProfile, nil, out, read, BatchOptions{})
+	out, stats, err = a.AssessListings(t.Context(), testProfile, nil, out, read, BatchOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -357,7 +390,7 @@ func TestAssessListings(t *testing.T) {
 		t.Errorf("second run should only assess the remaining listing: calls=%d stats=%+v", cc.calls.Load(), stats)
 	}
 
-	_, stats, _ = a.AssessListings(context.Background(), testProfile, nil, out, read, BatchOptions{Force: true})
+	_, stats, _ = a.AssessListings(t.Context(), testProfile, nil, out, read, BatchOptions{Force: true})
 	if stats.Calls != 3 || stats.Cached != 0 {
 		t.Errorf("force should reassess every distinct input: %+v", stats)
 	}
@@ -366,7 +399,7 @@ func TestAssessListings(t *testing.T) {
 	if other.Current(testProfile, out[0]) {
 		t.Error("an assessment by one model should not count as current for another")
 	}
-	withOther, _, err := other.AssessListings(context.Background(), testProfile, nil, out[:1], read, BatchOptions{})
+	withOther, _, err := other.AssessListings(t.Context(), testProfile, nil, out[:1], read, BatchOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,13 +1,13 @@
 package openrouter
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
-	"net"
-	"net/url"
+	"net/http"
 	"time"
 
 	sdk "github.com/OpenRouterTeam/go-sdk"
@@ -24,11 +24,12 @@ type Completer interface {
 }
 
 type Request struct {
-	Model       string
-	System      string
-	User        []Part
-	Schema      *Schema
-	Temperature *float64
+	Model           string
+	System          string
+	User            []Part
+	Schema          *Schema
+	Temperature     *float64
+	ReasoningEffort string
 }
 
 type Part struct {
@@ -47,6 +48,14 @@ type Response struct {
 	Content      string
 	CostUSD      float64
 	FinishReason string
+	Usage        Usage
+}
+
+type Usage struct {
+	PromptTokens     int64
+	CompletionTokens int64
+	ReasoningTokens  int64
+	CachedTokens     int64
 }
 
 var ErrEmptyResponse = errors.New("openrouter returned no content")
@@ -70,11 +79,8 @@ func ImagePart(mediaType string, data []byte) Part {
 }
 
 type Client struct {
-	sdk          *sdk.OpenRouter
-	limiter      *rate.Limiter
-	retryMax     int
-	retryWaitMin time.Duration
-	retryWaitMax time.Duration
+	sdk     *sdk.OpenRouter
+	limiter *rate.Limiter
 }
 
 var _ Completer = (*Client)(nil)
@@ -119,6 +125,7 @@ func NewClient(apiKey string, opts ...Option) *Client {
 	httpClient.RetryWaitMin = s.retryWaitMin
 	httpClient.RetryWaitMax = s.retryWaitMax
 	httpClient.HTTPClient.Timeout = 5 * time.Minute
+	httpClient.HTTPClient.Transport = bufferedTransport{next: httpClient.HTTPClient.Transport}
 	httpClient.Logger = nil
 	httpClient.ErrorHandler = retryablehttp.PassthroughErrorHandler
 
@@ -137,12 +144,27 @@ func NewClient(apiKey string, opts ...Option) *Client {
 		limit = rate.Limit(s.perSecond)
 	}
 	return &Client{
-		sdk:          sdk.New(sdkOpts...),
-		limiter:      rate.NewLimiter(limit, max(s.burst, 1)),
-		retryMax:     s.retryMax,
-		retryWaitMin: s.retryWaitMin,
-		retryWaitMax: s.retryWaitMax,
+		sdk:     sdk.New(sdkOpts...),
+		limiter: rate.NewLimiter(limit, max(s.burst, 1)),
 	}
+}
+
+type bufferedTransport struct {
+	next http.RoundTripper
+}
+
+func (t bufferedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := t.next.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return nil, fmt.Errorf("read response body: %w", err)
+	}
+	resp.Body = io.NopCloser(bytes.NewReader(body))
+	return resp, nil
 }
 
 func (c *Client) Complete(ctx context.Context, req Request) (Response, error) {
@@ -152,6 +174,10 @@ func (c *Client) Complete(ctx context.Context, req Request) (Response, error) {
 	}
 	if req.Temperature != nil {
 		chat.Temperature = optionalnullable.From(req.Temperature)
+	}
+	if req.ReasoningEffort != "" {
+		effort := components.ChatRequestEffort(req.ReasoningEffort)
+		chat.Reasoning = &components.ChatRequestReasoning{Effort: optionalnullable.From(&effort)}
 	}
 	if req.Schema != nil {
 		strict := true
@@ -166,37 +192,14 @@ func (c *Client) Complete(ctx context.Context, req Request) (Response, error) {
 		chat.ResponseFormat = &format
 	}
 
-	wait := c.retryWaitMin
-	for attempt := 0; ; attempt++ {
-		if err := c.limiter.Wait(ctx); err != nil {
-			return Response{}, err
-		}
-		res, err := c.sdk.Chat.Send(ctx, chat, nil)
-		if err == nil {
-			return response(res)
-		}
-		if attempt >= c.retryMax || ctx.Err() != nil || !transient(err) {
-			return Response{}, fmt.Errorf("openrouter: %w", err)
-		}
-		select {
-		case <-ctx.Done():
-			return Response{}, ctx.Err()
-		case <-time.After(wait):
-		}
-		wait = min(2*wait, c.retryWaitMax)
+	if err := c.limiter.Wait(ctx); err != nil {
+		return Response{}, err
 	}
-}
-
-func transient(err error) bool {
-	var ue *url.Error
-	if errors.As(err, &ue) {
-		return false
+	res, err := c.sdk.Chat.Send(ctx, chat, nil)
+	if err != nil {
+		return Response{}, fmt.Errorf("openrouter: %w", err)
 	}
-	if errors.Is(err, io.ErrUnexpectedEOF) {
-		return true
-	}
-	var ne net.Error
-	return errors.As(err, &ne) && !ne.Timeout()
+	return response(res)
 }
 
 func response(res *operations.SendChatCompletionRequestResponse) (Response, error) {
@@ -238,9 +241,18 @@ func messages(req Request) []components.ChatMessages {
 
 func toResponse(r components.ChatResult) Response {
 	out := Response{Model: r.Model}
-	if r.Usage != nil {
-		if cost, ok := r.Usage.Cost.GetOrZero(); ok {
+	if u := r.Usage; u != nil {
+		if cost, ok := u.Cost.GetOrZero(); ok {
 			out.CostUSD = cost
+		}
+		out.Usage = Usage{PromptTokens: u.PromptTokens, CompletionTokens: u.CompletionTokens}
+		if d, ok := u.PromptTokensDetails.GetOrZero(); ok && d.CachedTokens != nil {
+			out.Usage.CachedTokens = *d.CachedTokens
+		}
+		if d, ok := u.CompletionTokensDetails.GetOrZero(); ok {
+			if n, ok := d.ReasoningTokens.GetOrZero(); ok {
+				out.Usage.ReasoningTokens = n
+			}
 		}
 	}
 	if len(r.Choices) == 0 {

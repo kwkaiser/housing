@@ -9,6 +9,7 @@ import (
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/app"
 	"git.kwkaiser.io/kwkaiser/housing/internal/jobs"
+	"git.kwkaiser.io/kwkaiser/housing/internal/service"
 )
 
 func newServerCmd(dataDir *string) *cobra.Command {
@@ -23,19 +24,14 @@ func newServerCmd(dataDir *string) *cobra.Command {
 			"`housing run` cannot write to the same data directory at the same time.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			log := slog.New(slog.NewTextHandler(os.Stderr, nil))
-			svc := newService(*dataDir)
-			unlock, err := svc.HoldLock()
+			log := slog.New(slog.NewJSONHandler(os.Stderr, nil))
+			slog.SetDefault(log)
+			svc, err := openService(cmd, *dataDir, exclusive, func(c *service.Config) { c.Log = log.With("component", "service") })
 			if err != nil {
 				return err
 			}
-			defer unlock()
-			db, err := svc.OpenStore(cmd.Context())
-			if err != nil {
-				return err
-			}
-			defer db.Close()
-			queue := jobs.New(db, nil)
+			defer svc.Close()
+			queue := jobs.New(svc.Store(), nil)
 			a, err := app.New(svc, queue, log)
 			if err != nil {
 				return err

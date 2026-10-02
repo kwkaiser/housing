@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"slices"
 	"strings"
@@ -42,8 +43,10 @@ type FetchResult struct {
 	Duplicates int
 }
 
-func (s *Service) Fetch(ctx context.Context, o FetchOptions, progress Progress) (FetchResult, error) {
+func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (FetchResult, error) {
 	var res FetchResult
+	log = s.logger(log)
+	flog := log.With("stage", StageFetch)
 	if o.Search.Location == "" {
 		return res, fmt.Errorf("a location is required")
 	}
@@ -74,25 +77,21 @@ func (s *Service) Fetch(ctx context.Context, o FetchOptions, progress Progress) 
 			case canEnrich && !o.Enrich:
 				return res, fmt.Errorf("%s cannot filter %s listings by %s; enable enrichment to filter on listing details instead", source, o.Mode, joinAmenities(deferred))
 			case canEnrich:
-				s.emit(progress, StageFetch, "%s: amenities checked after enrichment: %s", source, joinAmenities(deferred))
+				flog.Info("amenities checked after enrichment", "source", source, "amenities", joinAmenities(deferred))
 			default:
-				s.emit(progress, StageFetch, "%s: amenities checked against search results: %s", source, joinAmenities(deferred))
+				flog.Info("amenities checked against search results", "source", source, "amenities", joinAmenities(deferred))
 			}
 		}
 		providers[i] = p
 	}
 
-	db, err := s.openStore(ctx)
-	if err != nil {
-		return res, err
-	}
-	defer db.Close()
+	db := s.db
 
 	results := make([][]listing.Listing, len(providers))
 	g, gctx := errgroup.WithContext(ctx)
 	for i, p := range providers {
 		g.Go(func() error {
-			ls, err := s.fetchOne(gctx, p, q, o, progress)
+			ls, err := s.fetchOne(gctx, p, q, o, flog.With("source", p.Source()))
 			if err != nil {
 				return fmt.Errorf("%s: %w", p.Source(), err)
 			}
@@ -115,7 +114,7 @@ func (s *Service) Fetch(ctx context.Context, o FetchOptions, progress Progress) 
 		return res, err
 	}
 	res.Observed = len(listings)
-	s.emit(progress, StageFetch, "stored: %d listings observed on %s in %s", len(listings), res.Day, s.cfg.DataDir)
+	flog.Info("stored observations", "listings", len(listings), "day", res.Day)
 
 	distinct := FreshGroups(stored, listings)
 	for _, g := range distinct {
@@ -123,16 +122,17 @@ func (s *Service) Fetch(ctx context.Context, o FetchOptions, progress Progress) 
 	}
 	res.Distinct = len(distinct)
 	if res.Duplicates > 0 {
-		s.emit(progress, StageDedupe, "dedupe: %d distinct listings, %d duplicates across sources", res.Distinct, res.Duplicates)
+		log.Info("deduplicated", "stage", StageDedupe, "distinct", res.Distinct, "duplicates", res.Duplicates)
 	}
 	listings = dedupe.Primaries(distinct)
 
 	if o.Photos && len(listings) > 0 {
 		p := media.NewProcessor(s.photoFetcher(), s.images(), media.NewGrid())
+		p.Logger = log.With("stage", StagePhotos)
 		if err := p.FetchPhotos(ctx, listings); err != nil {
 			return res, err
 		}
-		s.emit(progress, StagePhotos, "photos: downloaded")
+		log.Info("photos downloaded", "stage", StagePhotos)
 	}
 	res.Listings = listings
 	return res, nil
@@ -175,7 +175,7 @@ func CarryOver(stored, fresh []listing.Listing) []listing.Listing {
 	return out
 }
 
-func (s *Service) fetchOne(ctx context.Context, p listing.Provider, q listing.Query, o FetchOptions, progress Progress) ([]listing.Listing, error) {
+func (s *Service) fetchOne(ctx context.Context, p listing.Provider, q listing.Query, o FetchOptions, log *slog.Logger) ([]listing.Listing, error) {
 	sourceQuery := q
 	sourceQuery.Amenities, _ = SplitAmenities(q.Amenities, p.SupportedAmenities(q.Offer))
 
@@ -183,7 +183,7 @@ func (s *Service) fetchOne(ctx context.Context, p listing.Provider, q listing.Qu
 	if err != nil {
 		return nil, err
 	}
-	s.emit(progress, StageFetch, "%s search (%s): %d listings", p.Source(), o.Mode, len(listings))
+	log.Info("searched", "mode", o.Mode, "listings", len(listings))
 
 	stage := "search"
 	if enricher, ok := p.(listing.Enricher); ok && o.Enrich && len(listings) > 0 {
@@ -194,7 +194,7 @@ func (s *Service) fetchOne(ctx context.Context, p listing.Provider, q listing.Qu
 	}
 	total := len(listings)
 	matching := slices.DeleteFunc(listings, func(l listing.Listing) bool { return !q.Matches(l) })
-	s.emit(progress, StageFetch, "%s %s: %d of %d listings match", p.Source(), stage, len(matching), total)
+	log.Info("filtered", "after", stage, "matching", len(matching), "total", total)
 	return matching, nil
 }
 

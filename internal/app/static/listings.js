@@ -1,4 +1,8 @@
 (() => {
+  const collection = document.querySelector("select.collection");
+  if (collection) collection.addEventListener("change", () => { location.href = collection.value; });
+})();
+(() => {
   const table = document.querySelector("table.listings");
   const picker = document.querySelector(".picker");
   if (!table || !picker) return;

@@ -1,7 +1,6 @@
 package store
 
 import (
-	"context"
 	"path/filepath"
 	"testing"
 	"time"
@@ -12,7 +11,7 @@ import (
 
 func open(t *testing.T) *Store {
 	t.Helper()
-	s, err := Open(context.Background(), filepath.Join(t.TempDir(), FileName))
+	s, err := Open(t.Context(), filepath.Join(t.TempDir(), FileName))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +48,7 @@ func count(t *testing.T, s *Store, query string, args ...any) int {
 
 func TestMigrate(t *testing.T) {
 	path := filepath.Join(t.TempDir(), FileName)
-	ctx := context.Background()
+	ctx := t.Context()
 	for range 2 {
 		s, err := Open(ctx, path)
 		if err != nil {
@@ -71,7 +70,7 @@ func TestMigrate(t *testing.T) {
 }
 
 func TestRoundTrip(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	s := open(t)
 	l := sample()
 	l.Collages = []string{"collages/ab/c/0.jpg"}
@@ -102,7 +101,7 @@ func TestRoundTrip(t *testing.T) {
 }
 
 func TestVersions(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	s := open(t)
 	l := sample()
 	l.Collages = []string{"collages/ab/c/0.jpg"}
@@ -149,7 +148,7 @@ func TestVersions(t *testing.T) {
 }
 
 func TestDays(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	s := open(t)
 	if day, err := s.LatestDay(ctx, ""); err != nil || day != "" {
 		t.Errorf("empty store latest day = %q %v", day, err)
@@ -204,16 +203,23 @@ func TestDays(t *testing.T) {
 func TestRecordRun(t *testing.T) {
 	s := open(t)
 	now := time.Now()
-	if err := s.RecordRun(context.Background(), Run{Kind: "assess", Day: "2026-09-30", StartedAt: now, FinishedAt: now, Profiles: []string{"attic"}, Calls: 3, CostUSD: 0.06}); err != nil {
+	if err := s.RecordRun(t.Context(), Run{Kind: "assess", Day: "2026-09-30", StartedAt: now, FinishedAt: now, Profiles: []string{"attic"}, Calls: 3, CostUSD: 0.06}); err != nil {
 		t.Fatal(err)
 	}
 	if n := count(t, s, "SELECT count(*) FROM runs WHERE cost_usd = 0.06 AND profiles = '[\"attic\"]'"); n != 1 {
 		t.Error("run not recorded")
 	}
+	tokens := listing.TokenUsage{Prompt: 9000, Completion: 1200, Reasoning: 700, Cached: 3000}
+	if err := s.RecordRun(t.Context(), Run{Kind: "assess", Day: "2026-10-01", StartedAt: now, FinishedAt: now, Tokens: tokens}); err != nil {
+		t.Fatal(err)
+	}
+	if n := count(t, s, "SELECT count(*) FROM runs WHERE prompt_tokens = 9000 AND completion_tokens = 1200 AND reasoning_tokens = 700 AND cached_tokens = 3000"); n != 1 {
+		t.Error("run tokens not recorded")
+	}
 }
 
 func TestCollections(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	s := open(t)
 	a, b := sample(), sample()
 	b.SourceID = "2"
@@ -248,7 +254,7 @@ func TestCollections(t *testing.T) {
 }
 
 func TestHistory(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	s := open(t)
 	l := sample()
 	if err := s.Observe(ctx, "2026-09-28", "", []listing.Listing{l}); err != nil {

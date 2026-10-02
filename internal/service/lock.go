@@ -10,10 +10,7 @@ import (
 
 var ErrLocked = errors.New("another housing run is in progress")
 
-func (s *Service) Lock() (func(), error) {
-	if err := os.MkdirAll(s.cfg.DataDir, 0o755); err != nil {
-		return nil, err
-	}
+func (s *Service) lock() (func(), error) {
 	f, err := os.OpenFile(filepath.Join(s.cfg.DataDir, ".lock"), os.O_CREATE|os.O_RDWR, 0o644)
 	if err != nil {
 		return nil, err
@@ -31,21 +28,9 @@ func (s *Service) Lock() (func(), error) {
 	}, nil
 }
 
-func (s *Service) HoldLock() (func(), error) {
-	unlock, err := s.Lock()
-	if err != nil {
-		return nil, err
-	}
-	s.held.Store(true)
-	return func() {
-		s.held.Store(false)
-		unlock()
-	}, nil
-}
-
 func (s *Service) runLock() (func(), error) {
-	if s.held.Load() {
+	if s.unlock != nil {
 		return func() {}, nil
 	}
-	return s.Lock()
+	return s.lock()
 }
