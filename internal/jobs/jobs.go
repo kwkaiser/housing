@@ -105,6 +105,8 @@ type RunResult struct {
 	Stats           profile.BatchStats `json:"stats"`
 	BudgetReached   bool               `json:"budget_reached"`
 	AssessError     string             `json:"assess_error,omitempty"`
+	Notified        int                `json:"notified,omitempty"`
+	NotifyError     string             `json:"notify_error,omitempty"`
 }
 
 func runResult(r service.RunResult) RunResult {
@@ -120,9 +122,13 @@ func runResult(r service.RunResult) RunResult {
 		WithoutCollages: r.WithoutCollages,
 		Stats:           r.Stats,
 		BudgetReached:   r.BudgetReached,
+		Notified:        r.Notified,
 	}
 	if r.AssessErr != nil {
 		out.AssessError = r.AssessErr.Error()
+	}
+	if r.NotifyErr != nil {
+		out.NotifyError = r.NotifyErr.Error()
 	}
 	return out
 }

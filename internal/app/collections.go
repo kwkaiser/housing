@@ -69,8 +69,11 @@ type collectionForm struct {
 	Model         string
 	MaxRunCostUSD string
 	Schedule      string
+	NotifyURL     string
+	NotifyMin     string
 	DefaultModel  string
 	DefaultBudget string
+	DefaultNotify string
 	Errors        map[string]string
 	General       []string
 	selected      []string
@@ -149,6 +152,7 @@ func (a *App) saveCollection(w http.ResponseWriter, r *http.Request, create bool
 	form.Location, form.RadiusMiles, form.Limit = f.Get("location"), f.Get("radius_miles"), f.Get("limit")
 	form.MinPrice, form.MaxPrice, form.MinBeds, form.MaxBeds = f.Get("min_price"), f.Get("max_price"), f.Get("min_beds"), f.Get("max_beds")
 	form.MaxAgeDays, form.MaxRunCostUSD, form.Schedule, form.Model = f.Get("max_age_days"), f.Get("max_run_cost_usd"), f.Get("schedule"), f.Get("model")
+	form.NotifyURL, form.NotifyMin = f.Get("notify_url"), f.Get("notify_min_score")
 	form.orders = map[string]string{}
 	for k, v := range f {
 		if id, ok := strings.CutPrefix(k, "order_"); ok && len(v) > 0 {
@@ -222,8 +226,11 @@ func (a *App) formFor(c collection.Collection, create bool) collectionForm {
 		Model:         c.Model,
 		MaxRunCostUSD: formatFloat(c.MaxRunCostUSD),
 		Schedule:      c.Schedule,
+		NotifyURL:     c.Notify.URL,
+		NotifyMin:     formatFloat(c.Notify.MinScore),
 		DefaultModel:  profile.DefaultAssessModel,
 		DefaultBudget: strconv.FormatFloat(service.DefaultCollectionBudgetUSD, 'f', 2, 64),
+		DefaultNotify: formatFloat(collection.DefaultNotifyMinScore),
 		selected:      c.Profiles,
 		orders:        map[string]string{},
 	}
@@ -251,6 +258,7 @@ func parseCollection(f url.Values) (collection.Collection, map[string]string) {
 		Mode:     profile.Mode(f.Get("mode")),
 		Model:    strings.TrimSpace(f.Get("model")),
 		Schedule: strings.TrimSpace(f.Get("schedule")),
+		Notify:   collection.Notify{URL: strings.TrimSpace(f.Get("notify_url"))},
 	}
 	for _, s := range unique(f["sources"]) {
 		c.Sources = append(c.Sources, listing.Source(s))
@@ -274,6 +282,7 @@ func parseCollection(f url.Values) (collection.Collection, map[string]string) {
 	}
 	c.Search = s
 	c.MaxRunCostUSD = parseFloat(f, "max_run_cost_usd", "max run cost", errs)
+	c.Notify.MinScore = parseFloat(f, "notify_min_score", "notification score", errs)
 	return c, errs
 }
 

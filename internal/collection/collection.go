@@ -1,12 +1,14 @@
 package collection
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"slices"
 	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
+	"git.kwkaiser.io/kwkaiser/housing/internal/notify"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 )
 
@@ -26,6 +28,18 @@ type Collection struct {
 	Model         string           `json:"model,omitempty"`
 	MaxRunCostUSD float64          `json:"max_run_cost_usd,omitempty"`
 	Schedule      string           `json:"schedule,omitempty"`
+	Notify        Notify           `json:"notify,omitzero"`
+}
+
+const DefaultNotifyMinScore = 80.0
+
+type Notify struct {
+	URL      string  `json:"url"`
+	MinScore float64 `json:"min_score,omitempty"`
+}
+
+func (n Notify) Threshold() float64 {
+	return cmp.Or(n.MinScore, DefaultNotifyMinScore)
 }
 
 const ScheduleLayout = "15:04"
@@ -82,6 +96,14 @@ func (c Collection) Validate() error {
 		if _, _, err := ParseSchedule(c.Schedule); err != nil {
 			field("schedule", err)
 		}
+	}
+	if c.Notify.URL != "" {
+		if _, _, err := notify.SplitTopic(c.Notify.URL); err != nil {
+			field("notify_url", err)
+		}
+	}
+	if c.Notify.MinScore < 0 {
+		field("notify_min_score", fmt.Errorf("notification score must not be negative"))
 	}
 	if err := c.Search.Validate(); err != nil {
 		errs = append(errs, err)

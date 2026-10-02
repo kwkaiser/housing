@@ -15,6 +15,7 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/config"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/media"
+	"git.kwkaiser.io/kwkaiser/housing/internal/notify"
 	"git.kwkaiser.io/kwkaiser/housing/internal/openrouter"
 	"git.kwkaiser.io/kwkaiser/housing/internal/store"
 )
@@ -30,6 +31,7 @@ const (
 	StageRun     Stage = "run"
 	StageProfile Stage = "profile"
 	StageImport  Stage = "import"
+	StageNotify  Stage = "notify"
 )
 
 type Clients struct {
@@ -38,6 +40,7 @@ type Clients struct {
 	Provider   func(source listing.Source, runner apify.Runner) (listing.Provider, error)
 	Lookup     func(rawURL string, runner apify.Runner) (listing.Lookup, error)
 	Photos     media.Fetcher
+	Notifier   func(url string) notify.Notifier
 }
 
 type Config struct {
@@ -78,6 +81,9 @@ func Open(ctx context.Context, cfg Config) (*Service, error) {
 	}
 	if c.Lookup == nil {
 		c.Lookup = LookupFor
+	}
+	if c.Notifier == nil {
+		c.Notifier = func(url string) notify.Notifier { return notify.NewNtfy(url) }
 	}
 	s := &Service{cfg: cfg}
 	if err := os.MkdirAll(cfg.DataDir, 0o755); err != nil {

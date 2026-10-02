@@ -323,6 +323,12 @@ func runFields(r jobs.RunResult) []field {
 	if r.AssessError != "" {
 		fs = append(fs, field{Label: "Assess error", Value: r.AssessError})
 	}
+	if r.Notified > 0 || r.NotifyError != "" {
+		fs = append(fs, field{Label: "Notified", Value: n(r.Notified)})
+	}
+	if r.NotifyError != "" {
+		fs = append(fs, field{Label: "Notify error", Value: r.NotifyError})
+	}
 	return fs
 }
 

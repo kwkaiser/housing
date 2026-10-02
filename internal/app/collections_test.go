@@ -38,6 +38,8 @@ func validForm() url.Values {
 		"model":            {" test/other "},
 		"max_run_cost_usd": {"2.5"},
 		"schedule":         {"07:00"},
+		"notify_url":       {" https://ntfy.sh/housing-test "},
+		"notify_min_score": {"90"},
 	}
 }
 
@@ -148,6 +150,7 @@ func TestCreateCollection(t *testing.T) {
 			Amenities: []listing.Amenity{listing.AmenityParking, listing.AmenityDishwasher}, Limit: 40,
 		},
 		Model: "test/other", MaxRunCostUSD: 2.5, Schedule: "07:00",
+		Notify: collection.Notify{URL: "https://ntfy.sh/housing-test", MinScore: 90},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("saved\n%+v\nwant\n%+v", got, want)
@@ -177,6 +180,7 @@ func TestEditCollection(t *testing.T) {
 	c, _ := a.svc.Collection(ctx, "somerville")
 	c.Search.MaxPrice, c.Search.MinBeds, c.Search.Amenities = intp(4000), intp(1), []listing.Amenity{listing.AmenityParking}
 	c.Sources, c.Model, c.MaxRunCostUSD = []listing.Source{listing.SourceZillow, listing.SourceFacebook}, "test/m", 1
+	c.Notify.URL = "https://ntfy.sh/edit-test"
 	if err := a.svc.SaveCollection(ctx, c); err != nil {
 		t.Fatal(err)
 	}
@@ -195,6 +199,7 @@ func TestEditCollection(t *testing.T) {
 		`name="location" value="Somerville, MA"`, `name="max_price" type="number" min="0" step="1" value="4000"`,
 		`name="min_beds" type="number" min="0" step="1" value="1"`, `name="min_price" type="number" min="0" step="1" value=""`,
 		`name="amenities" value="parking" checked>`, `name="model" value="test/m"`, `name="max_run_cost_usd" type="number" min="0" step="0.01" value="1"`,
+		`name="notify_url" type="url" value="https://ntfy.sh/edit-test"`, `name="notify_min_score" type="number" min="0" step="any" value="" placeholder="80"`,
 		"Save changes",
 	}, []string{`name="id"`})
 	if strings.Index(body, `value="attic"`) > strings.Index(body, `value="loft"`) {
@@ -218,11 +223,11 @@ func TestEditCollection(t *testing.T) {
 		t.Error("an update must not create a collection under the posted id")
 	}
 
-	res, _ = post(t, h, "/collections/somerville", with(validForm(), "schedule", "", "max_run_cost_usd", "", "model", ""), sameOriginHeader)
+	res, _ = post(t, h, "/collections/somerville", with(validForm(), "schedule", "", "max_run_cost_usd", "", "model", "", "notify_url", "", "notify_min_score", ""), sameOriginHeader)
 	if res.StatusCode != http.StatusSeeOther {
 		t.Fatalf("POST clear = %d", res.StatusCode)
 	}
-	if got, _ := a.svc.Collection(ctx, "somerville"); got.Schedule != "" || got.MaxRunCostUSD != 0 || got.Model != "" {
+	if got, _ := a.svc.Collection(ctx, "somerville"); got.Schedule != "" || got.MaxRunCostUSD != 0 || got.Model != "" || got.Notify != (collection.Notify{}) {
 		t.Errorf("cleared = %+v", got)
 	}
 
@@ -268,6 +273,8 @@ func TestCollectionFormErrors(t *testing.T) {
 		{"unknown profile", "/collections", with(validForm(), "profiles", "ghost"), []string{`<p class="field-error">profile not found: ghost</p>`}},
 		{"unsupported source", "/collections", with(validForm(), "sources", "realtor"), []string{`<p class="field-error">unsupported source &#34;realtor&#34;</p>`}},
 		{"negative budget", "/collections", with(validForm(), "max_run_cost_usd", "-1"), []string{`<p class="field-error">max run cost must not be negative</p>`}},
+		{"bad notify url", "/collections", with(validForm(), "notify_url", "ntfy.sh/topic"), []string{`<p class="field-error">invalid ntfy url &#34;ntfy.sh/topic&#34;: want an http(s) topic url like https://ntfy.sh/my-topic</p>`, `name="notify_url" type="url" value="ntfy.sh/topic"`}},
+		{"negative notify score", "/collections", with(validForm(), "notify_min_score", "-5"), []string{`<p class="field-error">notification score must not be negative</p>`}},
 	} {
 		res, body := post(t, h, tc.target, tc.form, sameOriginHeader)
 		if res.StatusCode != http.StatusUnprocessableEntity {

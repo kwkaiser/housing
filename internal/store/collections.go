@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
+	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 )
 
@@ -29,8 +30,8 @@ func (s *Store) SaveCollection(ctx context.Context, c collection.Collection) err
 			}
 		}
 		_, err := tx.ExecContext(ctx, `
-			INSERT INTO collections (id, mode, sources, search, model, max_run_cost_usd, schedule, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			INSERT INTO collections (id, mode, sources, search, model, max_run_cost_usd, schedule, notify_url, notify_min_score, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT (id) DO UPDATE SET
 				mode = excluded.mode,
 				sources = excluded.sources,
@@ -38,8 +39,10 @@ func (s *Store) SaveCollection(ctx context.Context, c collection.Collection) err
 				model = excluded.model,
 				max_run_cost_usd = excluded.max_run_cost_usd,
 				schedule = excluded.schedule,
+				notify_url = excluded.notify_url,
+				notify_min_score = excluded.notify_min_score,
 				updated_at = excluded.updated_at`,
-			c.ID, c.Mode, cols[0], cols[1], c.Model, c.MaxRunCostUSD, nullString(c.Schedule), timestamp(time.Now()))
+			c.ID, c.Mode, cols[0], cols[1], c.Model, c.MaxRunCostUSD, nullString(c.Schedule), nullString(c.Notify.URL), c.Notify.MinScore, timestamp(time.Now()))
 		if err != nil {
 			return err
 		}
@@ -80,7 +83,7 @@ func (s *Store) CollectionCount(ctx context.Context) (int, error) {
 
 func (s *Store) collections(ctx context.Context, where string, args ...any) ([]collection.Collection, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, mode, sources, search, model, max_run_cost_usd, coalesce(schedule, '')
+		SELECT id, mode, sources, search, model, max_run_cost_usd, coalesce(schedule, ''), coalesce(notify_url, ''), notify_min_score
 		FROM collections `+where+` ORDER BY id`, args...)
 	if err != nil {
 		return nil, err
@@ -93,7 +96,7 @@ func (s *Store) collections(ctx context.Context, where string, args ...any) ([]c
 			c               collection.Collection
 			sources, search string
 		)
-		if err := rows.Scan(&c.ID, &c.Mode, &sources, &search, &c.Model, &c.MaxRunCostUSD, &c.Schedule); err != nil {
+		if err := rows.Scan(&c.ID, &c.Mode, &sources, &search, &c.Model, &c.MaxRunCostUSD, &c.Schedule, &c.Notify.URL, &c.Notify.MinScore); err != nil {
 			return nil, err
 		}
 		if err := unmarshalAll([]string{sources, search}, &c.Sources, &c.Search); err != nil {
@@ -133,4 +136,38 @@ func (s *Store) collections(ctx context.Context, where string, args ...any) ([]c
 		}
 	}
 	return out, nil
+}
+
+func (s *Store) Notified(ctx context.Context, collectionID string) (map[string]bool, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT source, source_id FROM notifications WHERE collection_id = ?`, collectionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]bool{}
+	for rows.Next() {
+		var (
+			source   listing.Source
+			sourceID string
+		)
+		if err := rows.Scan(&source, &sourceID); err != nil {
+			return nil, err
+		}
+		out[key(source, sourceID)] = true
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) RecordNotification(ctx context.Context, collectionID string, listings []listing.Listing, match float64, at time.Time) error {
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		for _, l := range listings {
+			if _, err := tx.ExecContext(ctx, `
+				INSERT INTO notifications (collection_id, source, source_id, match, sent_at) VALUES (?, ?, ?, ?, ?)
+				ON CONFLICT DO UPDATE SET match = excluded.match, sent_at = excluded.sent_at`,
+				collectionID, l.Source, l.SourceID, match, timestamp(at)); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

@@ -35,6 +35,7 @@ func TestValidateFields(t *testing.T) {
 	c := valid()
 	c.ID, c.Profiles, c.MaxRunCostUSD, c.Schedule = "Bad", []string{"a", "a"}, -1, "7am"
 	c.Search.MinPrice, c.Search.MaxPrice = ptr(5), ptr(1)
+	c.Notify = Notify{URL: "ntfy.sh/topic", MinScore: -1}
 	err := c.Validate()
 	got := map[string]bool{}
 	for _, e := range err.(interface{ Unwrap() error }).Unwrap().(interface{ Unwrap() []error }).Unwrap() {
@@ -43,7 +44,7 @@ func TestValidateFields(t *testing.T) {
 			got[fe.Field] = true
 		}
 	}
-	for _, f := range []string{"id", "profiles", "max_run_cost_usd", "schedule", "max_price"} {
+	for _, f := range []string{"id", "profiles", "max_run_cost_usd", "schedule", "max_price", "notify_url", "notify_min_score"} {
 		if !got[f] {
 			t.Errorf("no %s field error in %v", f, err)
 		}
@@ -77,5 +78,19 @@ func TestSchedule(t *testing.T) {
 	c.Schedule = "07:30"
 	if at, ok := c.ScheduledAt(day); !ok || !at.Equal(time.Date(2026, 9, 30, 7, 30, 0, 0, time.Local)) {
 		t.Errorf("scheduled at %v", at)
+	}
+}
+
+func TestNotifyThreshold(t *testing.T) {
+	if got := (Notify{URL: "https://ntfy.sh/x"}).Threshold(); got != DefaultNotifyMinScore {
+		t.Errorf("default threshold = %v", got)
+	}
+	if got := (Notify{URL: "https://ntfy.sh/x", MinScore: 95}).Threshold(); got != 95 {
+		t.Errorf("threshold = %v", got)
+	}
+	c := valid()
+	c.Notify = Notify{URL: "https://ntfy.sh/housing", MinScore: 90}
+	if err := c.Validate(); err != nil {
+		t.Errorf("valid notify config rejected: %v", err)
 	}
 }

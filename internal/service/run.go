@@ -16,6 +16,7 @@ type RunOptions struct {
 	Fetch   FetchOptions
 	Collage CollageOptions
 	Assess  AssessOptions
+	Notify  collection.Notify
 }
 
 type RunResult struct {
@@ -31,6 +32,8 @@ type RunResult struct {
 	Stats           profile.BatchStats
 	BudgetReached   bool
 	AssessErr       error
+	Notified        int
+	NotifyErr       error
 }
 
 func CollectionRunOptions(c collection.Collection) RunOptions {
@@ -55,6 +58,7 @@ func CollectionRunOptions(c collection.Collection) RunOptions {
 		},
 		Collage: DefaultCollageOptions(),
 		Assess:  a,
+		Notify:  c.Notify,
 	}
 }
 
@@ -105,6 +109,10 @@ func (s *Service) Run(ctx context.Context, o RunOptions, log *slog.Logger) (RunR
 		}
 		res.AssessErr = err
 		log.Warn("some listings could not be assessed; continuing to the report", "stage", StageRun, "failed", res.Stats.Failed, "err", err)
+	}
+	res.Notified, res.NotifyErr = s.notify(ctx, o, res.Day, log)
+	if res.NotifyErr != nil && ctx.Err() == nil {
+		log.Warn("some notifications could not be sent", "stage", StageNotify, "err", res.NotifyErr)
 	}
 	return res, nil
 }

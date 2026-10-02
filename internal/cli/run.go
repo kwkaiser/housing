@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -24,9 +25,9 @@ func newRunCmd(dataDir *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "run: %s on %s: %d fetched, %d distinct, %d graded, %d failed, $%.4f\n",
-				res.Collection, res.Day, res.Fetched, res.Distinct, res.Stats.Updated, res.Stats.Failed, res.Stats.CostUSD)
-			return res.AssessErr
+			fmt.Fprintf(cmd.OutOrStdout(), "run: %s on %s: %d fetched, %d distinct, %d graded, %d failed, %d notified, $%.4f\n",
+				res.Collection, res.Day, res.Fetched, res.Distinct, res.Stats.Updated, res.Stats.Failed, res.Notified, res.Stats.CostUSD)
+			return errors.Join(res.AssessErr, res.NotifyErr)
 		},
 	}
 }

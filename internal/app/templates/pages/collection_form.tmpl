@@ -131,6 +131,24 @@
 </div>
 </fieldset>
 
+<fieldset>
+<legend>Notifications</legend>
+<div class="grid">
+<div class="field{{if index .Errors "notify_url"}} invalid{{end}}">
+  <label for="f-notify-url">ntfy topic URL</label>
+  <input id="f-notify-url" name="notify_url" type="url" value="{{.NotifyURL}}" placeholder="https://ntfy.sh/my-topic" spellcheck="false">
+  <small>Empty sends no notifications.</small>
+  {{template "fielderror" index .Errors "notify_url"}}
+</div>
+<div class="field{{if index .Errors "notify_min_score"}} invalid{{end}}">
+  <label for="f-notify-min">Minimum match</label>
+  <input id="f-notify-min" name="notify_min_score" type="number" min="0" step="any" value="{{.NotifyMin}}" placeholder="{{.DefaultNotify}}">
+  <small>Listings at or above this match are sent once each. Empty uses {{.DefaultNotify}}.</small>
+  {{template "fielderror" index .Errors "notify_min_score"}}
+</div>
+</div>
+</fieldset>
+
 <div class="controls">
   <button type="submit" class="primary">{{if .Create}}Create collection{{else}}Save changes{{end}}</button>
   <a class="button" href="/collections">Cancel</a>
