@@ -214,11 +214,12 @@ func TestCreateProfileFromEachSource(t *testing.T) {
 	a := profileApp(t)
 	h := a.Handler()
 	_, body := get(t, h, "/profiles/new")
-	checkBody(t, "form", body, []string{"on Zillow, Redfin, Craigslist or Facebook Marketplace."}, []string{"Only Zillow"})
+	checkBody(t, "form", body, []string{"on Zillow, Redfin, StreetEasy, Craigslist or Facebook Marketplace."}, []string{"Only Zillow"})
 	for i, u := range []string{
 		"https://www.redfin.com/MA/Somerville/91-Heath-St-02145/home/8714201",
 		"https://boston.craigslist.org/gbs/apa/d/somerville-sunny-2br/7881234567.html",
 		"https://www.facebook.com/marketplace/item/1071136835630251/?ref=search",
+		"https://streeteasy.com/building/240-meeker-avenue-brooklyn/9",
 	} {
 		id := "ref-" + strconv.Itoa(i)
 		res, body := post(t, h, "/profiles", with(validProfileForm(), "url", u, "id", id), sameOriginHeader)
@@ -246,7 +247,7 @@ func TestCreateProfileErrors(t *testing.T) {
 		{"bad url", with(validProfileForm(), "url", "zillow.com/x"), []string{
 			`<p class="field-error">invalid listing URL &#34;zillow.com/x&#34;: want an http or https link</p>`, `name="url" type="url" value="zillow.com/x"`,
 		}},
-		{"unsupported host", with(validProfileForm(), "url", "https://www.trulia.com/x"), []string{`<p class="field-error">no lookup available for &#34;www.trulia.com&#34;: use a listing from Zillow, Redfin, Craigslist or Facebook Marketplace</p>`}},
+		{"unsupported host", with(validProfileForm(), "url", "https://www.trulia.com/x"), []string{`<p class="field-error">no lookup available for &#34;www.trulia.com&#34;: use a listing from Zillow, Redfin, StreetEasy, Craigslist or Facebook Marketplace</p>`}},
 		{"search page", with(validProfileForm(), "url", "https://www.redfin.com/zipcode/02144"), []string{`<p class="field-error">not a redfin listing page: &#34;https://www.redfin.com/zipcode/02144&#34;`}},
 		{"bad id", with(validProfileForm(), "id", "Bad ID"), []string{
 			`<p class="field-error">invalid profile id &#34;Bad ID&#34;: use lowercase letters, digits and dashes</p>`, `name="id" value="Bad ID"`,

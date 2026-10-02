@@ -1,0 +1,404 @@
+[
+  {
+    "slug": "420-6-avenue-brooklyn",
+    "unit": "12",
+    "pricing": {
+      "monthlyMaintenance": 1123,
+      "monthlyTaxes": 0,
+      "monthlyCommonCharges": null,
+      "maxFinancing": 80,
+      "taxDeduction": 0,
+      "price": 975000,
+      "priceDelta": null,
+      "soldPrice": null,
+      "estimatedMonthlyPayment": 6644,
+      "interestingPriceDelta": null,
+      "priceChanges": [
+        {
+          "price": 975000,
+          "changedAt": "2026-09-08T11:39:55.000-04:00"
+        }
+      ]
+    },
+    "propertyDetails": {
+      "address": {
+        "state": "NY",
+        "street": "420 6th Avenue",
+        "city": "BROOKLYN",
+        "zipCode": "11215",
+        "displayUnit": "#12"
+      },
+      "roomCount": 5,
+      "bedroomCount": 2,
+      "fullBathroomCount": 1,
+      "halfBathroomCount": 0,
+      "livingAreaSize": null,
+      "lotAreaSize": 0,
+      "amenities": {
+        "list": [
+          "BIKE_ROOM",
+          "FIOS_AVAILABLE",
+          "LAUNDRY",
+          "STORAGE_SPACE",
+          "SHARED_OUTDOOR_SPACE"
+        ],
+        "doormanTypes": [],
+        "parkingTypes": [],
+        "sharedOutdoorSpaceTypes": [
+          "ROOF_DECK"
+        ],
+        "storageSpaceTypes": [
+          "LOCKER_CAGE"
+        ]
+      },
+      "features": {
+        "list": [
+          "VIEW",
+          "DISHWASHER",
+          "HARDWOOD_FLOORS",
+          "PRIVATE_OUTDOOR_SPACE"
+        ],
+        "fireplaceTypes": [],
+        "privateOutdoorSpaceTypes": [
+          "TERRACE"
+        ],
+        "views": [
+          "CITY"
+        ]
+      }
+    },
+    "propertyHistory": [
+      {
+        "advertisedOnSe": true,
+        "closingId": null,
+        "listingId": "1845446",
+        "offMarketAt": null,
+        "soldDate": null,
+        "sourceGroupLabel": "Compass",
+        "saleEventsOfInterest": [
+          {
+            "date": "2026-09-08",
+            "price": 975000,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "b3b9a78ee5d09da0b285b2fb1a48984b"
+          },
+          {
+            "key": "718b22076572b09fa670d42035053b2a"
+          },
+          {
+            "key": "ef9148bdceb3206fc50884dde7a7ab3a"
+          },
+          {
+            "key": "752e971a3136d9ec90d0b7d828031b7f"
+          },
+          {
+            "key": "2a1d1d138e2d046ebf02cb139b6d2d0a"
+          },
+          {
+            "key": "2573a72137f7906cea65bda69d34e2e1"
+          },
+          {
+            "key": "c349ad229b4c49ed8065353b88c5257a"
+          },
+          {
+            "key": "4804792c4fd596994bb63fed9d7ee3ea"
+          },
+          {
+            "key": "9c33c34f49472a182c30103b6422ca48"
+          }
+        ]
+      },
+      {
+        "advertisedOnSe": true,
+        "closingId": "10200410",
+        "listingId": "1056736",
+        "offMarketAt": "2014-05-02",
+        "soldDate": "2014-05-01",
+        "sourceGroupLabel": "Corcoran",
+        "saleEventsOfInterest": [
+          {
+            "date": "2014-05-24",
+            "price": 667500,
+            "status": "SOLD"
+          },
+          {
+            "date": "2014-05-02",
+            "price": 624000,
+            "status": "NO_LONGER_AVAILABLE"
+          },
+          {
+            "date": "2014-05-02",
+            "price": 624000,
+            "status": "NO_LONGER_AVAILABLE"
+          },
+          {
+            "date": "2014-02-21",
+            "price": 624000,
+            "status": "IN_CONTRACT"
+          },
+          {
+            "date": "2014-01-21",
+            "price": 624000,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "d0516ad1fa553f0358341ea1324e036c"
+          },
+          {
+            "key": "db45d89f69827906fa19edf27c482406"
+          },
+          {
+            "key": "29f0b901bcfc71562dea95351d10d1ca"
+          },
+          {
+            "key": "cb54e10a67f1dffaf36a394b92aec5b3"
+          },
+          {
+            "key": "22f6cf4f856026647bfff3f62cee9595"
+          },
+          {
+            "key": "76e30258e822e628289aae63134f8830"
+          },
+          {
+            "key": "f2426a0c337118918b165278b94ac350"
+          }
+        ]
+      },
+      {
+        "advertisedOnSe": true,
+        "closingId": "1796698",
+        "listingId": "542601",
+        "offMarketAt": "2011-01-24",
+        "soldDate": "2011-01-20",
+        "sourceGroupLabel": "Corcoran",
+        "saleEventsOfInterest": [
+          {
+            "date": "2011-02-15",
+            "price": 505000,
+            "status": "SOLD"
+          },
+          {
+            "date": "2011-01-24",
+            "price": 499000,
+            "status": "NO_LONGER_AVAILABLE"
+          },
+          {
+            "date": "2010-10-21",
+            "price": 499000,
+            "status": "IN_CONTRACT"
+          },
+          {
+            "date": "2010-09-29",
+            "price": 499000,
+            "pricePercentChange": -9.272727012634277
+          },
+          {
+            "date": "2010-08-24",
+            "price": 550000,
+            "pricePercentChange": -4.34782600402832
+          },
+          {
+            "date": "2010-07-27",
+            "price": 575000,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "266a51a5513b242c252699275d7cf076"
+          },
+          {
+            "key": "22a6bbf48b9e0b04f8ae4c6b2648926c"
+          },
+          {
+            "key": "26fd0f698a902606dbdd7bba62749253"
+          },
+          {
+            "key": "8d38e44c6512b0f4d82c0293de9268fd"
+          }
+        ]
+      },
+      {
+        "advertisedOnSe": true,
+        "closingId": null,
+        "listingId": "481955",
+        "offMarketAt": "2010-07-29",
+        "soldDate": null,
+        "sourceGroupLabel": "Warren Lewis Realty",
+        "saleEventsOfInterest": [
+          {
+            "date": "2010-07-29",
+            "price": 550000,
+            "status": "DELISTED"
+          },
+          {
+            "date": "2010-07-07",
+            "price": 550000,
+            "pricePercentChange": -4.34782600402832
+          },
+          {
+            "date": "2010-04-06",
+            "price": 575000,
+            "pricePercentChange": -3.361344575881958
+          },
+          {
+            "date": "2010-01-11",
+            "price": 595000,
+            "pricePercentChange": -3.8772213459014893
+          },
+          {
+            "date": "2009-12-03",
+            "price": 619000,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "9b20476be43803a5f9de939304a00e6b"
+          },
+          {
+            "key": "b5aba25ed7790d23223dff73aeb92b49"
+          },
+          {
+            "key": "b7cc16981b45cdfd20a052eed396ee15"
+          },
+          {
+            "key": "d8afca3c3982a3c79f6863dc19f7d661"
+          },
+          {
+            "key": "acf64be89a646c9a7c3a797e644044dc"
+          },
+          {
+            "key": "ee0f431bcccb1b6303f7130d95865f2b"
+          },
+          {
+            "key": "e57a3b83f7d73dc4fcedbc9a1ea707f9"
+          },
+          {
+            "key": "736e61189f8cc58b60b62dbb06aaedcc"
+          }
+        ]
+      }
+    ],
+    "upcomingOpenHouses": [],
+    "media": null,
+    "listingSource": {
+      "sourceType": "PARTNER",
+      "sourceListingId": null
+    },
+    "mlsNumber": null,
+    "listingId": "1845446",
+    "propertyId": "939960",
+    "yearBuilt": 1900,
+    "daysOnMarket": 24,
+    "onMarketAt": "2026-09-08",
+    "offMarketAt": null,
+    "sourceGroupLabel": "Compass",
+    "nearbySchools": [
+      {
+        "id": "22108",
+        "idstr": "ps39-brooklyn",
+        "name": "P.S. 039 Henry Bristow",
+        "district": "15",
+        "grades": [
+          "0K",
+          "01",
+          "02",
+          "03",
+          "04",
+          "05",
+          "SE"
+        ]
+      }
+    ],
+    "recentListingsPriceStats": {
+      "bedroomCount": 2,
+      "rentalPriceStats": {
+        "maxPrice": 14950,
+        "medianPrice": 5272,
+        "minPrice": 2800,
+        "numListings": 146
+      },
+      "salePriceStats": {
+        "maxPrice": 3000000,
+        "medianPrice": 1497000,
+        "minPrice": 400000,
+        "numListings": 82
+      }
+    },
+    "monthlyFees": null,
+    "moveInFees": null,
+    "additionalFees": null,
+    "hasFinancialData": true,
+    "residentialUnitCount": 9,
+    "floorCount": 4,
+    "description": "Bespoke, bright, and quintessentially Brooklyn. A private entrance, soaring ceilings, and a slice of Park Slope history give this one-of-a-kind maisonette a character entirely its own. Originally home to the building’s neighborhood bodega, this distinctive two-bedroom has been transformed into a charming residence while retaining the qualities that make it so unique: its own street-level entrance, dramatic 11.5 foot lofted ceilings, oversized windows and an abundance of natural light from two exposures. Tucked behind a gated patio on the corner of 8th street and 6th avenue, this home feels more like a boutique house than an apartment. The airy living and dining space is framed by custom floor-to-ceiling built-ins that add both architectural character and an impressive amount of storage. The adjacent open-concept kitchen is thoughtfully designed with full-size stainless steel appliances including a new Frigidaire induction range, abundant cabinetry and counter space, along with a breakfast bar that connects naturally to the living space. Both bedrooms are well proportioned, filled with light, and feature floor-to-ceiling double closets with upper cabinet storage. The primary offers two oversized windows and room for a king-sized bed with additional furniture, while the second bedroom features extensive custom built-in cabinetry and shelving–equally suited to a bedroom, nursery, or home office. A crisp white bathroom is finished with classic subway tile and a marble-topped vanity. Just outside the front door, the building's shared patio feels like a natural extension of the home and is used almost exclusively by this residence—an especially rare amenity in the heart of Park Slope. And then there's the roof. The building's expansive common roof deck rises above the surrounding treetops, with open sky and sweeping views across Brooklyn toward Downtown Manhattan—a spectacular setting for morning coffee, sunset drinks or an evening with friends. Residents enjoy free laundry in the cellar and individual private storage rooms; #12's dedicated storage space measures nearly 50 square feet. There is additional bike storage and stroller storage, both free of charge. The co-op also permits owners to install an in-unit washer/dryer. All of this in a setting that feels distinctly Park Slope, moments from Prospect Park, neighborhood cafés and restaurants, groceries and shopping, the Brooklyn Public Library, YMCA, and convenient access to F, G, & R trains and bus transportation. Cats welcome. Dogs considered on a case-by-case basis.",
+    "images": [
+      "https://photos.zillowstatic.com/fp/b3b9a78ee5d09da0b285b2fb1a48984b-full.webp",
+      "https://photos.zillowstatic.com/fp/718b22076572b09fa670d42035053b2a-full.webp",
+      "https://photos.zillowstatic.com/fp/ef9148bdceb3206fc50884dde7a7ab3a-full.webp",
+      "https://photos.zillowstatic.com/fp/752e971a3136d9ec90d0b7d828031b7f-full.webp",
+      "https://photos.zillowstatic.com/fp/2a1d1d138e2d046ebf02cb139b6d2d0a-full.webp",
+      "https://photos.zillowstatic.com/fp/2573a72137f7906cea65bda69d34e2e1-full.webp",
+      "https://photos.zillowstatic.com/fp/c349ad229b4c49ed8065353b88c5257a-full.webp",
+      "https://photos.zillowstatic.com/fp/4804792c4fd596994bb63fed9d7ee3ea-full.webp",
+      "https://photos.zillowstatic.com/fp/9c33c34f49472a182c30103b6422ca48-full.webp"
+    ],
+    "id": "1845446",
+    "status": "ACTIVE",
+    "statusChanges": [
+      {
+        "status": "DRAFT",
+        "changedAt": "2026-09-08T11:34:42.000-04:00"
+      },
+      {
+        "status": "ACTIVE",
+        "changedAt": "2026-09-08T11:39:55.000-04:00"
+      }
+    ],
+    "buildingId": "70794",
+    "createdAt": "2026-09-08T11:34:42.000-04:00",
+    "updatedAt": "2026-09-24T13:38:49.000-04:00",
+    "interestingChangeAt": "2026-09-22T17:24:38.000-04:00",
+    "latestListing": {
+      "id": "1845446",
+      "status": "ACTIVE",
+      "pricing": {
+        "price": 975000
+      }
+    },
+    "urlPath": "/building/420-6-avenue-brooklyn/12",
+    "listingAddress": "420 6th Avenue #12",
+    "saleType": "Resale",
+    "soldDate": null,
+    "monthly_taxes": 0,
+    "monthly_fees": null,
+    "maintenance": 1123,
+    "soldPrice": null,
+    "sold_price": null,
+    "sold_date": null,
+    "rent": 975000,
+    "lease_term_months": null,
+    "months_free": null,
+    "net_effective_rent": null,
+    "security_deposit": null,
+    "due_up_front": null,
+    "furnished_rent": null,
+    "year_built": 1900,
+    "residential_unit_count": 9,
+    "floor_count": 4,
+    "stories": 4,
+    "days_on_market": 24,
+    "on_market_at": "2026-09-08",
+    "off_market_at": null,
+    "source_group_label": "Compass",
+    "originalSearchUrl": "https://streeteasy.com/building/420-6-avenue-brooklyn/12",
+    "partial": false
+  }
+]

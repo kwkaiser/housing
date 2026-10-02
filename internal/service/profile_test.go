@@ -87,7 +87,7 @@ func TestValidateNewProfile(t *testing.T) {
 		{"missing url", func(o *CreateProfileOptions) { o.URL = " " }, "url", "a listing URL is required"},
 		{"not http", func(o *CreateProfileOptions) { o.URL = "ftp://zillow.com/x" }, "url", "want an http or https link"},
 		{"no host", func(o *CreateProfileOptions) { o.URL = "https://" }, "url", "want an http or https link"},
-		{"unsupported host", func(o *CreateProfileOptions) { o.URL = "https://www.trulia.com/home/1" }, "url", `no lookup available for "www.trulia.com": use a listing from Zillow, Redfin, Craigslist or Facebook Marketplace`},
+		{"unsupported host", func(o *CreateProfileOptions) { o.URL = "https://www.trulia.com/home/1" }, "url", `no lookup available for "www.trulia.com": use a listing from Zillow, Redfin, StreetEasy, Craigslist or Facebook Marketplace`},
 		{"redfin search page", func(o *CreateProfileOptions) { o.URL = "https://www.redfin.com/zipcode/02144" }, "url", "not a redfin listing page"},
 		{"craigslist search page", func(o *CreateProfileOptions) { o.URL = "https://boston.craigslist.org/search/apa" }, "url", "not a craigslist posting"},
 		{"facebook search page", func(o *CreateProfileOptions) { o.URL = "https://www.facebook.com/marketplace/boston/propertyrentals" }, "url", "not a facebook marketplace item"},
@@ -135,6 +135,8 @@ func TestLookupFor(t *testing.T) {
 		"https://www.craigslist.org/view/d/medford-medford-tufts-2bed-in-unit/j2QRLoSwSfTzCLCkKJx9Q9": "*craigslist.Provider",
 		"https://www.facebook.com/marketplace/item/1071136835630251/":                                 "*facebook.Provider",
 		"https://m.facebook.com/marketplace/item/1071136835630251?ref=share":                          "*facebook.Provider",
+		"https://streeteasy.com/building/240-meeker-avenue-brooklyn/9":                                "*streeteasy.Provider",
+		"https://www.streeteasy.com/rental/5170579?utm_source=web":                                    "*streeteasy.Provider",
 	} {
 		l, err := LookupFor(u, nil)
 		if err != nil {
@@ -151,6 +153,7 @@ func TestLookupFor(t *testing.T) {
 		"https://www.redfin.com/city/16169/MA/Somerville":     "not a redfin listing page",
 		"https://sfbay.craigslist.org/search/apa":             "not a craigslist posting",
 		"https://www.facebook.com/marketplace/category/rent/": "not a facebook marketplace item",
+		"https://streeteasy.com/for-rent/brooklyn":            "not a streeteasy listing page",
 	} {
 		if _, err := LookupFor(u, nil); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%s: err = %v, want %q", u, err, want)

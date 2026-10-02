@@ -13,7 +13,7 @@
 <div class="field{{if index .Errors "url"}} invalid{{end}}">
   <label for="f-url">Listing URL</label>
   <input id="f-url" name="url" type="url" value="{{.URL}}" required placeholder="https://www.zillow.com/homedetails/…" spellcheck="false">
-  <small>A single listing page to build the profile from, on Zillow, Redfin, Craigslist or Facebook Marketplace.</small>
+  <small>A single listing page to build the profile from, on Zillow, Redfin, StreetEasy, Craigslist or Facebook Marketplace.</small>
   {{template "fielderror" index .Errors "url"}}
 </div>
 <div class="field{{if index .Errors "id"}} invalid{{end}}">

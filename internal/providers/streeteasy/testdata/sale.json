@@ -1,0 +1,899 @@
+[
+  {
+    "id": "1845446",
+    "advertisedOnSe": false,
+    "areaName": "Park Slope",
+    "availableAt": null,
+    "bedroomCount": 2,
+    "buildingType": "CO_OP",
+    "fullBathroomCount": 1,
+    "furnished": false,
+    "geoPoint": {
+      "latitude": 40.6686,
+      "longitude": -73.9837
+    },
+    "halfBathroomCount": 0,
+    "hasTour3d": false,
+    "hasVideos": false,
+    "interestingPriceDelta": null,
+    "isNewDevelopment": false,
+    "isPremiumHdpEnabled": false,
+    "livingAreaSize": 0,
+    "offMarketAt": null,
+    "photos": [
+      {
+        "description": "420 6th Avenue image 1 of 9",
+        "key": "b3b9a78ee5d09da0b285b2fb1a48984b",
+        "url": "https://photos.zillowstatic.com/fp/b3b9a78ee5d09da0b285b2fb1a48984b-p_e.webp"
+      },
+      {
+        "description": "420 6th Avenue image 2 of 9",
+        "key": "718b22076572b09fa670d42035053b2a",
+        "url": "https://photos.zillowstatic.com/fp/718b22076572b09fa670d42035053b2a-p_e.webp"
+      },
+      {
+        "description": "420 6th Avenue image 3 of 9",
+        "key": "ef9148bdceb3206fc50884dde7a7ab3a",
+        "url": "https://photos.zillowstatic.com/fp/ef9148bdceb3206fc50884dde7a7ab3a-p_e.webp"
+      },
+      {
+        "description": "420 6th Avenue image 4 of 9",
+        "key": "752e971a3136d9ec90d0b7d828031b7f",
+        "url": "https://photos.zillowstatic.com/fp/752e971a3136d9ec90d0b7d828031b7f-p_e.webp"
+      },
+      {
+        "description": "420 6th Avenue image 5 of 9",
+        "key": "2a1d1d138e2d046ebf02cb139b6d2d0a",
+        "url": "https://photos.zillowstatic.com/fp/2a1d1d138e2d046ebf02cb139b6d2d0a-p_e.webp"
+      },
+      {
+        "description": "420 6th Avenue image 6 of 9",
+        "key": "2573a72137f7906cea65bda69d34e2e1",
+        "url": "https://photos.zillowstatic.com/fp/2573a72137f7906cea65bda69d34e2e1-p_e.webp"
+      },
+      {
+        "description": "420 6th Avenue image 7 of 9",
+        "key": "c349ad229b4c49ed8065353b88c5257a",
+        "url": "https://photos.zillowstatic.com/fp/c349ad229b4c49ed8065353b88c5257a-p_e.webp"
+      },
+      {
+        "description": "420 6th Avenue image 8 of 9",
+        "key": "4804792c4fd596994bb63fed9d7ee3ea",
+        "url": "https://photos.zillowstatic.com/fp/4804792c4fd596994bb63fed9d7ee3ea-p_e.webp"
+      },
+      {
+        "description": "420 6th Avenue image 9 of 9",
+        "key": "9c33c34f49472a182c30103b6422ca48",
+        "url": "https://photos.zillowstatic.com/fp/9c33c34f49472a182c30103b6422ca48-p_e.webp"
+      }
+    ],
+    "price": 975000,
+    "slug": "420-6-avenue-brooklyn",
+    "saleType": "Resale",
+    "soldPrice": null,
+    "sourceGroupLabel": "Compass",
+    "sourceType": "PARTNER",
+    "state": "NY",
+    "status": "ACTIVE",
+    "street": "420 6th Avenue",
+    "upcomingOpenHouse": null,
+    "displayUnit": "#12",
+    "urlPath": "/building/420-6-avenue-brooklyn/12",
+    "verifiedAt": null,
+    "verifiedUpToDate": false,
+    "zipCode": "11215",
+    "unit": "#12",
+    "pricing": {
+      "monthlyMaintenance": 1123,
+      "monthlyTaxes": 0,
+      "monthlyCommonCharges": null,
+      "maxFinancing": 80,
+      "taxDeduction": 0,
+      "price": 975000,
+      "priceDelta": null,
+      "soldPrice": null,
+      "estimatedMonthlyPayment": 6644,
+      "interestingPriceDelta": null,
+      "priceChanges": [
+        {
+          "price": 975000,
+          "changedAt": "2026-09-08T11:39:55.000-04:00"
+        }
+      ]
+    },
+    "propertyDetails": {
+      "address": {
+        "state": "NY",
+        "street": "420 6th Avenue",
+        "city": "BROOKLYN",
+        "zipCode": "11215",
+        "displayUnit": "#12"
+      },
+      "roomCount": 5,
+      "bedroomCount": 2,
+      "fullBathroomCount": 1,
+      "halfBathroomCount": 0,
+      "livingAreaSize": null,
+      "lotAreaSize": 0,
+      "amenities": {
+        "list": [
+          "BIKE_ROOM",
+          "FIOS_AVAILABLE",
+          "LAUNDRY",
+          "STORAGE_SPACE",
+          "SHARED_OUTDOOR_SPACE"
+        ],
+        "doormanTypes": [],
+        "parkingTypes": [],
+        "sharedOutdoorSpaceTypes": [
+          "ROOF_DECK"
+        ],
+        "storageSpaceTypes": [
+          "LOCKER_CAGE"
+        ]
+      },
+      "features": {
+        "list": [
+          "VIEW",
+          "DISHWASHER",
+          "HARDWOOD_FLOORS",
+          "PRIVATE_OUTDOOR_SPACE"
+        ],
+        "fireplaceTypes": [],
+        "privateOutdoorSpaceTypes": [
+          "TERRACE"
+        ],
+        "views": [
+          "CITY"
+        ]
+      }
+    },
+    "propertyHistory": [
+      {
+        "advertisedOnSe": true,
+        "closingId": null,
+        "listingId": "1845446",
+        "offMarketAt": null,
+        "soldDate": null,
+        "sourceGroupLabel": "Compass",
+        "saleEventsOfInterest": [
+          {
+            "date": "2026-09-08",
+            "price": 975000,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "b3b9a78ee5d09da0b285b2fb1a48984b"
+          },
+          {
+            "key": "718b22076572b09fa670d42035053b2a"
+          },
+          {
+            "key": "ef9148bdceb3206fc50884dde7a7ab3a"
+          },
+          {
+            "key": "752e971a3136d9ec90d0b7d828031b7f"
+          },
+          {
+            "key": "2a1d1d138e2d046ebf02cb139b6d2d0a"
+          },
+          {
+            "key": "2573a72137f7906cea65bda69d34e2e1"
+          },
+          {
+            "key": "c349ad229b4c49ed8065353b88c5257a"
+          },
+          {
+            "key": "4804792c4fd596994bb63fed9d7ee3ea"
+          },
+          {
+            "key": "9c33c34f49472a182c30103b6422ca48"
+          }
+        ]
+      },
+      {
+        "advertisedOnSe": true,
+        "closingId": "10200410",
+        "listingId": "1056736",
+        "offMarketAt": "2014-05-02",
+        "soldDate": "2014-05-01",
+        "sourceGroupLabel": "Corcoran",
+        "saleEventsOfInterest": [
+          {
+            "date": "2014-05-24",
+            "price": 667500,
+            "status": "SOLD"
+          },
+          {
+            "date": "2014-05-02",
+            "price": 624000,
+            "status": "NO_LONGER_AVAILABLE"
+          },
+          {
+            "date": "2014-05-02",
+            "price": 624000,
+            "status": "NO_LONGER_AVAILABLE"
+          },
+          {
+            "date": "2014-02-21",
+            "price": 624000,
+            "status": "IN_CONTRACT"
+          },
+          {
+            "date": "2014-01-21",
+            "price": 624000,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "d0516ad1fa553f0358341ea1324e036c"
+          },
+          {
+            "key": "db45d89f69827906fa19edf27c482406"
+          },
+          {
+            "key": "29f0b901bcfc71562dea95351d10d1ca"
+          },
+          {
+            "key": "cb54e10a67f1dffaf36a394b92aec5b3"
+          },
+          {
+            "key": "22f6cf4f856026647bfff3f62cee9595"
+          },
+          {
+            "key": "76e30258e822e628289aae63134f8830"
+          },
+          {
+            "key": "f2426a0c337118918b165278b94ac350"
+          }
+        ]
+      },
+      {
+        "advertisedOnSe": true,
+        "closingId": "1796698",
+        "listingId": "542601",
+        "offMarketAt": "2011-01-24",
+        "soldDate": "2011-01-20",
+        "sourceGroupLabel": "Corcoran",
+        "saleEventsOfInterest": [
+          {
+            "date": "2011-02-15",
+            "price": 505000,
+            "status": "SOLD"
+          },
+          {
+            "date": "2011-01-24",
+            "price": 499000,
+            "status": "NO_LONGER_AVAILABLE"
+          },
+          {
+            "date": "2010-10-21",
+            "price": 499000,
+            "status": "IN_CONTRACT"
+          },
+          {
+            "date": "2010-09-29",
+            "price": 499000,
+            "pricePercentChange": -9.272727012634277
+          },
+          {
+            "date": "2010-08-24",
+            "price": 550000,
+            "pricePercentChange": -4.34782600402832
+          },
+          {
+            "date": "2010-07-27",
+            "price": 575000,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "266a51a5513b242c252699275d7cf076"
+          },
+          {
+            "key": "22a6bbf48b9e0b04f8ae4c6b2648926c"
+          },
+          {
+            "key": "26fd0f698a902606dbdd7bba62749253"
+          },
+          {
+            "key": "8d38e44c6512b0f4d82c0293de9268fd"
+          }
+        ]
+      },
+      {
+        "advertisedOnSe": true,
+        "closingId": null,
+        "listingId": "481955",
+        "offMarketAt": "2010-07-29",
+        "soldDate": null,
+        "sourceGroupLabel": "Warren Lewis Realty",
+        "saleEventsOfInterest": [
+          {
+            "date": "2010-07-29",
+            "price": 550000,
+            "status": "DELISTED"
+          },
+          {
+            "date": "2010-07-07",
+            "price": 550000,
+            "pricePercentChange": -4.34782600402832
+          },
+          {
+            "date": "2010-04-06",
+            "price": 575000,
+            "pricePercentChange": -3.361344575881958
+          },
+          {
+            "date": "2010-01-11",
+            "price": 595000,
+            "pricePercentChange": -3.8772213459014893
+          },
+          {
+            "date": "2009-12-03",
+            "price": 619000,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "9b20476be43803a5f9de939304a00e6b"
+          },
+          {
+            "key": "b5aba25ed7790d23223dff73aeb92b49"
+          },
+          {
+            "key": "b7cc16981b45cdfd20a052eed396ee15"
+          },
+          {
+            "key": "d8afca3c3982a3c79f6863dc19f7d661"
+          },
+          {
+            "key": "acf64be89a646c9a7c3a797e644044dc"
+          },
+          {
+            "key": "ee0f431bcccb1b6303f7130d95865f2b"
+          },
+          {
+            "key": "e57a3b83f7d73dc4fcedbc9a1ea707f9"
+          },
+          {
+            "key": "736e61189f8cc58b60b62dbb06aaedcc"
+          }
+        ]
+      }
+    ],
+    "upcomingOpenHouses": [],
+    "media": null,
+    "listingSource": {
+      "sourceType": "PARTNER",
+      "sourceListingId": null
+    },
+    "mlsNumber": null,
+    "listingId": "1845446",
+    "propertyId": "939960",
+    "yearBuilt": 1900,
+    "daysOnMarket": 24,
+    "onMarketAt": "2026-09-08",
+    "nearbySchools": [
+      {
+        "id": "22108",
+        "idstr": "ps39-brooklyn",
+        "name": "P.S. 039 Henry Bristow",
+        "district": "15",
+        "grades": [
+          "0K",
+          "01",
+          "02",
+          "03",
+          "04",
+          "05",
+          "SE"
+        ]
+      }
+    ],
+    "recentListingsPriceStats": {
+      "bedroomCount": 2,
+      "rentalPriceStats": {
+        "maxPrice": 14950,
+        "medianPrice": 5272,
+        "minPrice": 2800,
+        "numListings": 146
+      },
+      "salePriceStats": {
+        "maxPrice": 3000000,
+        "medianPrice": 1497000,
+        "minPrice": 400000,
+        "numListings": 82
+      }
+    },
+    "monthlyFees": null,
+    "moveInFees": null,
+    "additionalFees": null,
+    "hasFinancialData": true,
+    "residentialUnitCount": 9,
+    "floorCount": 4,
+    "description": "Bespoke, bright, and quintessentially Brooklyn. A private entrance, soaring ceilings, and a slice of Park Slope history give this one-of-a-kind maisonette a character entirely its own. Originally home to the building’s neighborhood bodega, this distinctive two-bedroom has been transformed into a charming residence while retaining the qualities that make it so unique: its own street-level entrance, dramatic 11.5 foot lofted ceilings, oversized windows and an abundance of natural light from two exposures. Tucked behind a gated patio on the corner of 8th street and 6th avenue, this home feels more like a boutique house than an apartment. The airy living and dining space is framed by custom floor-to-ceiling built-ins that add both architectural character and an impressive amount of storage. The adjacent open-concept kitchen is thoughtfully designed with full-size stainless steel appliances including a new Frigidaire induction range, abundant cabinetry and counter space, along with a breakfast bar that connects naturally to the living space. Both bedrooms are well proportioned, filled with light, and feature floor-to-ceiling double closets with upper cabinet storage. The primary offers two oversized windows and room for a king-sized bed with additional furniture, while the second bedroom features extensive custom built-in cabinetry and shelving–equally suited to a bedroom, nursery, or home office. A crisp white bathroom is finished with classic subway tile and a marble-topped vanity. Just outside the front door, the building's shared patio feels like a natural extension of the home and is used almost exclusively by this residence—an especially rare amenity in the heart of Park Slope. And then there's the roof. The building's expansive common roof deck rises above the surrounding treetops, with open sky and sweeping views across Brooklyn toward Downtown Manhattan—a spectacular setting for morning coffee, sunset drinks or an evening with friends. Residents enjoy free laundry in the cellar and individual private storage rooms; #12's dedicated storage space measures nearly 50 square feet. There is additional bike storage and stroller storage, both free of charge. The co-op also permits owners to install an in-unit washer/dryer. All of this in a setting that feels distinctly Park Slope, moments from Prospect Park, neighborhood cafés and restaurants, groceries and shopping, the Brooklyn Public Library, YMCA, and convenient access to F, G, & R trains and bus transportation. Cats welcome. Dogs considered on a case-by-case basis.",
+    "images": [
+      "https://photos.zillowstatic.com/fp/b3b9a78ee5d09da0b285b2fb1a48984b-full.webp",
+      "https://photos.zillowstatic.com/fp/718b22076572b09fa670d42035053b2a-full.webp",
+      "https://photos.zillowstatic.com/fp/ef9148bdceb3206fc50884dde7a7ab3a-full.webp",
+      "https://photos.zillowstatic.com/fp/752e971a3136d9ec90d0b7d828031b7f-full.webp",
+      "https://photos.zillowstatic.com/fp/2a1d1d138e2d046ebf02cb139b6d2d0a-full.webp",
+      "https://photos.zillowstatic.com/fp/2573a72137f7906cea65bda69d34e2e1-full.webp",
+      "https://photos.zillowstatic.com/fp/c349ad229b4c49ed8065353b88c5257a-full.webp",
+      "https://photos.zillowstatic.com/fp/4804792c4fd596994bb63fed9d7ee3ea-full.webp",
+      "https://photos.zillowstatic.com/fp/9c33c34f49472a182c30103b6422ca48-full.webp"
+    ],
+    "statusChanges": [
+      {
+        "status": "DRAFT",
+        "changedAt": "2026-09-08T11:34:42.000-04:00"
+      },
+      {
+        "status": "ACTIVE",
+        "changedAt": "2026-09-08T11:39:55.000-04:00"
+      }
+    ],
+    "buildingId": "70794",
+    "createdAt": "2026-09-08T11:34:42.000-04:00",
+    "updatedAt": "2026-09-24T13:38:49.000-04:00",
+    "interestingChangeAt": "2026-09-22T17:24:38.000-04:00",
+    "latestListing": {
+      "id": "1845446",
+      "status": "ACTIVE",
+      "pricing": {
+        "price": 975000
+      }
+    },
+    "listingAddress": "420 6th Avenue #12",
+    "soldDate": null,
+    "monthly_taxes": 0,
+    "monthly_fees": null,
+    "maintenance": 1123,
+    "sold_price": null,
+    "sold_date": null,
+    "rent": 975000,
+    "lease_term_months": null,
+    "months_free": null,
+    "net_effective_rent": null,
+    "security_deposit": null,
+    "due_up_front": null,
+    "furnished_rent": null,
+    "year_built": 1900,
+    "residential_unit_count": 9,
+    "floor_count": 4,
+    "stories": 4,
+    "days_on_market": 24,
+    "on_market_at": "2026-09-08",
+    "off_market_at": null,
+    "source_group_label": "Compass",
+    "originalSearchUrl": "https://streeteasy.com/for-sale/park-slope/price:-1500000%7Cbeds%3E=2?sort_by=price_asc",
+    "partial": false
+  },
+  {
+    "id": "1828286",
+    "advertisedOnSe": false,
+    "areaName": "Park Slope",
+    "availableAt": null,
+    "bedroomCount": 2,
+    "buildingType": "CONDO",
+    "fullBathroomCount": 1,
+    "furnished": false,
+    "geoPoint": {
+      "latitude": 40.666897,
+      "longitude": -73.98735
+    },
+    "halfBathroomCount": 0,
+    "hasTour3d": false,
+    "hasVideos": false,
+    "interestingPriceDelta": -47000,
+    "isNewDevelopment": false,
+    "isPremiumHdpEnabled": false,
+    "livingAreaSize": 0,
+    "offMarketAt": null,
+    "photos": [
+      {
+        "description": "298 12th Street image 1 of 12",
+        "key": "f1d3b9bc6ae51614142106bf74a666c8",
+        "url": "https://photos.zillowstatic.com/fp/f1d3b9bc6ae51614142106bf74a666c8-p_e.webp"
+      },
+      {
+        "description": "298 12th Street image 2 of 12",
+        "key": "ef2b56eb2ab646fdf6b305d247d7934d",
+        "url": "https://photos.zillowstatic.com/fp/ef2b56eb2ab646fdf6b305d247d7934d-p_e.webp"
+      },
+      {
+        "description": "298 12th Street image 3 of 12",
+        "key": "e46587662bd7fa843f1aa77f5e3550c0",
+        "url": "https://photos.zillowstatic.com/fp/e46587662bd7fa843f1aa77f5e3550c0-p_e.webp"
+      },
+      {
+        "description": "298 12th Street image 4 of 12",
+        "key": "3006a7636c8b6ad0d8bfdee1b6d40d24",
+        "url": "https://photos.zillowstatic.com/fp/3006a7636c8b6ad0d8bfdee1b6d40d24-p_e.webp"
+      },
+      {
+        "description": "298 12th Street image 5 of 12",
+        "key": "7e6b0285506d2b20eca2e7bcff403049",
+        "url": "https://photos.zillowstatic.com/fp/7e6b0285506d2b20eca2e7bcff403049-p_e.webp"
+      },
+      {
+        "description": "298 12th Street image 6 of 12",
+        "key": "08d7d2878374daf1022454ca03f38fcb",
+        "url": "https://photos.zillowstatic.com/fp/08d7d2878374daf1022454ca03f38fcb-p_e.webp"
+      },
+      {
+        "description": "298 12th Street image 7 of 12",
+        "key": "5a45409ee8fd6e83e8557676c713d4cb",
+        "url": "https://photos.zillowstatic.com/fp/5a45409ee8fd6e83e8557676c713d4cb-p_e.webp"
+      },
+      {
+        "description": "298 12th Street image 8 of 12",
+        "key": "e6a7e6d4002a1e37f8c1473fcd203680",
+        "url": "https://photos.zillowstatic.com/fp/e6a7e6d4002a1e37f8c1473fcd203680-p_e.webp"
+      },
+      {
+        "description": "298 12th Street image 9 of 12",
+        "key": "ccdf875fb2830b6cdec2bada8b79f4cd",
+        "url": "https://photos.zillowstatic.com/fp/ccdf875fb2830b6cdec2bada8b79f4cd-p_e.webp"
+      },
+      {
+        "description": "298 12th Street image 10 of 12",
+        "key": "22c47dc82e795a835a760cba89517937",
+        "url": "https://photos.zillowstatic.com/fp/22c47dc82e795a835a760cba89517937-p_e.webp"
+      },
+      {
+        "description": "298 12th Street image 11 of 12",
+        "key": "9a2d5f6f464974243ea02c6e3fbf6155",
+        "url": "https://photos.zillowstatic.com/fp/9a2d5f6f464974243ea02c6e3fbf6155-p_e.webp"
+      },
+      {
+        "description": "298 12th Street image 12 of 12",
+        "key": "ed35ddb2e1f680f7cb7bbbe109d2a5d1",
+        "url": "https://photos.zillowstatic.com/fp/ed35ddb2e1f680f7cb7bbbe109d2a5d1-p_e.webp"
+      }
+    ],
+    "price": 898000,
+    "slug": "298-12-street-brooklyn",
+    "saleType": "Resale",
+    "soldPrice": null,
+    "sourceGroupLabel": "Daniel Gale Sotheby's International Realty",
+    "sourceType": "PARTNER",
+    "state": "NY",
+    "status": "ACTIVE",
+    "street": "298 12th Street",
+    "upcomingOpenHouse": null,
+    "displayUnit": "#4F",
+    "urlPath": "/building/298-12-street-brooklyn/4f",
+    "verifiedAt": "2026-09-17T16:04:34.000-04:00",
+    "verifiedUpToDate": false,
+    "zipCode": "11215",
+    "unit": "#4F",
+    "pricing": {
+      "monthlyMaintenance": null,
+      "monthlyTaxes": 587,
+      "monthlyCommonCharges": 199,
+      "maxFinancing": 80,
+      "taxDeduction": 0,
+      "price": 898000,
+      "priceDelta": -37000,
+      "soldPrice": null,
+      "estimatedMonthlyPayment": 5871,
+      "interestingPriceDelta": -47000,
+      "priceChanges": [
+        {
+          "price": 945000,
+          "changedAt": "2026-05-14T08:54:31.000-04:00"
+        },
+        {
+          "price": 935000,
+          "changedAt": "2026-08-10T21:31:28.000-04:00"
+        },
+        {
+          "price": 898000,
+          "changedAt": "2026-09-21T19:02:34.000-04:00"
+        }
+      ]
+    },
+    "propertyDetails": {
+      "address": {
+        "state": "NY",
+        "street": "298 12th Street",
+        "city": "BROOKLYN",
+        "zipCode": "11215",
+        "displayUnit": "#4F"
+      },
+      "roomCount": 4,
+      "bedroomCount": 2,
+      "fullBathroomCount": 1,
+      "halfBathroomCount": 0,
+      "livingAreaSize": null,
+      "lotAreaSize": 0,
+      "amenities": {
+        "list": [
+          "FIOS_AVAILABLE",
+          "LAUNDRY"
+        ],
+        "doormanTypes": [],
+        "parkingTypes": [],
+        "sharedOutdoorSpaceTypes": [],
+        "storageSpaceTypes": []
+      },
+      "features": {
+        "list": [
+          "VIEW",
+          "DISHWASHER",
+          "FIREPLACE",
+          "HARDWOOD_FLOORS"
+        ],
+        "fireplaceTypes": [],
+        "privateOutdoorSpaceTypes": [],
+        "views": [
+          "CITY",
+          "SKYLINE"
+        ]
+      }
+    },
+    "propertyHistory": [
+      {
+        "advertisedOnSe": true,
+        "closingId": null,
+        "listingId": "1828286",
+        "offMarketAt": null,
+        "soldDate": null,
+        "sourceGroupLabel": "Daniel Gale Sotheby's International Realty",
+        "saleEventsOfInterest": [
+          {
+            "date": "2026-09-21",
+            "price": 898000,
+            "pricePercentChange": -3.957219362258911
+          },
+          {
+            "date": "2026-08-10",
+            "price": 935000,
+            "pricePercentChange": -1.0582010746002197
+          },
+          {
+            "date": "2026-05-14",
+            "price": 945000,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "f1d3b9bc6ae51614142106bf74a666c8"
+          },
+          {
+            "key": "ef2b56eb2ab646fdf6b305d247d7934d"
+          },
+          {
+            "key": "e46587662bd7fa843f1aa77f5e3550c0"
+          },
+          {
+            "key": "3006a7636c8b6ad0d8bfdee1b6d40d24"
+          },
+          {
+            "key": "7e6b0285506d2b20eca2e7bcff403049"
+          },
+          {
+            "key": "08d7d2878374daf1022454ca03f38fcb"
+          },
+          {
+            "key": "5a45409ee8fd6e83e8557676c713d4cb"
+          },
+          {
+            "key": "e6a7e6d4002a1e37f8c1473fcd203680"
+          },
+          {
+            "key": "ccdf875fb2830b6cdec2bada8b79f4cd"
+          },
+          {
+            "key": "22c47dc82e795a835a760cba89517937"
+          },
+          {
+            "key": "9a2d5f6f464974243ea02c6e3fbf6155"
+          },
+          {
+            "key": "ed35ddb2e1f680f7cb7bbbe109d2a5d1"
+          }
+        ]
+      },
+      {
+        "advertisedOnSe": true,
+        "closingId": null,
+        "listingId": "1776484",
+        "offMarketAt": "2025-08-08",
+        "soldDate": null,
+        "sourceGroupLabel": "Daniel Gale Sotheby's International Realty",
+        "saleEventsOfInterest": [
+          {
+            "date": "2025-08-08",
+            "price": 925000,
+            "status": "DELISTED"
+          },
+          {
+            "date": "2025-08-06",
+            "price": 925000,
+            "pricePercentChange": 9.467455863952637
+          },
+          {
+            "date": "2025-07-18",
+            "price": 845000,
+            "pricePercentChange": -8.648648262023926
+          },
+          {
+            "date": "2025-06-18",
+            "price": 925000,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "71dbceae6b7fce98b1c71d02c73b1ad2"
+          },
+          {
+            "key": "2cc345f5274542c215608304137c803a"
+          },
+          {
+            "key": "8faf4bfc69a7be3a14ce9c4a504bb90a"
+          },
+          {
+            "key": "34bf370f89be1615212e5eaa25504bd0"
+          },
+          {
+            "key": "8dd45babf758bc38dfa0580b36ab4f7e"
+          },
+          {
+            "key": "ccbc0834b3c76cf912f67d35c27e4b0f"
+          },
+          {
+            "key": "108716f499ae5fa2cde48c0f6b3eb983"
+          },
+          {
+            "key": "b479482de40a4cee21600f1d0e52d237"
+          },
+          {
+            "key": "ce51931be49d306c635196d16d411fe3"
+          },
+          {
+            "key": "f6658e534bf22f8ba3e37a02fd24d6ff"
+          },
+          {
+            "key": "c0b9d42c5841fd6636e694ed87641639"
+          },
+          {
+            "key": "670a7707a5a912b3daf612ca2b953213"
+          },
+          {
+            "key": "61f773928ced6287f0b448b3a495220c"
+          },
+          {
+            "key": "ac5d93aa7e5530dedd7ba3023726c360"
+          },
+          {
+            "key": "32b31b069590d2c08c541cf9b5aecf26"
+          },
+          {
+            "key": "74a5396a99d6da4c59af6a6c999940cc"
+          }
+        ]
+      }
+    ],
+    "upcomingOpenHouses": [],
+    "media": null,
+    "listingSource": {
+      "sourceType": "PARTNER",
+      "sourceListingId": null
+    },
+    "mlsNumber": null,
+    "listingId": "1828286",
+    "propertyId": "940372",
+    "yearBuilt": 1925,
+    "daysOnMarket": 141,
+    "onMarketAt": "2026-05-14",
+    "nearbySchools": [
+      {
+        "id": "22115",
+        "idstr": "ps124-brooklyn",
+        "name": "P.S. 124 Silas B. Dutcher",
+        "district": "15",
+        "grades": [
+          "PK",
+          "0K",
+          "01",
+          "02",
+          "03",
+          "04",
+          "05",
+          "SE"
+        ]
+      }
+    ],
+    "recentListingsPriceStats": {
+      "bedroomCount": 2,
+      "rentalPriceStats": {
+        "maxPrice": 14950,
+        "medianPrice": 5272,
+        "minPrice": 2800,
+        "numListings": 146
+      },
+      "salePriceStats": {
+        "maxPrice": 3000000,
+        "medianPrice": 1497000,
+        "minPrice": 400000,
+        "numListings": 82
+      }
+    },
+    "monthlyFees": null,
+    "moveInFees": null,
+    "additionalFees": null,
+    "hasFinancialData": true,
+    "residentialUnitCount": 8,
+    "floorCount": 4,
+    "description": "MOTIVATED SELLER !! Acepting Offers Sun-Filled Top-Floor Gem in the Heart of Park Slope Welcome home to this exceptionally bright and uniquely charming two-bedroom apartment nestled in the very heart of Park Slope. Perched on the top floor with soaring 12-foot ceilings, this home is flooded with natural light from skylights in every room—so much so, you may find yourself reaching for your sunglasses indoors. From the moment you enter, you’re greeted by an incredible sense of openness, warmth, and light. The open-concept kitchen flows seamlessly into the spacious living area, creating the perfect setting for both entertaining and everyday living. There’s ample room for a full dining table, while the kitchen features a gas oven/stovetop, dishwasher, and generous cabinet storage. ( Kitchen and bathroom need updating ) Cozy up beside the working fireplace on crisp evenings or unwind while taking in charming city skyline views from your sun-drenched living room year-round. Both bedrooms comfortably accommodate queen-size beds along with additional furniture, and the apartment offers abundant closet space throughout to keep everything organized and clutter-free. Located just moments from Prospect Park, it practically feels like your own backyard, this unbeatable location places you in the center of everything that makes Park Slope one of Brooklyn’s most beloved neighborhoods: tree-lined streets, charming cafés, renowned schools, boutique shopping, and an unmatched neighborhood atmosphere. Additional highlights include: • Laundry in the building • Top-floor privacy • Investor and end-user friendly Whether you’re searching for your forever home, or a strong investment opportunity in one of Brooklyn’s most sought-after neighborhoods, this is a rare offering you won’t want to miss. All offers are welcome. Call or text today to schedule your private viewing—opportunities like this don’t come around often. Let’s make this home yours.",
+    "images": [
+      "https://photos.zillowstatic.com/fp/f1d3b9bc6ae51614142106bf74a666c8-full.webp",
+      "https://photos.zillowstatic.com/fp/ef2b56eb2ab646fdf6b305d247d7934d-full.webp",
+      "https://photos.zillowstatic.com/fp/e46587662bd7fa843f1aa77f5e3550c0-full.webp",
+      "https://photos.zillowstatic.com/fp/3006a7636c8b6ad0d8bfdee1b6d40d24-full.webp",
+      "https://photos.zillowstatic.com/fp/7e6b0285506d2b20eca2e7bcff403049-full.webp",
+      "https://photos.zillowstatic.com/fp/08d7d2878374daf1022454ca03f38fcb-full.webp",
+      "https://photos.zillowstatic.com/fp/5a45409ee8fd6e83e8557676c713d4cb-full.webp",
+      "https://photos.zillowstatic.com/fp/e6a7e6d4002a1e37f8c1473fcd203680-full.webp",
+      "https://photos.zillowstatic.com/fp/ccdf875fb2830b6cdec2bada8b79f4cd-full.webp",
+      "https://photos.zillowstatic.com/fp/22c47dc82e795a835a760cba89517937-full.webp",
+      "https://photos.zillowstatic.com/fp/9a2d5f6f464974243ea02c6e3fbf6155-full.webp",
+      "https://photos.zillowstatic.com/fp/ed35ddb2e1f680f7cb7bbbe109d2a5d1-full.webp"
+    ],
+    "statusChanges": [
+      {
+        "status": "DRAFT",
+        "changedAt": "2026-05-14T08:48:48.000-04:00"
+      },
+      {
+        "status": "ACTIVE",
+        "changedAt": "2026-05-14T10:11:15.000-04:00"
+      }
+    ],
+    "buildingId": "71987",
+    "createdAt": "2026-05-14T08:48:48.000-04:00",
+    "updatedAt": "2026-09-27T10:28:28.000-04:00",
+    "interestingChangeAt": "2026-09-24T13:14:38.000-04:00",
+    "latestListing": {
+      "id": "1828286",
+      "status": "ACTIVE",
+      "pricing": {
+        "price": 898000
+      }
+    },
+    "listingAddress": "298 12th Street #4F",
+    "soldDate": null,
+    "monthly_taxes": 587,
+    "monthly_fees": 199,
+    "maintenance": null,
+    "sold_price": null,
+    "sold_date": null,
+    "rent": 898000,
+    "lease_term_months": null,
+    "months_free": null,
+    "net_effective_rent": null,
+    "security_deposit": null,
+    "due_up_front": null,
+    "furnished_rent": null,
+    "year_built": 1925,
+    "residential_unit_count": 8,
+    "floor_count": 4,
+    "stories": 4,
+    "days_on_market": 141,
+    "on_market_at": "2026-05-14",
+    "off_market_at": null,
+    "source_group_label": "Daniel Gale Sotheby's International Realty",
+    "originalSearchUrl": "https://streeteasy.com/for-sale/park-slope/price:-1500000%7Cbeds%3E=2?sort_by=price_asc",
+    "partial": false
+  }
+]
