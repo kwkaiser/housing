@@ -31,6 +31,7 @@ func Key(l listing.Listing) string {
 var sourceRank = []listing.Source{
 	listing.SourceZillow,
 	listing.SourceRedfin,
+	listing.SourceStreetEasy,
 	listing.SourceRealtor,
 	listing.SourceFacebook,
 	listing.SourceCraigslist,

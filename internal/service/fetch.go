@@ -18,6 +18,7 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/providers/craigslist"
 	"git.kwkaiser.io/kwkaiser/housing/internal/providers/facebook"
 	"git.kwkaiser.io/kwkaiser/housing/internal/providers/redfin"
+	"git.kwkaiser.io/kwkaiser/housing/internal/providers/streeteasy"
 	"git.kwkaiser.io/kwkaiser/housing/internal/providers/zillow"
 	"git.kwkaiser.io/kwkaiser/housing/internal/store"
 )
@@ -208,6 +209,8 @@ func NewProvider(source listing.Source, runner apify.Runner) (listing.Provider, 
 		return craigslist.New(runner, zillow.NewAutocomplete()), nil
 	case listing.SourceFacebook:
 		return facebook.New(runner, zillow.NewAutocomplete()), nil
+	case listing.SourceStreetEasy:
+		return streeteasy.New(runner, zillow.NewAutocomplete()), nil
 	}
 	return nil, fmt.Errorf("unsupported source %q", source)
 }
@@ -231,7 +234,7 @@ func SupportedSources() []listing.Source {
 	return out
 }
 
-const LookupSites = "Zillow, Redfin, Craigslist or Facebook Marketplace"
+const LookupSites = "Zillow, Redfin, StreetEasy, Craigslist or Facebook Marketplace"
 
 func LookupFor(rawURL string, runner apify.Runner) (listing.Lookup, error) {
 	u, err := url.Parse(rawURL)
@@ -247,6 +250,8 @@ func LookupFor(rawURL string, runner apify.Runner) (listing.Lookup, error) {
 		check, lookup = redfin.ListingURL, redfin.New(runner, zillow.NewAutocomplete())
 	case craigslist.IsHost(host):
 		check, lookup = craigslist.ListingURL, craigslist.New(runner, zillow.NewAutocomplete())
+	case streeteasy.IsHost(host):
+		check, lookup = streeteasy.ListingURL, streeteasy.New(runner, zillow.NewAutocomplete())
 	case facebook.IsHost(host):
 		check, lookup = facebook.ListingURL, facebook.New(runner, zillow.NewAutocomplete())
 	default:

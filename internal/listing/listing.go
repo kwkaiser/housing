@@ -13,9 +13,10 @@ const (
 	SourceRealtor    Source = "realtor"
 	SourceCraigslist Source = "craigslist"
 	SourceFacebook   Source = "facebook"
+	SourceStreetEasy Source = "streeteasy"
 )
 
-var Sources = []Source{SourceZillow, SourceRedfin, SourceRealtor, SourceCraigslist, SourceFacebook}
+var Sources = []Source{SourceZillow, SourceRedfin, SourceRealtor, SourceCraigslist, SourceFacebook, SourceStreetEasy}
 
 type OfferType string
 

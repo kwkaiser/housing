@@ -1,0 +1,1206 @@
+[
+  {
+    "id": "5147149",
+    "areaName": "Williamsburg",
+    "availableAt": "2026-08-31",
+    "bedroomCount": 1,
+    "buildingType": "RENTAL",
+    "fullBathroomCount": 1,
+    "furnished": false,
+    "geoPoint": {
+      "latitude": 40.708508,
+      "longitude": -73.94099
+    },
+    "halfBathroomCount": 0,
+    "hasTour3d": false,
+    "hasVideos": false,
+    "interestingPriceDelta": null,
+    "isNewDevelopment": false,
+    "isPremiumHdpEnabled": true,
+    "leaseTermMonths": null,
+    "livingAreaSize": 0,
+    "monthsFree": 0,
+    "netEffectivePrice": 0,
+    "offMarketAt": null,
+    "photos": [
+      {
+        "description": "195 Meserole Street image 1 of 4",
+        "key": "5d4c087e1000da20fc4f7fab4f7e6907",
+        "url": "https://photos.zillowstatic.com/fp/5d4c087e1000da20fc4f7fab4f7e6907-p_e.webp"
+      },
+      {
+        "description": "195 Meserole Street image 2 of 4",
+        "key": "5610c36bf60152827d08984b263a8022",
+        "url": "https://photos.zillowstatic.com/fp/5610c36bf60152827d08984b263a8022-p_e.webp"
+      },
+      {
+        "description": "195 Meserole Street image 3 of 4",
+        "key": "7c6d5334c16f4902225632473963f6c7",
+        "url": "https://photos.zillowstatic.com/fp/7c6d5334c16f4902225632473963f6c7-p_e.webp"
+      },
+      {
+        "description": "195 Meserole Street image 4 of 4",
+        "key": "3020f161c4af00d18908779aa42300d9",
+        "url": "https://photos.zillowstatic.com/fp/3020f161c4af00d18908779aa42300d9-p_e.webp"
+      }
+    ],
+    "price": 4000,
+    "totalMonthlyPrice": null,
+    "slug": "195-meserole-street-brooklyn",
+    "sourceGroupLabel": "NOVO Living LLC",
+    "sourceType": "PARTNER",
+    "state": "NY",
+    "status": "ACTIVE",
+    "street": "195 Meserole Street",
+    "upcomingOpenHouse": null,
+    "displayUnit": "#1R",
+    "urlPath": "/building/195-meserole-street-brooklyn/1r",
+    "zipCode": "11206",
+    "tier": "PREMIUM",
+    "unit": "#1R",
+    "pricing": {
+      "price": 4000,
+      "priceDelta": null,
+      "totalMonthlyPrice": null,
+      "furnishedRent": null,
+      "dueUpFront": null,
+      "securityDeposit": null,
+      "leaseTermMonths": null,
+      "monthsFree": null,
+      "rentedPrice": null,
+      "netEffectiveRent": null,
+      "interestingPriceDelta": null,
+      "priceChanges": [
+        {
+          "price": 4000,
+          "changedAt": "2026-08-31T04:49:37.000-04:00"
+        }
+      ],
+      "monthlyFees": [],
+      "moveInFees": [
+        {
+          "typeLabel": "Application fee",
+          "requirement": "REQUIRED",
+          "refundability": {
+            "type": "NON_REFUNDABLE"
+          },
+          "calculation": {
+            "calculationType": "FLAT_FEE",
+            "feeQuantifier": 20,
+            "maxQuantifier": null
+          },
+          "schedule": {
+            "timing": "APPLICATION_SUBMISSION",
+            "occurrenceType": "ONE_TIME"
+          }
+        },
+        {
+          "typeLabel": "Security deposit",
+          "requirement": "REQUIRED",
+          "refundability": {
+            "type": "REFUNDABLE"
+          },
+          "calculation": {
+            "calculationType": "FLAT_FEE",
+            "feeQuantifier": 4000,
+            "maxQuantifier": null
+          },
+          "schedule": {
+            "timing": "MOVE_IN",
+            "occurrenceType": "ONE_TIME"
+          }
+        }
+      ],
+      "additionalFees": []
+    },
+    "propertyDetails": {
+      "address": {
+        "state": "NY",
+        "street": "195 Meserole Street",
+        "city": "BROOKLYN",
+        "zipCode": "11206",
+        "displayUnit": "#1R"
+      },
+      "roomCount": 3,
+      "bedroomCount": 1,
+      "fullBathroomCount": 1,
+      "halfBathroomCount": 0,
+      "livingAreaSize": null,
+      "lotAreaSize": 0,
+      "amenities": {
+        "list": [
+          "FIOS_AVAILABLE"
+        ],
+        "doormanTypes": [],
+        "parkingTypes": [],
+        "sharedOutdoorSpaceTypes": [],
+        "storageSpaceTypes": []
+      },
+      "features": {
+        "list": [
+          "VIEW",
+          "DISHWASHER",
+          "HARDWOOD_FLOORS",
+          "PRIVATE_OUTDOOR_SPACE",
+          "WASHER_DRYER"
+        ],
+        "fireplaceTypes": [],
+        "privateOutdoorSpaceTypes": [
+          "TERRACE"
+        ],
+        "views": [
+          "CITY"
+        ]
+      }
+    },
+    "propertyHistory": [
+      {
+        "listingId": "5147149",
+        "sourceGroupLabel": "NOVO Living LLC",
+        "rentalEventsOfInterest": [
+          {
+            "date": "2026-09-01",
+            "price": 4000,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "5d4c087e1000da20fc4f7fab4f7e6907"
+          },
+          {
+            "key": "5610c36bf60152827d08984b263a8022"
+          },
+          {
+            "key": "7c6d5334c16f4902225632473963f6c7"
+          },
+          {
+            "key": "3020f161c4af00d18908779aa42300d9"
+          }
+        ]
+      }
+    ],
+    "upcomingOpenHouses": [],
+    "media": null,
+    "listingSource": {
+      "sourceType": "PARTNER",
+      "sourceListingId": null
+    },
+    "mlsNumber": null,
+    "listingId": "5147149",
+    "propertyId": null,
+    "yearBuilt": 1920,
+    "daysOnMarket": 31,
+    "onMarketAt": "2026-09-01",
+    "nearbySchools": [
+      {
+        "id": "22255",
+        "idstr": "ps196-brooklyn",
+        "name": "P.S. 196 Ten Eyck",
+        "district": "14",
+        "grades": [
+          "PK",
+          "0K",
+          "01",
+          "02",
+          "03",
+          "04",
+          "05",
+          "SE"
+        ]
+      }
+    ],
+    "recentListingsPriceStats": {
+      "bedroomCount": 1,
+      "rentalPriceStats": {
+        "maxPrice": 8500,
+        "medianPrice": 4755,
+        "minPrice": 2650,
+        "numListings": 412
+      },
+      "salePriceStats": {
+        "maxPrice": 4850000,
+        "medianPrice": 1070000,
+        "minPrice": 40000,
+        "numListings": 119
+      }
+    },
+    "monthlyFees": [],
+    "moveInFees": [
+      {
+        "typeLabel": "Application fee",
+        "requirement": "REQUIRED",
+        "refundability": {
+          "type": "NON_REFUNDABLE"
+        },
+        "calculation": {
+          "calculationType": "FLAT_FEE",
+          "feeQuantifier": 20,
+          "maxQuantifier": null
+        },
+        "schedule": {
+          "timing": "APPLICATION_SUBMISSION",
+          "occurrenceType": "ONE_TIME"
+        }
+      },
+      {
+        "typeLabel": "Security deposit",
+        "requirement": "REQUIRED",
+        "refundability": {
+          "type": "REFUNDABLE"
+        },
+        "calculation": {
+          "calculationType": "FLAT_FEE",
+          "feeQuantifier": 4000,
+          "maxQuantifier": null
+        },
+        "schedule": {
+          "timing": "MOVE_IN",
+          "occurrenceType": "ONE_TIME"
+        }
+      }
+    ],
+    "additionalFees": [],
+    "hasFinancialData": true,
+    "residentialUnitCount": 5,
+    "floorCount": 3,
+    "description": "**Important: Please be sure to check your spam or junk folder if you do not receive a response to your inquiry within a few minutes.** Williamsburg Residence — Modern Renovation 1 Bed / 1 Bath · In-Unit Laundry Welcome home to this thoughtfully designed one-bedroom residence at 195 Meserole Street, offering a comfortable layout with modern finishes and everyday convenience in the heart of Williamsburg. Hardwood floors create a warm, polished feel throughout the home, while central air conditioning provides year-round comfort. The renovated kitchen is thoughtfully appointed with marble countertops, sleek cabinetry, and stainless steel appliances, including a dishwasher and built-in microwave. The bedroom provides a comfortable retreat with space for storage, while the full bathroom features contemporary fixtures and clean, modern finishes. An in-unit washer and dryer adds exceptional convenience to daily living. Ideally located at 195 Meserole Street in Williamsburg, you'll be moments from neighborhood restaurants, cafés, bars, boutiques, and everyday conveniences. The nearby Montrose Avenue L train provides convenient connections throughout Brooklyn and into Manhattan. PLEASE NOTE: Photos may be of a similar unit and have been virtually staged to illustrate potential interior design possibilities and are of a similar unit. Disclosure of Fees: Application Fee: $20/pp over 18 years First Month's Rent Security Deposit (Refundable): 1 Month Rent Utilities (Electric, Gas, Water): vary Pet Rent: $50/month per pet. (Note: Verified service and assistance animals are not considered pets and are not subject to pet rent, in accordance with fair housing law.) DISCLAIMER Please be advised that Freestone Property Group, Landlord, and its affiliates, utilize exclusive brokers/agents in connection with all rentals of real property. Prospective renters, their brokers and/or agents understand that neither the landlord nor landlord's agents will charge or collect fees to a prospective renter in connection with this property except for administrative and/or application fees as permitted by law. Nor will landlord or Landlord's Agent assume responsibility for any brokerage fees incurred by a prospective renter in connection with this property. Any broker/agent who contacts management in connection with this listing, who is not the exclusive broker is not the landlord's broker/agent and will not be paid by landlord. This listing is being published to prospective renters. This listing may not be re-published without the express written consent of the landlord. Equal Housing Opportunity: Listings and services are offered in compliance with the Fair Housing Act and the Equal Opportunity Act. We provide equal professional service to all, without regard to race, color, religion, sex, handicap, familial status, national origin, or other protected status, and support an environment where everyone is welcome and no one is excluded.",
+    "images": [
+      "https://photos.zillowstatic.com/fp/5d4c087e1000da20fc4f7fab4f7e6907-full.webp",
+      "https://photos.zillowstatic.com/fp/5610c36bf60152827d08984b263a8022-full.webp",
+      "https://photos.zillowstatic.com/fp/7c6d5334c16f4902225632473963f6c7-full.webp",
+      "https://photos.zillowstatic.com/fp/3020f161c4af00d18908779aa42300d9-full.webp"
+    ],
+    "statusChanges": [
+      {
+        "status": "DRAFT",
+        "changedAt": "2026-08-31T04:37:39.000-04:00"
+      },
+      {
+        "status": "ACTIVE",
+        "changedAt": "2026-09-01T12:52:38.000-04:00"
+      }
+    ],
+    "buildingId": "6376325",
+    "createdAt": "2026-08-31T04:37:39.000-04:00",
+    "updatedAt": "2026-09-01T12:52:38.000-04:00",
+    "interestingChangeAt": "2026-09-01T12:52:38.000-04:00",
+    "latestListing": {
+      "id": "5147149",
+      "status": "ACTIVE",
+      "pricing": {
+        "price": 4000
+      }
+    },
+    "listingAddress": "195 Meserole Street #1R",
+    "saleType": null,
+    "monthly_taxes": null,
+    "monthly_fees": null,
+    "maintenance": null,
+    "soldPrice": null,
+    "sold_price": null,
+    "sold_date": null,
+    "rent": 4000,
+    "lease_term_months": null,
+    "months_free": null,
+    "net_effective_rent": null,
+    "security_deposit": null,
+    "due_up_front": null,
+    "furnished_rent": null,
+    "year_built": 1920,
+    "residential_unit_count": 5,
+    "floor_count": 3,
+    "stories": 3,
+    "days_on_market": 31,
+    "on_market_at": "2026-09-01",
+    "off_market_at": null,
+    "source_group_label": "NOVO Living LLC",
+    "originalSearchUrl": "https://streeteasy.com/for-rent/williamsburg/price:2000-4000%7Cbeds:1-2?sort_by=price_asc",
+    "partial": false
+  },
+  {
+    "id": "5165844",
+    "areaName": "Williamsburg",
+    "availableAt": "2026-10-01",
+    "bedroomCount": 1,
+    "buildingType": "RENTAL",
+    "fullBathroomCount": 1,
+    "furnished": false,
+    "geoPoint": {
+      "latitude": 40.71581,
+      "longitude": -73.95034
+    },
+    "halfBathroomCount": 0,
+    "hasTour3d": false,
+    "hasVideos": false,
+    "interestingPriceDelta": null,
+    "isNewDevelopment": false,
+    "isPremiumHdpEnabled": true,
+    "leaseTermMonths": null,
+    "livingAreaSize": 0,
+    "monthsFree": 0,
+    "netEffectivePrice": 0,
+    "offMarketAt": null,
+    "photos": [
+      {
+        "description": "240 Meeker Avenue image 1 of 9",
+        "key": "d9adb7c6401053ba131eda90dcd9efa6",
+        "url": "https://photos.zillowstatic.com/fp/d9adb7c6401053ba131eda90dcd9efa6-p_e.webp"
+      },
+      {
+        "description": "240 Meeker Avenue image 2 of 9",
+        "key": "aea6d2a449b13d851a5255f067949638",
+        "url": "https://photos.zillowstatic.com/fp/aea6d2a449b13d851a5255f067949638-p_e.webp"
+      },
+      {
+        "description": "240 Meeker Avenue image 3 of 9",
+        "key": "bc644c435c71b684fa96077f6f17e99b",
+        "url": "https://photos.zillowstatic.com/fp/bc644c435c71b684fa96077f6f17e99b-p_e.webp"
+      },
+      {
+        "description": "240 Meeker Avenue image 4 of 9",
+        "key": "2c27c0871bf75bf63fdfc5a2fb3a1444",
+        "url": "https://photos.zillowstatic.com/fp/2c27c0871bf75bf63fdfc5a2fb3a1444-p_e.webp"
+      },
+      {
+        "description": "240 Meeker Avenue image 5 of 9",
+        "key": "4bf1aa2faaeba918a28314bfc454b0b2",
+        "url": "https://photos.zillowstatic.com/fp/4bf1aa2faaeba918a28314bfc454b0b2-p_e.webp"
+      },
+      {
+        "description": "240 Meeker Avenue image 6 of 9",
+        "key": "6ff4de23213f5678a4656e16a5c1fc3e",
+        "url": "https://photos.zillowstatic.com/fp/6ff4de23213f5678a4656e16a5c1fc3e-p_e.webp"
+      },
+      {
+        "description": "240 Meeker Avenue image 7 of 9",
+        "key": "8bce739e630b184a6a190edb1064eb78",
+        "url": "https://photos.zillowstatic.com/fp/8bce739e630b184a6a190edb1064eb78-p_e.webp"
+      },
+      {
+        "description": "240 Meeker Avenue image 8 of 9",
+        "key": "1e5952375f0398e5bb55d9db83779eca",
+        "url": "https://photos.zillowstatic.com/fp/1e5952375f0398e5bb55d9db83779eca-p_e.webp"
+      },
+      {
+        "description": "240 Meeker Avenue image 9 of 9",
+        "key": "95017632e48175451388186bae0db4af",
+        "url": "https://photos.zillowstatic.com/fp/95017632e48175451388186bae0db4af-p_e.webp"
+      }
+    ],
+    "price": 3999,
+    "totalMonthlyPrice": null,
+    "slug": "240-meeker-avenue-brooklyn",
+    "sourceGroupLabel": "The Agency",
+    "sourceType": "PARTNER",
+    "state": "NY",
+    "status": "ACTIVE",
+    "street": "240 Meeker Avenue",
+    "upcomingOpenHouse": null,
+    "displayUnit": "#9",
+    "urlPath": "/building/240-meeker-avenue-brooklyn/9",
+    "zipCode": "11211",
+    "tier": "PREMIUM",
+    "unit": "#9",
+    "pricing": {
+      "price": 3999,
+      "priceDelta": null,
+      "totalMonthlyPrice": null,
+      "furnishedRent": null,
+      "dueUpFront": null,
+      "securityDeposit": null,
+      "leaseTermMonths": null,
+      "monthsFree": null,
+      "rentedPrice": null,
+      "netEffectiveRent": null,
+      "interestingPriceDelta": null,
+      "priceChanges": [
+        {
+          "price": 3999,
+          "changedAt": "2026-09-23T11:14:30.000-04:00"
+        }
+      ],
+      "monthlyFees": [],
+      "moveInFees": [
+        {
+          "typeLabel": "Application fee",
+          "requirement": "REQUIRED",
+          "refundability": {
+            "type": "NON_REFUNDABLE"
+          },
+          "calculation": {
+            "calculationType": "FLAT_FEE",
+            "feeQuantifier": 20,
+            "maxQuantifier": null
+          },
+          "schedule": {
+            "timing": "APPLICATION_SUBMISSION",
+            "occurrenceType": "ONE_TIME"
+          }
+        },
+        {
+          "typeLabel": "Security deposit",
+          "requirement": "REQUIRED",
+          "refundability": {
+            "type": "REFUNDABLE"
+          },
+          "calculation": {
+            "calculationType": "FLAT_FEE",
+            "feeQuantifier": 3999,
+            "maxQuantifier": null
+          },
+          "schedule": {
+            "timing": "APPLICATION_SUBMISSION",
+            "occurrenceType": "ONE_TIME"
+          }
+        }
+      ],
+      "additionalFees": []
+    },
+    "propertyDetails": {
+      "address": {
+        "state": "NY",
+        "street": "240 Meeker Avenue",
+        "city": "BROOKLYN",
+        "zipCode": "11211",
+        "displayUnit": "#9"
+      },
+      "roomCount": 3,
+      "bedroomCount": 1,
+      "fullBathroomCount": 1,
+      "halfBathroomCount": 0,
+      "livingAreaSize": null,
+      "lotAreaSize": 0,
+      "amenities": {
+        "list": [
+          "BIKE_ROOM",
+          "ELEVATOR",
+          "FIOS_AVAILABLE",
+          "LAUNDRY",
+          "LIVE_IN_SUPER",
+          "PACKAGE_ROOM",
+          "SHARED_OUTDOOR_SPACE"
+        ],
+        "doormanTypes": [],
+        "parkingTypes": [],
+        "sharedOutdoorSpaceTypes": [
+          "ROOF_DECK"
+        ],
+        "storageSpaceTypes": []
+      },
+      "features": {
+        "list": [
+          "CENTRAL_AC",
+          "DISHWASHER",
+          "HARDWOOD_FLOORS",
+          "VIEW",
+          "PRIVATE_OUTDOOR_SPACE"
+        ],
+        "fireplaceTypes": [],
+        "privateOutdoorSpaceTypes": [
+          "TERRACE"
+        ],
+        "views": [
+          "SKYLINE"
+        ]
+      }
+    },
+    "propertyHistory": [
+      {
+        "listingId": "5165844",
+        "sourceGroupLabel": "The Agency",
+        "rentalEventsOfInterest": [
+          {
+            "date": "2026-09-23",
+            "price": 3999,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "d9adb7c6401053ba131eda90dcd9efa6"
+          },
+          {
+            "key": "aea6d2a449b13d851a5255f067949638"
+          },
+          {
+            "key": "bc644c435c71b684fa96077f6f17e99b"
+          },
+          {
+            "key": "2c27c0871bf75bf63fdfc5a2fb3a1444"
+          },
+          {
+            "key": "4bf1aa2faaeba918a28314bfc454b0b2"
+          },
+          {
+            "key": "6ff4de23213f5678a4656e16a5c1fc3e"
+          },
+          {
+            "key": "8bce739e630b184a6a190edb1064eb78"
+          },
+          {
+            "key": "1e5952375f0398e5bb55d9db83779eca"
+          },
+          {
+            "key": "95017632e48175451388186bae0db4af"
+          }
+        ]
+      }
+    ],
+    "upcomingOpenHouses": [],
+    "media": null,
+    "listingSource": {
+      "sourceType": "PARTNER",
+      "sourceListingId": null
+    },
+    "mlsNumber": null,
+    "listingId": "5165844",
+    "propertyId": null,
+    "yearBuilt": 1920,
+    "daysOnMarket": 9,
+    "onMarketAt": "2026-09-23",
+    "nearbySchools": [
+      {
+        "id": "25044",
+        "idstr": "ps17-brooklyn",
+        "name": "P.S. 017 Henry D. Woodworth",
+        "district": "14",
+        "grades": [
+          "PK",
+          "0K",
+          "01",
+          "02",
+          "03",
+          "04",
+          "05",
+          "SE"
+        ]
+      }
+    ],
+    "recentListingsPriceStats": {
+      "bedroomCount": 1,
+      "rentalPriceStats": {
+        "maxPrice": 8500,
+        "medianPrice": 4755,
+        "minPrice": 2650,
+        "numListings": 412
+      },
+      "salePriceStats": {
+        "maxPrice": 4850000,
+        "medianPrice": 1070000,
+        "minPrice": 40000,
+        "numListings": 119
+      }
+    },
+    "monthlyFees": [],
+    "moveInFees": [
+      {
+        "typeLabel": "Application fee",
+        "requirement": "REQUIRED",
+        "refundability": {
+          "type": "NON_REFUNDABLE"
+        },
+        "calculation": {
+          "calculationType": "FLAT_FEE",
+          "feeQuantifier": 20,
+          "maxQuantifier": null
+        },
+        "schedule": {
+          "timing": "APPLICATION_SUBMISSION",
+          "occurrenceType": "ONE_TIME"
+        }
+      },
+      {
+        "typeLabel": "Security deposit",
+        "requirement": "REQUIRED",
+        "refundability": {
+          "type": "REFUNDABLE"
+        },
+        "calculation": {
+          "calculationType": "FLAT_FEE",
+          "feeQuantifier": 3999,
+          "maxQuantifier": null
+        },
+        "schedule": {
+          "timing": "APPLICATION_SUBMISSION",
+          "occurrenceType": "ONE_TIME"
+        }
+      }
+    ],
+    "additionalFees": [],
+    "hasFinancialData": true,
+    "residentialUnitCount": 48,
+    "floorCount": 10,
+    "description": "Super bright with 1 bedroom with city skyline views and priced to rent in Williamsburg just 3 blocks from Lorimer L/G trains. Awesome apartment with tons of light, massive living room, full gourmet kitchen with dishwasher and stainless steel appliances, central heating and air conditioning, exposed brick as a nice touch to work together with modern finishes, large private terrace and breathtaking views! Building offers amenities like bike parking, roof access, laundry room.",
+    "images": [
+      "https://photos.zillowstatic.com/fp/d9adb7c6401053ba131eda90dcd9efa6-full.webp",
+      "https://photos.zillowstatic.com/fp/aea6d2a449b13d851a5255f067949638-full.webp",
+      "https://photos.zillowstatic.com/fp/bc644c435c71b684fa96077f6f17e99b-full.webp",
+      "https://photos.zillowstatic.com/fp/2c27c0871bf75bf63fdfc5a2fb3a1444-full.webp",
+      "https://photos.zillowstatic.com/fp/4bf1aa2faaeba918a28314bfc454b0b2-full.webp",
+      "https://photos.zillowstatic.com/fp/6ff4de23213f5678a4656e16a5c1fc3e-full.webp",
+      "https://photos.zillowstatic.com/fp/8bce739e630b184a6a190edb1064eb78-full.webp",
+      "https://photos.zillowstatic.com/fp/1e5952375f0398e5bb55d9db83779eca-full.webp",
+      "https://photos.zillowstatic.com/fp/95017632e48175451388186bae0db4af-full.webp"
+    ],
+    "statusChanges": [
+      {
+        "status": "DRAFT",
+        "changedAt": "2026-09-23T11:10:29.000-04:00"
+      },
+      {
+        "status": "ACTIVE",
+        "changedAt": "2026-09-23T11:15:15.000-04:00"
+      }
+    ],
+    "buildingId": "124318",
+    "createdAt": "2026-09-23T11:10:29.000-04:00",
+    "updatedAt": "2026-09-23T11:15:17.000-04:00",
+    "interestingChangeAt": "2026-09-23T11:15:15.000-04:00",
+    "latestListing": {
+      "id": "5165844",
+      "status": "ACTIVE",
+      "pricing": {
+        "price": 3999
+      }
+    },
+    "listingAddress": "240 Meeker Avenue #9",
+    "saleType": null,
+    "monthly_taxes": null,
+    "monthly_fees": null,
+    "maintenance": null,
+    "soldPrice": null,
+    "sold_price": null,
+    "sold_date": null,
+    "rent": 3999,
+    "lease_term_months": null,
+    "months_free": null,
+    "net_effective_rent": null,
+    "security_deposit": null,
+    "due_up_front": null,
+    "furnished_rent": null,
+    "year_built": 1920,
+    "residential_unit_count": 48,
+    "floor_count": 10,
+    "stories": 10,
+    "days_on_market": 9,
+    "on_market_at": "2026-09-23",
+    "off_market_at": null,
+    "source_group_label": "The Agency",
+    "originalSearchUrl": "https://streeteasy.com/for-rent/williamsburg/price:2000-4000%7Cbeds:1-2?sort_by=price_asc",
+    "partial": false
+  },
+  {
+    "id": "5170579",
+    "areaName": "Williamsburg",
+    "availableAt": "2026-10-15",
+    "bedroomCount": 1,
+    "buildingType": "MIXED_USE",
+    "fullBathroomCount": 1,
+    "furnished": false,
+    "geoPoint": {
+      "latitude": 40.705547,
+      "longitude": -73.94318
+    },
+    "halfBathroomCount": 0,
+    "hasTour3d": false,
+    "hasVideos": true,
+    "interestingPriceDelta": null,
+    "isNewDevelopment": false,
+    "isPremiumHdpEnabled": false,
+    "leaseTermMonths": null,
+    "livingAreaSize": 0,
+    "monthsFree": 0,
+    "netEffectivePrice": 0,
+    "offMarketAt": null,
+    "photos": [
+      {
+        "description": "111 Graham Avenue image 1 of 5",
+        "key": "494137040d36c55ecc8cdfd9ec6200d6",
+        "url": "https://photos.zillowstatic.com/fp/494137040d36c55ecc8cdfd9ec6200d6-p_e.webp"
+      },
+      {
+        "description": "111 Graham Avenue image 2 of 5",
+        "key": "f6ddc9b581b884511f05328c49a43d28",
+        "url": "https://photos.zillowstatic.com/fp/f6ddc9b581b884511f05328c49a43d28-p_e.webp"
+      },
+      {
+        "description": "111 Graham Avenue image 3 of 5",
+        "key": "50add6c2726bdfb26316241578fe5c7b",
+        "url": "https://photos.zillowstatic.com/fp/50add6c2726bdfb26316241578fe5c7b-p_e.webp"
+      },
+      {
+        "description": "111 Graham Avenue image 4 of 5",
+        "key": "8d54186daf46809ce886883fd8edbe1d",
+        "url": "https://photos.zillowstatic.com/fp/8d54186daf46809ce886883fd8edbe1d-p_e.webp"
+      },
+      {
+        "description": "111 Graham Avenue image 5 of 5",
+        "key": "a6ea2beb1ae546741b9786827bd2938f",
+        "url": "https://photos.zillowstatic.com/fp/a6ea2beb1ae546741b9786827bd2938f-p_e.webp"
+      }
+    ],
+    "price": 2900,
+    "totalMonthlyPrice": null,
+    "slug": "111-graham-avenue-brooklyn",
+    "sourceGroupLabel": "Pomona Malone Inc",
+    "sourceType": "PARTNER",
+    "state": "NY",
+    "status": "ACTIVE",
+    "street": "111 Graham Avenue",
+    "upcomingOpenHouse": null,
+    "displayUnit": "#3R",
+    "urlPath": "/building/111-graham-avenue-brooklyn/3r",
+    "zipCode": "11206",
+    "tier": "BASIC",
+    "unit": "#3R",
+    "pricing": {
+      "price": 2900,
+      "priceDelta": null,
+      "totalMonthlyPrice": null,
+      "furnishedRent": null,
+      "dueUpFront": null,
+      "securityDeposit": null,
+      "leaseTermMonths": null,
+      "monthsFree": null,
+      "rentedPrice": null,
+      "netEffectiveRent": null,
+      "interestingPriceDelta": null,
+      "priceChanges": [
+        {
+          "price": 2900,
+          "changedAt": "2026-09-30T10:23:16.000-04:00"
+        }
+      ],
+      "monthlyFees": [],
+      "moveInFees": [
+        {
+          "typeLabel": "Application fee",
+          "requirement": "REQUIRED",
+          "refundability": {
+            "type": "NON_REFUNDABLE"
+          },
+          "calculation": {
+            "calculationType": "FLAT_FEE",
+            "feeQuantifier": 20,
+            "maxQuantifier": null
+          },
+          "schedule": {
+            "timing": "APPLICATION_SUBMISSION",
+            "occurrenceType": "ONE_TIME"
+          }
+        },
+        {
+          "typeLabel": "Security deposit",
+          "requirement": "REQUIRED",
+          "refundability": {
+            "type": "REFUNDABLE"
+          },
+          "calculation": {
+            "calculationType": "FLAT_FEE",
+            "feeQuantifier": 2900,
+            "maxQuantifier": null
+          },
+          "schedule": {
+            "timing": "MOVE_IN",
+            "occurrenceType": "ONE_TIME"
+          }
+        }
+      ],
+      "additionalFees": []
+    },
+    "propertyDetails": {
+      "address": {
+        "state": "NY",
+        "street": "111 Graham Avenue",
+        "city": "BROOKLYN",
+        "zipCode": "11206",
+        "displayUnit": "#3R"
+      },
+      "roomCount": 1,
+      "bedroomCount": 1,
+      "fullBathroomCount": 1,
+      "halfBathroomCount": 0,
+      "livingAreaSize": null,
+      "lotAreaSize": 0,
+      "amenities": {
+        "list": [
+          "FIOS_AVAILABLE"
+        ],
+        "doormanTypes": [],
+        "parkingTypes": [],
+        "sharedOutdoorSpaceTypes": [],
+        "storageSpaceTypes": []
+      },
+      "features": {
+        "list": [
+          "DISHWASHER",
+          "HARDWOOD_FLOORS"
+        ],
+        "fireplaceTypes": [],
+        "privateOutdoorSpaceTypes": [],
+        "views": []
+      }
+    },
+    "propertyHistory": [
+      {
+        "listingId": "5170579",
+        "sourceGroupLabel": "Pomona Malone Inc",
+        "rentalEventsOfInterest": [
+          {
+            "date": "2026-10-01",
+            "price": 2900,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "494137040d36c55ecc8cdfd9ec6200d6"
+          },
+          {
+            "key": "f6ddc9b581b884511f05328c49a43d28"
+          },
+          {
+            "key": "50add6c2726bdfb26316241578fe5c7b"
+          },
+          {
+            "key": "8d54186daf46809ce886883fd8edbe1d"
+          },
+          {
+            "key": "a6ea2beb1ae546741b9786827bd2938f"
+          }
+        ]
+      },
+      {
+        "listingId": "3681292",
+        "sourceGroupLabel": "Pomona Malone Inc",
+        "rentalEventsOfInterest": [
+          {
+            "date": "2021-10-14",
+            "price": 2200,
+            "status": "RENTED"
+          }
+        ],
+        "photos": [
+          {
+            "key": "ec1bb331e0c8bd5e45ff112bc0b0e589"
+          },
+          {
+            "key": "07c0a0911579c0169ae4aa95f733a5ab"
+          },
+          {
+            "key": "d4e8f9d684e27f1fed387ba81efd168e"
+          }
+        ]
+      },
+      {
+        "listingId": "3192662",
+        "sourceGroupLabel": "Pomona Malone Inc",
+        "rentalEventsOfInterest": [
+          {
+            "date": "2020-09-13",
+            "price": 2100,
+            "status": "RENTED"
+          },
+          {
+            "date": "2020-09-12",
+            "price": 2100,
+            "status": "IN_CONTRACT"
+          },
+          {
+            "date": "2020-08-26",
+            "price": 2100,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "e5016d23430edc7f240bc96ffd972168"
+          },
+          {
+            "key": "dc3b29b2f58c018462a0c260b5de89cc"
+          },
+          {
+            "key": "6f1e5bc4c2ec5d5859f18a7990f90333"
+          },
+          {
+            "key": "7f1eed912b16f8e06ef561af491ae9ae"
+          },
+          {
+            "key": "dae386168b212ff6fbe3691dc15fd1f4"
+          },
+          {
+            "key": "7ee8e5e799e55f76f449873c7bc8f2e2"
+          },
+          {
+            "key": "cf62bb82384d96c7eda0221f064dc47e"
+          },
+          {
+            "key": "956bcf6ac47e5173526e1c4eef99eee1"
+          }
+        ]
+      },
+      {
+        "listingId": "3012161",
+        "sourceGroupLabel": "Pomona Malone Inc",
+        "rentalEventsOfInterest": [
+          {
+            "date": "2020-04-13",
+            "price": 2200,
+            "status": "RENTED"
+          },
+          {
+            "date": "2020-03-28",
+            "price": 2200,
+            "status": "IN_CONTRACT"
+          },
+          {
+            "date": "2020-03-27",
+            "price": 2200,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "4a763d030315d1305dca6fd54d3be1d2"
+          },
+          {
+            "key": "2a38dc42fafd686e11cc265093894dfe"
+          },
+          {
+            "key": "9f384cf282e95a9ba0ce5311f24f734d"
+          }
+        ]
+      },
+      {
+        "listingId": "2069287",
+        "sourceGroupLabel": "MySpaceNYC",
+        "rentalEventsOfInterest": [
+          {
+            "date": "2017-05-24",
+            "price": 2099,
+            "status": "NO_LONGER_AVAILABLE"
+          },
+          {
+            "date": "2017-05-21",
+            "price": 2099,
+            "status": "ACTIVE"
+          },
+          {
+            "date": "2017-05-13",
+            "price": 2099,
+            "status": "IN_CONTRACT"
+          },
+          {
+            "date": "2017-04-26",
+            "price": 2099,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "24d5d522a351d15397c120fa21c63bb8"
+          },
+          {
+            "key": "4475ae0def161a313d991e34aaf364c7"
+          },
+          {
+            "key": "cf7e78226207e673639ed874913e5418"
+          },
+          {
+            "key": "ecbc6fc7086a31dc4364636865f5bb5f"
+          },
+          {
+            "key": "bc3ea20e9b6c2f8eef2567ac5c765531"
+          },
+          {
+            "key": "720cd2f22d309928e1a858a47c5e8ced"
+          }
+        ]
+      },
+      {
+        "listingId": "2051449",
+        "sourceGroupLabel": "Pomona Malone Inc",
+        "rentalEventsOfInterest": [
+          {
+            "date": "2017-04-26",
+            "price": 2100,
+            "status": "DELISTED"
+          },
+          {
+            "date": "2017-04-04",
+            "price": 2100,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": [
+          {
+            "key": "e544b8c9308dff6408ccf0b86bb233ec"
+          },
+          {
+            "key": "bdbe2bae6b675abe10635ba4d9a0689b"
+          },
+          {
+            "key": "5239c8783b1a87fca6737c806f9c6053"
+          }
+        ]
+      },
+      {
+        "listingId": "1750194",
+        "sourceGroupLabel": "Pomona Malone Inc",
+        "rentalEventsOfInterest": [
+          {
+            "date": "2016-03-24",
+            "price": 2000,
+            "status": "RENTED"
+          },
+          {
+            "date": "2016-03-17",
+            "price": 2000,
+            "status": "ACTIVE"
+          }
+        ],
+        "photos": []
+      }
+    ],
+    "upcomingOpenHouses": [],
+    "media": null,
+    "listingSource": {
+      "sourceType": "PARTNER",
+      "sourceListingId": null
+    },
+    "mlsNumber": null,
+    "listingId": "5170579",
+    "propertyId": null,
+    "yearBuilt": 1920,
+    "daysOnMarket": 1,
+    "onMarketAt": "2026-10-01",
+    "nearbySchools": [
+      {
+        "id": "22256",
+        "idstr": "ps250-brooklyn",
+        "name": "P.S. 250 George H. Lindsay",
+        "district": "14",
+        "grades": [
+          "PK",
+          "0K",
+          "01",
+          "02",
+          "03",
+          "04",
+          "05",
+          "06",
+          "SE"
+        ]
+      }
+    ],
+    "recentListingsPriceStats": {
+      "bedroomCount": 1,
+      "rentalPriceStats": {
+        "maxPrice": 8500,
+        "medianPrice": 4755,
+        "minPrice": 2650,
+        "numListings": 412
+      },
+      "salePriceStats": {
+        "maxPrice": 4850000,
+        "medianPrice": 1070000,
+        "minPrice": 40000,
+        "numListings": 119
+      }
+    },
+    "monthlyFees": [],
+    "moveInFees": [
+      {
+        "typeLabel": "Application fee",
+        "requirement": "REQUIRED",
+        "refundability": {
+          "type": "NON_REFUNDABLE"
+        },
+        "calculation": {
+          "calculationType": "FLAT_FEE",
+          "feeQuantifier": 20,
+          "maxQuantifier": null
+        },
+        "schedule": {
+          "timing": "APPLICATION_SUBMISSION",
+          "occurrenceType": "ONE_TIME"
+        }
+      },
+      {
+        "typeLabel": "Security deposit",
+        "requirement": "REQUIRED",
+        "refundability": {
+          "type": "REFUNDABLE"
+        },
+        "calculation": {
+          "calculationType": "FLAT_FEE",
+          "feeQuantifier": 2900,
+          "maxQuantifier": null
+        },
+        "schedule": {
+          "timing": "MOVE_IN",
+          "occurrenceType": "ONE_TIME"
+        }
+      }
+    ],
+    "additionalFees": [],
+    "hasFinancialData": true,
+    "residentialUnitCount": 2,
+    "floorCount": 3,
+    "description": "Renovated 1-bedroom apartment with cherry wood hardwood floors throughout. The large bedroom faces the back of the building with great western light and fits a queen bed plus dresser. Closets in both the bedroom and living room. Modern open kitchen with stainless steel appliances, dishwasher, over-the-range microwave, and plenty of cabinet space. Bathroom with bathtub. Located on a lively block in Williamsburg with dining, shopping, and a laundromat right on the street. Close to both the M and L trains. Email for viewing only - See video tour",
+    "images": [
+      "https://photos.zillowstatic.com/fp/494137040d36c55ecc8cdfd9ec6200d6-full.webp",
+      "https://photos.zillowstatic.com/fp/f6ddc9b581b884511f05328c49a43d28-full.webp",
+      "https://photos.zillowstatic.com/fp/50add6c2726bdfb26316241578fe5c7b-full.webp",
+      "https://photos.zillowstatic.com/fp/8d54186daf46809ce886883fd8edbe1d-full.webp",
+      "https://photos.zillowstatic.com/fp/a6ea2beb1ae546741b9786827bd2938f-full.webp"
+    ],
+    "statusChanges": [
+      {
+        "status": "DRAFT",
+        "changedAt": "2026-09-30T10:02:29.000-04:00"
+      },
+      {
+        "status": "ACTIVE",
+        "changedAt": "2026-10-01T09:46:19.000-04:00"
+      }
+    ],
+    "buildingId": "128252",
+    "createdAt": "2026-09-30T10:02:29.000-04:00",
+    "updatedAt": "2026-10-01T09:46:49.000-04:00",
+    "interestingChangeAt": "2026-10-01T09:46:19.000-04:00",
+    "latestListing": {
+      "id": "5170579",
+      "status": "ACTIVE",
+      "pricing": {
+        "price": 2900
+      }
+    },
+    "listingAddress": "111 Graham Avenue #3R",
+    "saleType": null,
+    "monthly_taxes": null,
+    "monthly_fees": null,
+    "maintenance": null,
+    "soldPrice": null,
+    "sold_price": null,
+    "sold_date": null,
+    "rent": 2900,
+    "lease_term_months": null,
+    "months_free": null,
+    "net_effective_rent": null,
+    "security_deposit": null,
+    "due_up_front": null,
+    "furnished_rent": null,
+    "year_built": 1920,
+    "residential_unit_count": 2,
+    "floor_count": 3,
+    "stories": 3,
+    "days_on_market": 1,
+    "on_market_at": "2026-10-01",
+    "off_market_at": null,
+    "source_group_label": "Pomona Malone Inc",
+    "originalSearchUrl": "https://streeteasy.com/for-rent/williamsburg/price:2000-4000%7Cbeds:1-2?sort_by=price_asc",
+    "partial": false
+  }
+]

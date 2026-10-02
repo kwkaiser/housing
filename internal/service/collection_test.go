@@ -11,7 +11,7 @@ import (
 )
 
 func TestSupportedSources(t *testing.T) {
-	want := []listing.Source{listing.SourceZillow, listing.SourceRedfin, listing.SourceCraigslist, listing.SourceFacebook}
+	want := []listing.Source{listing.SourceZillow, listing.SourceRedfin, listing.SourceCraigslist, listing.SourceFacebook, listing.SourceStreetEasy}
 	if got := SupportedSources(); !slices.Equal(got, want) {
 		t.Errorf("SupportedSources() = %v", got)
 	}
