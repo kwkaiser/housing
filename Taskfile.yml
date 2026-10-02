@@ -47,6 +47,44 @@ tasks:
     cmds:
       - ./bin/{{.BINARY}} server {{.CLI_ARGS}}
 
+  build-image:
+    desc: Build the container image into .task/image.tar for SYSTEM (default x86_64-linux).
+    vars:
+      IMAGE_NAME: '{{.IMAGE_NAME | default "git.kwkaiser.io/kwkaiser/housing"}}'
+      IMAGE_TAG: '{{.IMAGE_TAG | default .VERSION}}'
+      SYSTEM: '{{.SYSTEM | default "x86_64-linux"}}'
+    cmds:
+      - mkdir -p .task
+      - |
+        set -eu
+        export IMAGE_NAME="{{.IMAGE_NAME}}"
+        export IMAGE_TAG="{{.IMAGE_TAG}}"
+        stream=$(nix build --impure --no-link --print-out-paths .#packages.{{.SYSTEM}}.image)
+        "$stream" > .task/image.tar
+
+  push-image:
+    desc: Push .task/image.tar to the container registry. Needs REGISTRY_USER and REGISTRY_TOKEN.
+    vars:
+      IMAGE_NAME: '{{.IMAGE_NAME | default "git.kwkaiser.io/kwkaiser/housing"}}'
+      IMAGE_TAGS: '{{.IMAGE_TAGS | default .VERSION}}'
+      TLS_VERIFY: '{{.TLS_VERIFY | default "true"}}'
+    preconditions:
+      - sh: test -f .task/image.tar
+        msg: '.task/image.tar not found - run `task build-image` first'
+    cmds:
+      - |
+        set -eu
+        : "${REGISTRY_USER:?REGISTRY_USER is not set}"
+        : "${REGISTRY_TOKEN:?REGISTRY_TOKEN is not set}"
+        for tag in {{.IMAGE_TAGS}}; do
+          echo "pushing {{.IMAGE_NAME}}:$tag"
+          skopeo --insecure-policy copy \
+            --dest-tls-verify={{.TLS_VERIFY}} \
+            --dest-creds "$REGISTRY_USER:$REGISTRY_TOKEN" \
+            docker-archive:.task/image.tar \
+            "docker://{{.IMAGE_NAME}}:$tag"
+        done
+
   clean:
     cmds:
       - rm -rf bin

@@ -74,25 +74,19 @@ jobs:
 
       - name: Build image
         env:
-          IMAGE_NAME: ${{ env.IMAGE }}
-          IMAGE_TAG: ${{ steps.meta.outputs.version }}
+          IMAGE: ${{ env.IMAGE }}
+          VERSION: ${{ steps.meta.outputs.version }}
         run: |
-          set -euo pipefail
-          stream=$(nix build --impure --no-link --print-out-paths .#packages.x86_64-linux.image)
-          "$stream" > image.tar
+          nix develop --accept-flake-config --command \
+            task build-image IMAGE_NAME="$IMAGE" IMAGE_TAG="$VERSION" SYSTEM=x86_64-linux
 
       - name: Push image
         env:
+          IMAGE: ${{ env.IMAGE }}
           VERSION: ${{ steps.meta.outputs.version }}
           SHA: ${{ steps.meta.outputs.sha }}
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_TOKEN: ${{ secrets.K8S_GITEA_REGISTRY_PACKAGE_TOKEN }}
         run: |
-          set -euo pipefail
-          for tag in "$VERSION" "$SHA" latest; do
-            echo "pushing $IMAGE:$tag"
-            nix develop --command skopeo --insecure-policy copy \
-              --dest-creds "$REGISTRY_USER:$REGISTRY_TOKEN" \
-              docker-archive:image.tar \
-              "docker://$IMAGE:$tag"
-          done
+          nix develop --accept-flake-config --command \
+            task push-image IMAGE_NAME="$IMAGE" IMAGE_TAGS="$VERSION $SHA latest"
