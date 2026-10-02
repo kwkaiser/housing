@@ -1,6 +1,6 @@
 # Deploying housing
 
-The web app (`housing server`) is a single binary that serves HTML on a loopback port. It has no login of its own: nginx sits in front of it and handles TLS and HTTP basic auth.
+The web app (`housing server`) is a single binary that serves HTML on a loopback port. It has no login of its own, so run it behind a reverse proxy that handles TLS and authentication.
 
 ## Build
 
@@ -57,14 +57,3 @@ curl -s http://127.0.0.1:8080/healthz
 ```
 
 On stop, the server stops accepting connections and lets in-flight requests finish for up to 10 seconds. `TimeoutStopSec=30` leaves room for that. Restarts happen only on failure.
-
-## nginx
-
-```sh
-sudo htpasswd -c /etc/nginx/housing.htpasswd <user>
-sudo cp deploy/nginx.conf /etc/nginx/sites-available/housing.conf
-sudo ln -s /etc/nginx/sites-available/housing.conf /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl reload nginx
-```
-
-Replace `housing.example.com` and the certificate paths with your own. The config proxies everything to `127.0.0.1:8080` and forwards the usual `X-Forwarded-*` headers plus `X-Remote-User`, the authenticated basic-auth user. It gzips text responses. `/healthz` skips basic auth but only answers requests from localhost, for uptime checks. Static assets are served by the app with long-lived cache headers when requested by their fingerprinted URL, so nginx doesn't need its own caching rules.

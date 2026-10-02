@@ -36,6 +36,7 @@ func newServerCmd(dataDir *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			a.Version = version
 			runner := &jobs.Runner{Queue: queue, Exec: svc, Log: log.With("component", "jobs")}
 			scheduler := &jobs.Scheduler{Queue: queue, Log: log.With("component", "scheduler")}
 

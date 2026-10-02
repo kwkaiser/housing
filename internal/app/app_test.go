@@ -58,7 +58,9 @@ func TestRoutes(t *testing.T) {
 		status              int
 		contains            []string
 	}{
-		{"/healthz", "text/plain; charset=utf-8", http.StatusOK, nil},
+		{"/healthz", "text/plain; charset=utf-8", http.StatusOK, []string{"ok"}},
+		{"/health", "text/plain; charset=utf-8", http.StatusOK, []string{"ok"}},
+		{"/version", "text/plain; charset=utf-8", http.StatusOK, []string{"dev"}},
 		{"/", "text/html; charset=utf-8", http.StatusOK, []string{
 			"<!doctype html>", "<title>Listings · housing</title>", `<a href="/" aria-current="page">Listings</a>`,
 			`<a href="/collections">Collections</a>`, `<a href="/profiles">Profiles</a>`, `<a href="/jobs">Jobs</a>`,
@@ -73,9 +75,6 @@ func TestRoutes(t *testing.T) {
 		res, body := get(t, h, tc.target)
 		if res.StatusCode != tc.status || res.Header.Get("Content-Type") != tc.contentType {
 			t.Errorf("GET %s = %d %q, want %d %q", tc.target, res.StatusCode, res.Header.Get("Content-Type"), tc.status, tc.contentType)
-		}
-		if tc.target == "/healthz" && body != "ok" {
-			t.Errorf("healthz body = %q", body)
 		}
 		for _, s := range tc.contains {
 			if !strings.Contains(body, s) {

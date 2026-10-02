@@ -34,6 +34,7 @@ type Jobs interface {
 
 type App struct {
 	ShutdownTimeout time.Duration
+	Version         string
 
 	svc     *service.Service
 	jobs    Jobs
@@ -57,7 +58,7 @@ func New(svc *service.Service, q Jobs, log *slog.Logger) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &App{ShutdownTimeout: DefaultShutdownTimeout, svc: svc, jobs: q, now: time.Now, log: log, static: static}
+	a := &App{ShutdownTimeout: DefaultShutdownTimeout, Version: "dev", svc: svc, jobs: q, now: time.Now, log: log, static: static}
 	if a.hashes, err = fingerprint(static); err != nil {
 		return nil, fmt.Errorf("static assets: %w", err)
 	}
@@ -76,6 +77,8 @@ func (a *App) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", a.home)
 	mux.HandleFunc("GET /healthz", a.healthz)
+	mux.HandleFunc("GET /health", a.healthz)
+	mux.HandleFunc("GET /version", a.version)
 	mux.HandleFunc("GET /static/{path...}", a.serveStatic)
 	mux.HandleFunc("GET /c/{collection}", a.collectionPage)
 	mux.HandleFunc("GET /listing/{source}/{id}", a.listingPage)
@@ -105,10 +108,22 @@ func (a *App) routes() http.Handler {
 	})
 }
 
-func (a *App) healthz(w http.ResponseWriter, _ *http.Request) {
+func (a *App) healthz(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
+	if _, err := a.svc.Store().SchemaVersion(r.Context()); err != nil {
+		a.log.Error("health check", "err", err)
+		w.WriteHeader(http.StatusServiceUnavailable)
+		fmt.Fprint(w, "unavailable")
+		return
+	}
 	fmt.Fprint(w, "ok")
+}
+
+func (a *App) version(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	fmt.Fprint(w, a.Version)
 }
 
 func (a *App) notFound(w http.ResponseWriter, r *http.Request) {
