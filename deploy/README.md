@@ -57,6 +57,12 @@ curl -s -H "Authorization: Bearer hk_..." http://127.0.0.1:8080/api/v1/collectio
 
 It lists collections, a collection's ranked listings for a day, listing detail with per-criterion grades, profiles, jobs and collage images, and can queue collection runs. The OpenAPI 3.1 spec is at `/api/openapi.json` (or `.yaml`), with a 3.0 copy at `/api/openapi-3.0.json` for client generators that do not support 3.1 yet, and browsable docs at `/api/docs`. The spec and docs need no key.
 
+The same keys work for the MCP server at `/api/mcp` (streamable HTTP), which gives agents tools to list collections and ranked listings, read a listing with its grades and photo collages, read profiles, and queue and check runs. To add it to Claude Code:
+
+```sh
+claude mcp add --transport http housing https://housing.example.com/api/mcp --header "Authorization: Bearer hk_..."
+```
+
 API keys are separate from the reverse proxy's login, so let `/api/` through the proxy without it if API clients cannot log in there. Keep everything else, including `/keys`, behind the proxy: anyone who can reach the web UI can create keys.
 
 ## systemd

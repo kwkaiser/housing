@@ -62,6 +62,7 @@ func (a *App) apiHandler() http.Handler {
 	huma.Get(api, apiV1+"/jobs", a.apiJobs, op("listJobs", "List jobs, newest first", "jobs"))
 	huma.Get(api, apiV1+"/jobs/{id}", a.apiJob, op("getJob", "Get a job", "jobs"))
 	huma.Get(api, apiV1+"/jobs/{id}/events", a.apiJobEvents, op("listJobEvents", "List a job's progress log", "jobs"))
+	mux.Handle(mcpPath, a.mcpHandler())
 	huma.Get(api, apiV1+"/media/{key...}", a.apiMedia, op("getMedia", "Get a stored image such as a listing collage", "media"))
 	paths := api.OpenAPI().Paths
 	paths[apiV1+"/media/{key}"] = paths[apiV1+"/media/{key...}"]
@@ -79,8 +80,7 @@ func op(id, summary, tag string) func(*huma.Operation) {
 
 func (a *App) apiAuth(api huma.API) func(huma.Context, func(huma.Context)) {
 	return func(ctx huma.Context, next func(huma.Context)) {
-		token, _ := strings.CutPrefix(ctx.Header("Authorization"), "Bearer ")
-		_, ok, err := a.svc.AuthenticateAPIKey(ctx.Context(), token)
+		ok, err := a.authenticate(ctx.Context(), ctx.Header("Authorization"))
 		if err != nil {
 			a.log.ErrorContext(ctx.Context(), "api auth", "err", err)
 			huma.WriteErr(api, ctx, http.StatusInternalServerError, "internal error")
@@ -93,6 +93,15 @@ func (a *App) apiAuth(api huma.API) func(huma.Context, func(huma.Context)) {
 		}
 		next(ctx)
 	}
+}
+
+func (a *App) authenticate(ctx context.Context, header string) (bool, error) {
+	token, ok := strings.CutPrefix(header, "Bearer ")
+	if !ok {
+		return false, nil
+	}
+	_, ok, err := a.svc.AuthenticateAPIKey(ctx, token)
+	return ok, err
 }
 
 func (a *App) apiError(ctx context.Context, err error) error {
