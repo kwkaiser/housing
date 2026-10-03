@@ -65,7 +65,15 @@ func New(svc *service.Service, q Jobs, log *slog.Logger) (*App, error) {
 	if a.pages, err = parsePages(templates, a.funcs()); err != nil {
 		return nil, fmt.Errorf("templates: %w", err)
 	}
-	a.handler = a.logRequests(a.recoverPanics(a.sameOrigin(a.routes())))
+	web := a.sameOrigin(a.routes())
+	api := a.apiHandler()
+	a.handler = a.logRequests(a.recoverPanics(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, apiPrefix+"/") {
+			api.ServeHTTP(w, r)
+			return
+		}
+		web.ServeHTTP(w, r)
+	})))
 	return a, nil
 }
 
@@ -98,6 +106,9 @@ func (a *App) routes() http.Handler {
 	mux.HandleFunc("GET /jobs", a.jobsPage)
 	mux.HandleFunc("GET /jobs/{id}", a.jobPage)
 	mux.HandleFunc("POST /jobs/run", a.runCollection)
+	mux.HandleFunc("GET /keys", a.apiKeysPage)
+	mux.HandleFunc("POST /keys", a.createAPIKey)
+	mux.HandleFunc("POST /keys/{id}/delete", a.deleteAPIKey)
 	mux.HandleFunc("/", a.notFound)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/media/") && path.Clean(r.URL.Path) != r.URL.Path {

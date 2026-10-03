@@ -30,6 +30,7 @@ Everything day to day happens in the web UI: profiles, collections, runs and job
 - `housing import [--profiles-dir profiles] [--collections-dir collections]`: copy profiles and collections from the old files into the database. Safe to re-run.
 - `housing jobs`, `housing jobs show <id>`, `housing jobs run <collection>`: list jobs, show one with its progress log, or queue a collection run for the server to pick up.
 - `housing run <collection>`: run a collection in the foreground, printing progress, for debugging. It takes the data directory's lock, so it fails fast while the server is running; stop the service first, or use `housing jobs run` instead.
+- `housing apikeys`, `housing apikeys create <name>`, `housing apikeys delete <id>`: list API keys, create one and print it, or delete one. Safe to run while the server is up.
 - `housing version`.
 
 ## API keys
@@ -45,6 +46,18 @@ sudo install -m 0600 /dev/null /etc/housing/env
 APIFY_TOKEN=...
 OPENROUTER_API_KEY=...
 ```
+
+## API
+
+The server also serves a JSON API under `/api/v1` for scripts and agents. Each client authenticates with its own API key, sent as a bearer token. Create and delete keys on the API keys page (`/keys`) or with `housing apikeys`. A key is shown once when it is created; the database keeps only its hash.
+
+```sh
+curl -s -H "Authorization: Bearer hk_..." http://127.0.0.1:8080/api/v1/collections
+```
+
+It lists collections, a collection's ranked listings for a day, listing detail with per-criterion grades, profiles, jobs and collage images, and can queue collection runs. The OpenAPI 3.1 spec is at `/api/openapi.json` (or `.yaml`), with a 3.0 copy at `/api/openapi-3.0.json` for client generators that do not support 3.1 yet, and browsable docs at `/api/docs`. The spec and docs need no key.
+
+API keys are separate from the reverse proxy's login, so let `/api/` through the proxy without it if API clients cannot log in there. Keep everything else, including `/keys`, behind the proxy: anyone who can reach the web UI can create keys.
 
 ## systemd
 

@@ -1,0 +1,32 @@
+{{define "title"}}API keys{{end}}
+{{define "content"}}{{with .Data}}
+<h1>API keys</h1>
+<p>Keys let scripts and agents use the JSON API under <code>/api/v1</code> by sending <code>Authorization: Bearer &lt;key&gt;</code>. See the <a href="/api/docs">API docs</a> or the <a href="/api/openapi.json">OpenAPI spec</a>.</p>
+{{with .Created}}<div class="notice" role="status">
+<p>Created <strong>{{.Name}}</strong>. Copy the key now; it won't be shown again.</p>
+<input class="secret" value="{{$.Data.Token}}" readonly aria-label="New API key" spellcheck="false">
+</div>{{end}}
+<form method="post" action="/keys" class="controls">
+  <input name="name" value="{{.Name}}" placeholder="Name, e.g. laptop agent" aria-label="Key name" required maxlength="100" autocomplete="off"{{if .NameError}} aria-invalid="true"{{end}}>
+  <button type="submit">Create key</button>
+  {{with .NameError}}<span class="bad">{{.}}</span>{{end}}
+</form>
+{{if .Keys}}
+<div class="wrap">
+<table class="keys">
+<thead><tr><th>Name</th><th>Key</th><th>Created</th><th>Last used</th><th>Actions</th></tr></thead>
+<tbody>
+{{range .Keys}}<tr>
+  <td>{{.Name}}</td>
+  <td><code>{{.Hint}}…</code></td>
+  <td class="nowrap">{{.Created}}</td>
+  <td class="nowrap">{{.LastUsed}}</td>
+  <td><form method="post" action="/keys/{{.ID}}/delete"><button type="submit">Delete</button></form></td>
+</tr>
+{{end}}</tbody>
+</table>
+</div>
+{{else}}
+<p class="muted">There are no API keys yet.</p>
+{{end}}
+{{end}}{{end}}

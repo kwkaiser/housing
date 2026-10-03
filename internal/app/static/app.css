@@ -165,3 +165,7 @@ form.form textarea { max-width: 40rem; width: 100%; box-sizing: border-box; }
 form.form table.criteria-edit td { vertical-align: top; }
 form.form table.criteria-edit input:not([type=checkbox]) { min-width: 14rem; }
 form.form table.criteria-edit tr.invalid input, form.form table.criteria-edit tr.invalid select { border-color: var(--bad); }
+.notice { margin: 0 0 1rem; padding: .6rem .9rem; border: 1px solid var(--accent); border-radius: 6px; max-width: 56rem; }
+.notice p { margin: 0 0 .5rem; }
+.notice input.secret { width: 100%; font-family: ui-monospace, monospace; }
+table.keys td form { margin: 0; }

@@ -37,6 +37,7 @@ var nav = []navItem{
 	{Label: "Collections", Href: "/collections"},
 	{Label: "Profiles", Href: "/profiles"},
 	{Label: "Jobs", Href: "/jobs"},
+	{Label: "API keys", Href: "/keys"},
 }
 
 func (a *App) funcs() template.FuncMap {
@@ -124,7 +125,9 @@ func (a *App) renderMessage(w http.ResponseWriter, r *http.Request, status int, 
 
 func write(w http.ResponseWriter, status int, body []byte) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache")
+	if w.Header().Get("Cache-Control") == "" {
+		w.Header().Set("Cache-Control", "no-cache")
+	}
 	w.WriteHeader(status)
 	w.Write(body)
 }

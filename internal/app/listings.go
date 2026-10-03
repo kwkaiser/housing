@@ -316,7 +316,7 @@ func (a *App) media(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) fail(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, collection.ErrNotFound) || errors.Is(err, store.ErrListingNotFound) || errors.Is(err, store.ErrJobNotFound) || errors.Is(err, profile.ErrNotFound) {
+	if errors.Is(err, collection.ErrNotFound) || errors.Is(err, store.ErrListingNotFound) || errors.Is(err, store.ErrJobNotFound) || errors.Is(err, profile.ErrNotFound) || errors.Is(err, store.ErrAPIKeyNotFound) {
 		a.notFound(w, r)
 		return
 	}
