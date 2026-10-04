@@ -3,7 +3,7 @@ module git.kwkaiser.io/kwkaiser/housing
 go 1.26.7
 
 require (
-	github.com/OpenRouterTeam/go-sdk v0.9.9
+	github.com/OpenRouterTeam/go-sdk v0.9.22
 	github.com/danielgtaylor/huma/v2 v2.39.1
 	github.com/google/renameio/v2 v2.0.2
 	github.com/hashicorp/go-retryablehttp v0.7.8
