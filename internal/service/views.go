@@ -22,11 +22,27 @@ type DayOptions struct {
 	Dealbreakers bool
 }
 
+type Status string
+
+const (
+	StatusNew     Status = "new"
+	StatusChanged Status = "changed"
+	StatusRepeat  Status = "repeat"
+)
+
 type ListingRow struct {
 	report.Row
 	FirstSeen          string
-	New                bool
+	Status             Status
 	PreviousPriceCents *int64
+}
+
+func (r ListingRow) New() bool {
+	return r.Status == StatusNew
+}
+
+func (r ListingRow) Repeat() bool {
+	return r.Status == StatusRepeat
 }
 
 func (r ListingRow) PriceChange() int64 {
@@ -132,8 +148,7 @@ func (s *Service) CollectionDay(ctx context.Context, collectionID string, o DayO
 			continue
 		}
 		lr := ListingRow{Row: row}
-		lr.FirstSeen, lr.PreviousPriceCents = sightings(v.Day, history[store.Key(row.Listing)])
-		lr.New = lr.FirstSeen == v.Day
+		lr.FirstSeen, lr.Status, lr.PreviousPriceCents = sightings(v.Day, history[store.Key(row.Listing)])
 		lr.Rank = len(v.Rows) + 1
 		v.Stale = v.Stale || row.Stale
 		for _, g := range row.Grades {
@@ -168,20 +183,29 @@ func modelsFor(c collection.Collection, seen []string) []string {
 	return seen
 }
 
-func sightings(day string, seen []store.Sighting) (string, *int64) {
+func sightings(day string, seen []store.Sighting) (string, Status, *int64) {
 	first := day
 	if len(seen) > 0 {
 		first = min(seen[0].Day, day)
 	}
-	var previous *int64
-	for _, s := range seen {
+	var previous, current *store.Sighting
+	for i, s := range seen {
+		if s.Day == day {
+			current = &seen[i]
+		}
 		if s.Day >= day {
 			break
 		}
-		price := s.PriceCents
-		previous = &price
+		previous = &seen[i]
 	}
-	return first, previous
+	if previous == nil {
+		return first, StatusNew, nil
+	}
+	price := previous.PriceCents
+	if current != nil && (current.PriceCents != price || current.InputHash != "" && current.InputHash != previous.InputHash) {
+		return first, StatusChanged, &price
+	}
+	return first, StatusRepeat, &price
 }
 
 func profileViews(templates []template, models []string) []ProfileView {

@@ -199,14 +199,15 @@ type APIProfileSummary struct {
 }
 
 type APIListingRow struct {
-	Rank               int           `json:"rank"`
-	Listing            APIListing    `json:"listing"`
-	Best               APIGrade      `json:"best" doc:"The best grade across the collection's profiles"`
-	Grades             []APIGrade    `json:"grades"`
-	AlsoListed         []report.Link `json:"also_listed,omitempty"`
-	FirstSeen          string        `json:"first_seen"`
-	New                bool          `json:"new"`
-	PreviousPriceCents *int64        `json:"previous_price_cents,omitempty"`
+	Rank               int            `json:"rank"`
+	Listing            APIListing     `json:"listing"`
+	Best               APIGrade       `json:"best" doc:"The best grade across the collection's profiles"`
+	Grades             []APIGrade     `json:"grades"`
+	AlsoListed         []report.Link  `json:"also_listed,omitempty"`
+	FirstSeen          string         `json:"first_seen"`
+	New                bool           `json:"new"`
+	Status             service.Status `json:"status" enum:"new,changed,repeat" doc:"new: first seen this day; changed: price, description or photos differ from the previous sighting; repeat: unchanged since the previous sighting, so its grade carries over"`
+	PreviousPriceCents *int64         `json:"previous_price_cents,omitempty"`
 }
 
 type APIDay struct {
@@ -256,6 +257,7 @@ type collectionListingsInput struct {
 	Dealbreakers bool    `query:"dealbreakers" doc:"Include listings that hit a dealbreaker"`
 	MinMatch     float64 `query:"min_match" minimum:"0" doc:"Only listings whose best match is at least this"`
 	NewOnly      bool    `query:"new_only" doc:"Only listings first seen on this day"`
+	HideRepeats  bool    `query:"hide_repeats" doc:"Leave out listings unchanged since their previous sighting"`
 	Limit        int     `query:"limit" minimum:"0" doc:"Maximum rows to return; 0 for all"`
 }
 
@@ -290,12 +292,12 @@ func (a *App) apiCollectionListings(ctx context.Context, in *collectionListingsI
 		out.Profiles = append(out.Profiles, APIProfileSummary{ID: p.ID, Kind: profile.KindWant, Name: p.Name, Summary: p.Summary})
 	}
 	for _, row := range v.Rows {
-		if row.Match < in.MinMatch || in.NewOnly && !row.New {
+		if row.Match < in.MinMatch || in.NewOnly && !row.New() || in.HideRepeats && row.Repeat() {
 			continue
 		}
 		r := APIListingRow{
 			Rank: row.Rank, Listing: apiListing(row.Listing), Best: apiGrade(row.Grade), Grades: []APIGrade{}, AlsoListed: row.AlsoListed,
-			FirstSeen: row.FirstSeen, New: row.New, PreviousPriceCents: row.PreviousPriceCents,
+			FirstSeen: row.FirstSeen, New: row.New(), Status: row.Status, PreviousPriceCents: row.PreviousPriceCents,
 		}
 		for _, id := range v.Collection.Profiles {
 			if g, ok := row.Grades[id]; ok {

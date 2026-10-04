@@ -190,6 +190,8 @@ func (a *App) collectionPage(w http.ResponseWriter, r *http.Request) {
 			if diff < 0 {
 				rv.Change, rv.ChangeClass = "↓ "+view.Money(-diff, ""), "down"
 			}
+		} else if row.Status == service.StatusChanged {
+			rv.Change, rv.ChangeClass = "updated", "changed"
 		}
 		d.Rows = append(d.Rows, rv)
 	}

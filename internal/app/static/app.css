@@ -59,6 +59,7 @@ tbody tr:nth-child(even) { background: var(--stripe); }
 .tags { color: var(--muted); }
 .badge { display: inline-block; margin-left: .35rem; padding: 0 .4rem; border-radius: 999px; font-size: .75rem; border: 1px solid currentColor; white-space: nowrap; }
 .badge.new { color: var(--accent); }
+.badge.repeat, .badge.changed { color: var(--muted); }
 .badge.down { color: var(--good); }
 .badge.up { color: var(--bad); }
 .off { display: none; }

@@ -395,11 +395,13 @@ func (s *Store) CollectionDays(ctx context.Context, collection string) ([]DayCou
 type Sighting struct {
 	Day        string
 	PriceCents int64
+	InputHash  string
 }
 
 func (s *Store) History(ctx context.Context, collection string) (map[string][]Sighting, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT o.source, o.source_id, o.day, o.price_cents FROM observations o
+		SELECT o.source, o.source_id, o.day, o.price_cents, coalesce(v.input_hash, '') FROM observations o
+		JOIN versions v ON v.id = o.version_id
 		WHERE EXISTS (SELECT 1 FROM collection_observations c
 			WHERE c.collection = ? AND c.source = o.source AND c.source_id = o.source_id)
 		ORDER BY o.day`, collection)
@@ -411,7 +413,7 @@ func (s *Store) History(ctx context.Context, collection string) (map[string][]Si
 	for rows.Next() {
 		var source, sourceID string
 		var sg Sighting
-		if err := rows.Scan(&source, &sourceID, &sg.Day, &sg.PriceCents); err != nil {
+		if err := rows.Scan(&source, &sourceID, &sg.Day, &sg.PriceCents, &sg.InputHash); err != nil {
 			return nil, err
 		}
 		k := key(listing.Source(source), sourceID)

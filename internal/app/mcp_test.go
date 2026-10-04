@@ -6,8 +6,11 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"git.kwkaiser.io/kwkaiser/housing/internal/store"
 )
 
 type bearer struct {
@@ -56,7 +59,7 @@ func callTool[T any](t *testing.T, cs *mcp.ClientSession, name string, args map[
 }
 
 func TestMCP(t *testing.T) {
-	_, h, key := apiApp(t)
+	a, h, key := apiApp(t)
 	srv := httptest.NewServer(h)
 	defer srv.Close()
 
@@ -146,7 +149,21 @@ func TestMCP(t *testing.T) {
 	if j.ID == 0 || j.Status != "queued" || j.Collection != "somerville" {
 		t.Errorf("run = %+v", j)
 	}
-	if got, _ := callTool[mcpJob](t, cs, "get_job", map[string]any{"id": j.ID}); got.ID != j.ID || got.Status != "queued" {
+	if got, _ := callTool[mcpJob](t, cs, "get_job", map[string]any{"id": j.ID}); got.ID != j.ID || got.Status != "queued" || got.Result != nil {
 		t.Errorf("job = %+v", got)
+	}
+
+	db := a.svc.Store()
+	claimed, ok, err := db.ClaimJob(t.Context(), time.Now())
+	if err != nil || !ok || claimed.ID != j.ID {
+		t.Fatalf("claim = %+v %v %v", claimed, ok, err)
+	}
+	claimed.Status, claimed.FinishedAt, claimed.Result = store.JobSucceeded, time.Now(), json.RawMessage(`{"day":"2026-10-04","stats":{"Cached":12}}`)
+	if err := db.FinishJob(t.Context(), claimed); err != nil {
+		t.Fatal(err)
+	}
+	done, _ := callTool[mcpJob](t, cs, "get_job", map[string]any{"id": j.ID})
+	if r, ok := done.Result.(map[string]any); done.Status != "succeeded" || !ok || r["day"] != "2026-10-04" {
+		t.Errorf("finished job = %+v", done)
 	}
 }

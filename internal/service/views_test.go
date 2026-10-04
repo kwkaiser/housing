@@ -19,16 +19,28 @@ func TestPickDay(t *testing.T) {
 }
 
 func TestSightings(t *testing.T) {
-	seen := []store.Sighting{{Day: "2026-09-01", PriceCents: 300000}, {Day: "2026-09-10", PriceCents: 290000}, {Day: "2026-09-20", PriceCents: 280000}}
-	first, prev := sightings("2026-09-20", seen)
-	if first != "2026-09-01" || prev == nil || *prev != 290000 {
-		t.Errorf("got %q %v", first, prev)
+	seen := []store.Sighting{
+		{Day: "2026-09-01", PriceCents: 300000, InputHash: "a"},
+		{Day: "2026-09-10", PriceCents: 290000, InputHash: "a"},
+		{Day: "2026-09-20", PriceCents: 280000, InputHash: "a"},
+		{Day: "2026-09-21", PriceCents: 280000, InputHash: "a"},
+		{Day: "2026-09-22", PriceCents: 280000, InputHash: "b"},
+		{Day: "2026-09-23", PriceCents: 280000},
 	}
-	if first, prev := sightings("2026-09-01", seen); first != "2026-09-01" || prev != nil {
-		t.Errorf("first sighting got %q %v", first, prev)
+	first, status, prev := sightings("2026-09-20", seen)
+	if first != "2026-09-01" || status != StatusChanged || prev == nil || *prev != 290000 {
+		t.Errorf("price change got %q %q %v", first, status, prev)
 	}
-	if first, prev := sightings("2026-09-05", nil); first != "2026-09-05" || prev != nil {
-		t.Errorf("unseen got %q %v", first, prev)
+	if first, status, prev := sightings("2026-09-01", seen); first != "2026-09-01" || status != StatusNew || prev != nil {
+		t.Errorf("first sighting got %q %q %v", first, status, prev)
+	}
+	if first, status, prev := sightings("2026-09-05", nil); first != "2026-09-05" || status != StatusNew || prev != nil {
+		t.Errorf("unseen got %q %q %v", first, status, prev)
+	}
+	for day, want := range map[string]Status{"2026-09-21": StatusRepeat, "2026-09-22": StatusChanged, "2026-09-23": StatusRepeat} {
+		if _, status, _ := sightings(day, seen); status != want {
+			t.Errorf("%s status = %q, want %q", day, status, want)
+		}
 	}
 }
 

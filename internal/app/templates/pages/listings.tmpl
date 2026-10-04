@@ -65,7 +65,7 @@
   <td data-col="coverage" class="num">{{percent .Coverage}}</td>
   <td data-col="price" class="num">{{money .Listing.Price.Cents .Listing.Offer}}</td>
   <td data-col="beds" class="num">{{beds .Listing.Beds}}</td>
-  <td data-col="address"><a href="{{.Href}}">{{or (address .Listing) .Listing.SourceID}}</a> <a class="ext" href="{{.Listing.URL}}" target="_blank" rel="noopener" aria-label="Open on {{.Listing.Source}}">↗</a>{{if .New}}<span class="badge new">new</span>{{end}}{{if .Change}}<span class="badge {{.ChangeClass}}">{{.Change}}</span>{{end}}</td>
+  <td data-col="address"><a href="{{.Href}}">{{or (address .Listing) .Listing.SourceID}}</a> <a class="ext" href="{{.Listing.URL}}" target="_blank" rel="noopener" aria-label="Open on {{.Listing.Source}}">↗</a>{{if .New}}<span class="badge new">new</span>{{else if .Repeat}}<span class="badge repeat" title="Unchanged since the previous sighting; grade carried over">repeat</span>{{end}}{{if .Change}}<span class="badge {{.ChangeClass}}">{{.Change}}</span>{{end}}</td>
   <td data-col="sources"><a href="{{.Listing.URL}}" target="_blank" rel="noopener">{{.Listing.Source}}</a>{{range .AlsoListed}}, <a href="{{.URL}}" target="_blank" rel="noopener">{{.Source}}</a>{{end}}</td>
   <td data-col="dealbreakers" class="tags bad off">{{join .Dealbreakers ", "}}</td>
   <td data-col="missing" class="tags off">{{join .MissingEssentials ", "}}</td>

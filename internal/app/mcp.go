@@ -140,6 +140,7 @@ type mcpListListingsInput struct {
 	Day                 string  `json:"day,omitempty" jsonschema:"YYYY-MM-DD; the latest run on or before this day. Defaults to the latest run."`
 	MinMatch            float64 `json:"min_match,omitempty" jsonschema:"only listings whose best match is at least this"`
 	NewOnly             bool    `json:"new_only,omitempty" jsonschema:"only listings first seen on this day"`
+	HideRepeats         bool    `json:"hide_repeats,omitempty" jsonschema:"leave out listings unchanged since their previous sighting"`
 	IncludeDealbreakers bool    `json:"include_dealbreakers,omitempty"`
 	Limit               int     `json:"limit,omitempty" jsonschema:"maximum listings to return, default 25"`
 }
@@ -159,6 +160,7 @@ type mcpListingRow struct {
 	Summary       string   `json:"summary"`
 	Dealbreakers  []string `json:"dealbreakers,omitempty"`
 	New           bool     `json:"new" jsonschema:"first seen on this day"`
+	Status        string   `json:"status" jsonschema:"new: first seen this day; changed: price, description or photos differ from the previous sighting; repeat: unchanged since the previous sighting, so its grade carries over"`
 	FirstSeen     string   `json:"first_seen"`
 	URL           string   `json:"url"`
 	AlsoListedOn  []string `json:"also_listed_on,omitempty"`
@@ -177,7 +179,7 @@ type mcpListings struct {
 
 func (a *App) mcpListListings(ctx context.Context, _ *mcp.CallToolRequest, in mcpListListingsInput) (*mcp.CallToolResult, mcpListings, error) {
 	res, err := a.apiCollectionListings(ctx, &collectionListingsInput{
-		ID: in.Collection, Day: in.Day, Dealbreakers: in.IncludeDealbreakers, MinMatch: in.MinMatch, NewOnly: in.NewOnly,
+		ID: in.Collection, Day: in.Day, Dealbreakers: in.IncludeDealbreakers, MinMatch: in.MinMatch, NewOnly: in.NewOnly, HideRepeats: in.HideRepeats,
 	})
 	if err != nil {
 		return nil, mcpListings{}, err
@@ -193,7 +195,7 @@ func (a *App) mcpListListings(ctx context.Context, _ *mcp.CallToolRequest, in mc
 		row := mcpListingRow{
 			Rank: r.Rank, Source: string(l.Source), SourceID: l.SourceID, Address: l.Address.Formatted, Price: view.Money(l.Price.Cents, l.Offer),
 			Beds: l.Beds, Baths: l.Baths, SqFt: l.SqFt, Match: r.Best.Match, Profile: r.Best.Profile, Summary: r.Best.Summary,
-			Dealbreakers: r.Best.Dealbreakers, New: r.New, FirstSeen: r.FirstSeen, URL: l.URL,
+			Dealbreakers: r.Best.Dealbreakers, New: r.New, Status: string(r.Status), FirstSeen: r.FirstSeen, URL: l.URL,
 		}
 		if r.PreviousPriceCents != nil && *r.PreviousPriceCents != l.Price.Cents {
 			row.PreviousPrice = view.Money(*r.PreviousPriceCents, l.Offer)
@@ -423,23 +425,26 @@ type mcpRunInput struct {
 }
 
 type mcpJob struct {
-	ID         int64           `json:"id"`
-	Kind       string          `json:"kind"`
-	Collection string          `json:"collection,omitempty"`
-	Profile    string          `json:"profile,omitempty"`
-	Status     string          `json:"status" jsonschema:"queued, running, succeeded, failed or cancelled"`
-	CreatedAt  string          `json:"created_at"`
-	StartedAt  string          `json:"started_at,omitempty"`
-	FinishedAt string          `json:"finished_at,omitempty"`
-	Error      string          `json:"error,omitempty"`
-	CostUSD    float64         `json:"cost_usd"`
-	Result     json.RawMessage `json:"result,omitempty"`
-	Recent     []string        `json:"recent,omitempty" jsonschema:"most recent progress messages, oldest first"`
+	ID         int64    `json:"id"`
+	Kind       string   `json:"kind"`
+	Collection string   `json:"collection,omitempty"`
+	Profile    string   `json:"profile,omitempty"`
+	Status     string   `json:"status" jsonschema:"queued, running, succeeded, failed or cancelled"`
+	CreatedAt  string   `json:"created_at"`
+	StartedAt  string   `json:"started_at,omitempty"`
+	FinishedAt string   `json:"finished_at,omitempty"`
+	Error      string   `json:"error,omitempty"`
+	CostUSD    float64  `json:"cost_usd"`
+	Result     any      `json:"result,omitempty"`
+	Recent     []string `json:"recent,omitempty" jsonschema:"most recent progress messages, oldest first"`
 }
 
 func mcpJobFor(j jobs.Job) mcpJob {
 	out := mcpJob{ID: j.ID, Kind: j.Kind, Collection: j.CollectionID, Profile: j.ProfileID, Status: string(j.Status),
-		CreatedAt: j.CreatedAt.Format(time.RFC3339), Error: j.Error, CostUSD: j.CostUSD, Result: j.Result}
+		CreatedAt: j.CreatedAt.Format(time.RFC3339), Error: j.Error, CostUSD: j.CostUSD}
+	if len(j.Result) > 0 {
+		out.Result = j.Result
+	}
 	if !j.StartedAt.IsZero() {
 		out.StartedAt = j.StartedAt.Format(time.RFC3339)
 	}

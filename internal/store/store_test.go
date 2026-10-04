@@ -266,6 +266,7 @@ func TestHistory(t *testing.T) {
 	}
 	other := sample()
 	other.SourceID = "2"
+	l.Description, l.Collages = "sunnier", []string{"collages/ab/abc"}
 	if err := s.Observe(ctx, "2026-09-30", "somerville", []listing.Listing{l, other}); err != nil {
 		t.Fatal(err)
 	}
@@ -278,8 +279,11 @@ func TestHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := h[Key(l)]; len(got) != 3 || got[0] != (Sighting{"2026-09-28", 280000}) || got[2].PriceCents != 260000 {
+	if got := h[Key(l)]; len(got) != 3 || got[0] != (Sighting{Day: "2026-09-28", PriceCents: 280000}) || got[2].PriceCents != 260000 {
 		t.Errorf("history should include sightings outside the collection: %+v", got)
+	}
+	if got := h[Key(l)]; got[1].InputHash != "" || got[2].InputHash != profile.InputHash(l) {
+		t.Errorf("input hashes = %q %q", got[1].InputHash, got[2].InputHash)
 	}
 	if len(h[Key(other)]) != 1 {
 		t.Errorf("other history = %+v", h[Key(other)])

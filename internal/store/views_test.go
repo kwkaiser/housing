@@ -34,7 +34,7 @@ func TestCurrentListingAndHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []Sighting{{"2026-09-29", 280000}, {"2026-09-30", 270000}}
+	want := []Sighting{{Day: "2026-09-29", PriceCents: 280000}, {Day: "2026-09-30", PriceCents: 270000}}
 	if len(history) != 2 || history[0] != want[0] || history[1] != want[1] {
 		t.Errorf("history = %+v", history)
 	}

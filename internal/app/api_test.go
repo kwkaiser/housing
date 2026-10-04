@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"git.kwkaiser.io/kwkaiser/housing/internal/service"
 )
 
 func apiApp(t *testing.T) (*App, http.Handler, string) {
@@ -135,7 +137,7 @@ func TestAPICollectionListings(t *testing.T) {
 	if z1.Rank != 1 || len(z1.Grades) != 2 || z1.Grades[0].Profile != "attic" || z1.Grades[1].Profile != "loft" || z1.Best.Match != 87.5 {
 		t.Errorf("z1 grades = %+v", z1)
 	}
-	if z1.PreviousPriceCents == nil || *z1.PreviousPriceCents != 300000 || z1.Listing.Price.Cents != 290000 || z1.New {
+	if z1.PreviousPriceCents == nil || *z1.PreviousPriceCents != 300000 || z1.Listing.Price.Cents != 290000 || z1.New || z1.Status != service.StatusChanged {
 		t.Errorf("z1 price history = %+v", z1)
 	}
 	if len(z1.Listing.Collages) != 1 || z1.Listing.Collages[0] != "/api/v1/media/"+collageKey || z1.Listing.Href != "/api/v1/listings/zillow/z1" {
@@ -148,6 +150,7 @@ func TestAPICollectionListings(t *testing.T) {
 	for target, want := range map[string]string{
 		"/api/v1/collections/somerville/listings?dealbreakers=true": "z1,z4,z2,z3",
 		"/api/v1/collections/somerville/listings?new_only=true":     "z4",
+		"/api/v1/collections/somerville/listings?hide_repeats=true": "z1,z4",
 		"/api/v1/collections/somerville/listings?limit=2":           "z1,z4",
 		"/api/v1/collections/somerville/listings?min_match=80":      "z1",
 		"/api/v1/collections/somerville/listings?day=" + day1:       "z1,z2",
