@@ -90,11 +90,11 @@ func TestMCP(t *testing.T) {
 	for _, tool := range tools.Tools {
 		names = append(names, tool.Name)
 		readOnly := tool.Annotations != nil && tool.Annotations.ReadOnlyHint
-		if readOnly != (tool.Name != "run_collection") {
+		if readOnly != (strings.HasPrefix(tool.Name, "get_") || strings.HasPrefix(tool.Name, "list_")) {
 			t.Errorf("%s read-only = %v", tool.Name, readOnly)
 		}
 	}
-	if got := strings.Join(names, ","); got != "get_job,get_listing,get_profile,list_collections,list_listings,list_profiles,run_collection" {
+	if got := strings.Join(names, ","); got != "create_collection,create_profile,get_collection,get_job,get_listing,get_profile,list_collections,list_listings,list_profiles,redraft_profile,run_collection,update_collection,update_profile" {
 		t.Errorf("tools = %s", got)
 	}
 
@@ -165,5 +165,91 @@ func TestMCP(t *testing.T) {
 	done, _ := callTool[mcpJob](t, cs, "get_job", map[string]any{"id": j.ID})
 	if r, ok := done.Result.(map[string]any); done.Status != "succeeded" || !ok || r["day"] != "2026-10-04" {
 		t.Errorf("finished job = %+v", done)
+	}
+}
+
+func toolError(t *testing.T, cs *mcp.ClientSession, name string, args map[string]any) string {
+	t.Helper()
+	res, err := cs.CallTool(t.Context(), &mcp.CallToolParams{Name: name, Arguments: args})
+	if err != nil {
+		t.Fatalf("%s: %v", name, err)
+	}
+	if !res.IsError || len(res.Content) == 0 {
+		t.Fatalf("%s should fail: %+v", name, res)
+	}
+	return res.Content[0].(*mcp.TextContent).Text
+}
+
+func TestMCPMutations(t *testing.T) {
+	a, h, key := apiApp(t)
+	srv := httptest.NewServer(h)
+	defer srv.Close()
+	cs, err := mcpSession(t, srv, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c, _ := callTool[mcpCollectionDetail](t, cs, "get_collection", map[string]any{"id": "somerville"})
+	if c.Mode != "rent" || c.Search.Location != "Somerville, MA" || len(c.Profiles) != 2 {
+		t.Fatalf("collection = %+v", c)
+	}
+
+	created, _ := callTool[mcpCollectionDetail](t, cs, "create_collection", map[string]any{
+		"id": "cambridge", "mode": "rent", "sources": []string{"zillow"}, "profiles": []string{"loft"},
+		"location": "Cambridge, MA", "max_price": 4000, "min_beds": 1, "schedule": "05:30",
+	})
+	if created.ID != "cambridge" || created.Search.MaxPrice == nil || *created.Search.MaxPrice != 4000 || created.Schedule != "05:30" {
+		t.Errorf("created = %+v", created)
+	}
+	if msg := toolError(t, cs, "create_collection", map[string]any{"id": "cambridge", "mode": "rent", "sources": []string{"zillow"}, "profiles": []string{"loft"}, "location": "x"}); !strings.Contains(msg, "already exists") {
+		t.Errorf("duplicate create = %q", msg)
+	}
+	if msg := toolError(t, cs, "create_collection", map[string]any{"id": "bad", "mode": "rent", "sources": []string{"zillow"}, "profiles": []string{"corp"}, "location": "x"}); msg == "internal error" {
+		t.Errorf("avoid profile in a collection should give a validation message, got %q", msg)
+	}
+
+	updated, _ := callTool[mcpCollectionDetail](t, cs, "update_collection", map[string]any{
+		"id": "cambridge", "profiles": []string{"attic", "loft"}, "max_price": 4500, "clear": []string{"min_beds"}, "schedule": "",
+	})
+	if len(updated.Profiles) != 2 || *updated.Search.MaxPrice != 4500 || updated.Search.MinBeds != nil || updated.Schedule != "" || updated.Search.Location != "Cambridge, MA" {
+		t.Errorf("updated = %+v", updated)
+	}
+	if msg := toolError(t, cs, "update_collection", map[string]any{"id": "cambridge", "clear": []string{"location"}}); !strings.Contains(msg, "cannot clear") {
+		t.Errorf("bad clear = %q", msg)
+	}
+	if msg := toolError(t, cs, "update_collection", map[string]any{"id": "cambridge", "schedule": "25:00"}); !strings.Contains(msg, "schedule") {
+		t.Errorf("bad schedule = %q", msg)
+	}
+	if msg := toolError(t, cs, "update_collection", map[string]any{"id": "nope"}); !strings.Contains(msg, "not found") {
+		t.Errorf("missing collection = %q", msg)
+	}
+
+	p, _ := callTool[mcpProfile](t, cs, "update_profile", map[string]any{
+		"id": "attic", "summary": "Top floor, lots of light.", "notes": []string{"skylights matter most"},
+		"criteria": []map[string]any{{"id": "skylights", "importance": "essential"}, {"id": "floors", "remove": true}},
+	})
+	if p.Name != "Sunny attic" || p.Summary != "Top floor, lots of light." || len(p.Wants) != 1 || p.Wants[0].Importance != "essential" || p.Wants[0].Label != "Skylights" {
+		t.Errorf("updated profile = %+v", p)
+	}
+	stored, err := a.svc.Profile(t.Context(), "attic")
+	if err != nil || len(stored.Notes) != 1 || stored.Notes[0] != "skylights matter most" {
+		t.Errorf("stored notes = %+v %v", stored.Notes, err)
+	}
+	if msg := toolError(t, cs, "update_profile", map[string]any{"id": "attic", "criteria": []map[string]any{{"id": "carpet", "remove": true}}}); !strings.Contains(msg, "no criterion") {
+		t.Errorf("inherited criterion edit = %q", msg)
+	}
+	if msg := toolError(t, cs, "update_profile", map[string]any{"id": "attic", "criteria": []map[string]any{{"id": "skylights", "importance": "huge"}}}); !strings.Contains(msg, "importance") {
+		t.Errorf("bad importance = %q", msg)
+	}
+
+	j, _ := callTool[mcpJob](t, cs, "redraft_profile", map[string]any{"id": "attic"})
+	if j.Kind != "draft_profile" || j.Profile != "attic" || j.Status != "queued" {
+		t.Errorf("redraft job = %+v", j)
+	}
+	if msg := toolError(t, cs, "redraft_profile", map[string]any{"id": "loft"}); !strings.Contains(msg, "no reference listings") {
+		t.Errorf("redraft without references = %q", msg)
+	}
+	if msg := toolError(t, cs, "create_profile", map[string]any{"url": "not a url", "id": "attic"}); !strings.Contains(msg, "URL") || !strings.Contains(msg, "already exists") {
+		t.Errorf("bad create_profile = %q", msg)
 	}
 }

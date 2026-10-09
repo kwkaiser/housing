@@ -27,7 +27,8 @@ const (
 	mcpServerInstruction = "Tools for browsing apartment and house listings that housing has fetched and graded against the user's profiles. " +
 		"A collection is a saved search graded against one or more want profiles; it runs at most once a day. " +
 		"Start with list_collections, then list_listings for ranked results, then get_listing for one listing's details and photos. " +
-		"match is a 0-100+ score relative to the profile's reference listings; around 100 means as good as the references."
+		"match is a 0-100+ score relative to the profile's reference listings; around 100 means as good as the references. " +
+		"Collections and profiles can be changed with create_collection, update_collection, update_profile, create_profile and redraft_profile; read the current values with get_collection or get_profile first, and only make changes the user asked for."
 )
 
 func (a *App) mcpHandler() http.Handler {
@@ -49,6 +50,11 @@ func (a *App) mcpServer() *mcp.Server {
 		Description: "List saved collections with their search area, profiles and most recent run day.",
 		Annotations: readOnly,
 	}, a.mcpListCollections)
+	mcp.AddTool(srv, &mcp.Tool{
+		Name:        "get_collection",
+		Description: "Get a collection's full settings: sources, profiles, search filters, schedule, budget and notifications.",
+		Annotations: readOnly,
+	}, a.mcpGetCollection)
 	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "list_listings",
 		Description: "List a collection's listings for one run day, best match first. Listings that hit a dealbreaker are left out unless include_dealbreakers is set.",
@@ -79,6 +85,7 @@ func (a *App) mcpServer() *mcp.Server {
 		Description: "Get a job's status, result and most recent progress messages.",
 		Annotations: readOnly,
 	}, a.mcpGetJob)
+	a.addMCPMutations(srv)
 	return srv
 }
 
