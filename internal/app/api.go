@@ -472,7 +472,7 @@ type APIJob struct {
 	Trigger      string      `json:"trigger"`
 	CollectionID string      `json:"collection_id,omitempty"`
 	ProfileID    string      `json:"profile_id,omitempty"`
-	Status       jobs.Status `json:"status" enum:"queued,running,succeeded,failed,cancelled"`
+	Status       jobs.Status `json:"status" enum:"queued,running,succeeded,degraded,failed,cancelled"`
 	CreatedAt    time.Time   `json:"created_at"`
 	StartedAt    *time.Time  `json:"started_at,omitempty"`
 	FinishedAt   *time.Time  `json:"finished_at,omitempty"`
@@ -504,7 +504,7 @@ func apiJob(j jobs.Job) APIJob {
 
 type jobsInput struct {
 	Collection string      `query:"collection" doc:"Only this collection's jobs"`
-	Status     jobs.Status `query:"status" enum:"queued,running,succeeded,failed,cancelled"`
+	Status     jobs.Status `query:"status" enum:"queued,running,succeeded,degraded,failed,cancelled"`
 	Limit      int         `query:"limit" minimum:"0" default:"20" doc:"Maximum jobs to return; 0 for all"`
 }
 

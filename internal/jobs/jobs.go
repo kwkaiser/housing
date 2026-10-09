@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
@@ -38,6 +39,7 @@ const (
 	StatusQueued    = store.JobQueued
 	StatusRunning   = store.JobRunning
 	StatusSucceeded = store.JobSucceeded
+	StatusDegraded  = store.JobDegraded
 	StatusFailed    = store.JobFailed
 	StatusCancelled = store.JobCancelled
 )
@@ -131,6 +133,17 @@ func runResult(r service.RunResult) RunResult {
 		out.NotifyError = r.NotifyErr.Error()
 	}
 	return out
+}
+
+func (r RunResult) Degraded() string {
+	var reasons []string
+	if r.AssessError != "" {
+		reasons = append(reasons, "assess: "+r.AssessError)
+	}
+	if r.NotifyError != "" {
+		reasons = append(reasons, "notify: "+r.NotifyError)
+	}
+	return strings.Join(reasons, "; ")
 }
 
 type ProfileResult struct {

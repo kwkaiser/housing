@@ -79,6 +79,11 @@ func (r *Runner) next(ctx context.Context) (bool, error) {
 		j.Status, j.Error = StatusFailed, runErr.Error()
 	default:
 		j.Status = StatusSucceeded
+		if res, ok := result.(RunResult); ok {
+			if reason := res.Degraded(); reason != "" {
+				j.Status, j.Error = StatusDegraded, reason
+			}
+		}
 	}
 	if result != nil {
 		if b, err := json.Marshal(result); err == nil {

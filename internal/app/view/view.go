@@ -162,7 +162,7 @@ func Truncate(s string, n int) string {
 
 func StatusClass(status string) string {
 	switch status {
-	case "queued", "running", "succeeded", "failed", "cancelled":
+	case "queued", "running", "succeeded", "degraded", "failed", "cancelled":
 		return "status " + status
 	}
 	return "status"

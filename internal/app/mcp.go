@@ -429,7 +429,7 @@ type mcpJob struct {
 	Kind       string   `json:"kind"`
 	Collection string   `json:"collection,omitempty"`
 	Profile    string   `json:"profile,omitempty"`
-	Status     string   `json:"status" jsonschema:"queued, running, succeeded, failed or cancelled"`
+	Status     string   `json:"status" jsonschema:"queued, running, succeeded, degraded (finished, but some listings could not be graded or notified), failed or cancelled"`
 	CreatedAt  string   `json:"created_at"`
 	StartedAt  string   `json:"started_at,omitempty"`
 	FinishedAt string   `json:"finished_at,omitempty"`

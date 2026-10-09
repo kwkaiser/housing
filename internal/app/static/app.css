@@ -8,6 +8,7 @@
   --accent: #2563eb;
   --bad: #dc2626;
   --good: #15803d;
+  --warn: #b45309;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -19,6 +20,7 @@
     --accent: #60a5fa;
     --bad: #f87171;
     --good: #4ade80;
+    --warn: #fbbf24;
   }
 }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 system-ui, sans-serif; }
@@ -114,6 +116,7 @@ table.history { width: auto; }
 .status { display: inline-block; padding: 0 .45rem; border-radius: 999px; font-size: .75rem; border: 1px solid currentColor; white-space: nowrap; color: var(--muted); }
 .status.running { color: var(--accent); }
 .status.succeeded { color: var(--good); }
+.status.degraded { color: var(--warn); }
 .status.failed { color: var(--bad); }
 .status.cancelled { color: var(--muted); text-decoration: line-through; }
 h1 .status { vertical-align: middle; font-size: .8rem; }

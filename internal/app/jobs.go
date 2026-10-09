@@ -22,7 +22,7 @@ const (
 	maxJobLimit     = 500
 )
 
-var jobStatuses = []jobs.Status{jobs.StatusQueued, jobs.StatusRunning, jobs.StatusSucceeded, jobs.StatusFailed, jobs.StatusCancelled}
+var jobStatuses = []jobs.Status{jobs.StatusQueued, jobs.StatusRunning, jobs.StatusSucceeded, jobs.StatusDegraded, jobs.StatusFailed, jobs.StatusCancelled}
 
 type jobView struct {
 	jobs.Job

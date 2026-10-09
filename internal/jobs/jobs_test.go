@@ -38,11 +38,12 @@ func (c *clock) Set(t time.Time) {
 }
 
 type fakeExec struct {
-	mu      sync.Mutex
-	runs    []string
-	started chan string
-	block   bool
-	err     error
+	mu        sync.Mutex
+	runs      []string
+	started   chan string
+	block     bool
+	err       error
+	assessErr error
 }
 
 func (f *fakeExec) RunCollection(ctx context.Context, id string, log *slog.Logger) (service.RunResult, error) {
@@ -59,6 +60,7 @@ func (f *fakeExec) RunCollection(ctx context.Context, id string, log *slog.Logge
 		return service.RunResult{Collection: id}, ctx.Err()
 	}
 	res := service.RunResult{Collection: id, Mode: profile.ModeRent, Fetched: 3, Stats: profile.BatchStats{Calls: 2, CostUSD: 0.04}}
+	res.AssessErr = f.assessErr
 	if f.err != nil {
 		return res, f.err
 	}
@@ -186,6 +188,22 @@ func TestRunnerRecordsFailure(t *testing.T) {
 		j := wait(t, q, id)
 		if j.Status != StatusFailed || j.Error != "OPENROUTER_API_KEY is not set" || j.CostUSD != 0.04 || j.Result != nil {
 			t.Errorf("job = %+v", j)
+		}
+	})
+}
+
+func TestRunnerRecordsDegraded(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		q := New(openStore(t), nil)
+		start(t, q, &fakeExec{assessErr: errors.New("openrouter: 402 out of credits")})
+		id, _ := q.Enqueue(t.Context(), RunCollectionParams{CollectionID: "c"})
+		j := wait(t, q, id)
+		var res RunResult
+		if err := json.Unmarshal(j.Result, &res); err != nil {
+			t.Fatal(err)
+		}
+		if j.Status != StatusDegraded || j.Error != "assess: openrouter: 402 out of credits" || res.AssessError != "openrouter: 402 out of credits" || res.Fetched != 3 {
+			t.Errorf("job = %+v result = %+v", j, res)
 		}
 	})
 }
