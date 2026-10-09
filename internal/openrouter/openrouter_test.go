@@ -34,6 +34,7 @@ func TestComplete(t *testing.T) {
 		Schema:          &Schema{Name: "out", Schema: map[string]any{"type": "object"}},
 		Temperature:     &temp,
 		ReasoningEffort: "low",
+		MaxTokens:       512,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -47,7 +48,7 @@ func TestComplete(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(got)
-	for _, want := range []string{`"data:image/jpeg;base64,AQI="`, `"json_schema"`, `"strict":true`, `"be terse"`, `"role":"system"`, `"temperature":0`, `"reasoning":{"effort":"low"}`} {
+	for _, want := range []string{`"data:image/jpeg;base64,AQI="`, `"json_schema"`, `"strict":true`, `"be terse"`, `"role":"system"`, `"temperature":0`, `"reasoning":{"effort":"low"}`, `"max_tokens":512`} {
 		if !strings.Contains(string(body), want) {
 			t.Errorf("request missing %s: %s", want, body)
 		}

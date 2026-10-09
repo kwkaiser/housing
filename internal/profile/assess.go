@@ -20,6 +20,7 @@ import (
 const (
 	DefaultAssessModel           = "google/gemini-3.8-flash"
 	DefaultAssessReasoningEffort = "low"
+	DefaultAssessMaxTokens       = 8192
 )
 
 var importanceWeights = map[Importance]float64{
@@ -62,6 +63,7 @@ type Assessor struct {
 	Attempts        int
 	ImagePx         int
 	ReasoningEffort string
+	MaxTokens       int64
 }
 
 func usage(u openrouter.Usage) listing.TokenUsage {
@@ -161,6 +163,7 @@ func (a Assessor) complete(ctx context.Context, p Profile, content []openrouter.
 		Schema:          assessSchema,
 		Temperature:     &temperature,
 		ReasoningEffort: a.ReasoningEffort,
+		MaxTokens:       a.MaxTokens,
 	})
 	if err != nil {
 		return resp, modelResponse{}, err

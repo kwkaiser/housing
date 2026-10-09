@@ -30,6 +30,7 @@ type Request struct {
 	Schema          *Schema
 	Temperature     *float64
 	ReasoningEffort string
+	MaxTokens       int64
 }
 
 type Part struct {
@@ -57,6 +58,8 @@ type Usage struct {
 	ReasoningTokens  int64
 	CachedTokens     int64
 }
+
+const DefaultMaxConcurrency = 8
 
 var ErrEmptyResponse = errors.New("openrouter returned no content")
 
@@ -86,12 +89,13 @@ type Client struct {
 var _ Completer = (*Client)(nil)
 
 type settings struct {
-	serverURL    string
-	retryMax     int
-	retryWaitMin time.Duration
-	retryWaitMax time.Duration
-	perSecond    float64
-	burst        int
+	serverURL      string
+	retryMax       int
+	retryWaitMin   time.Duration
+	retryWaitMax   time.Duration
+	perSecond      float64
+	burst          int
+	maxConcurrency int
 }
 
 type Option func(*settings)
@@ -108,13 +112,18 @@ func WithRateLimit(perSecond float64, burst int) Option {
 	return func(s *settings) { s.perSecond, s.burst = perSecond, burst }
 }
 
+func WithMaxConcurrency(n int) Option {
+	return func(s *settings) { s.maxConcurrency = n }
+}
+
 func NewClient(apiKey string, opts ...Option) *Client {
 	s := settings{
-		retryMax:     4,
-		retryWaitMin: time.Second,
-		retryWaitMax: 30 * time.Second,
-		perSecond:    4,
-		burst:        4,
+		retryMax:       4,
+		retryWaitMin:   time.Second,
+		retryWaitMax:   30 * time.Second,
+		perSecond:      4,
+		burst:          4,
+		maxConcurrency: DefaultMaxConcurrency,
 	}
 	for _, o := range opts {
 		o(&s)
@@ -125,7 +134,9 @@ func NewClient(apiKey string, opts ...Option) *Client {
 	httpClient.RetryWaitMin = s.retryWaitMin
 	httpClient.RetryWaitMax = s.retryWaitMax
 	httpClient.HTTPClient.Timeout = 5 * time.Minute
-	httpClient.HTTPClient.Transport = bufferedTransport{next: httpClient.HTTPClient.Transport}
+	httpClient.HTTPClient.Transport = newAdaptiveTransport(bufferedTransport{next: httpClient.HTTPClient.Transport}, s.maxConcurrency)
+	httpClient.CheckRetry = retryPolicy
+	httpClient.Backoff = backoff
 	httpClient.Logger = nil
 	httpClient.ErrorHandler = retryablehttp.PassthroughErrorHandler
 
@@ -178,6 +189,9 @@ func (c *Client) Complete(ctx context.Context, req Request) (Response, error) {
 	if req.ReasoningEffort != "" {
 		effort := components.ChatRequestEffort(req.ReasoningEffort)
 		chat.Reasoning = &components.ChatRequestReasoning{Effort: optionalnullable.From(&effort)}
+	}
+	if req.MaxTokens > 0 {
+		chat.MaxTokens = optionalnullable.From(&req.MaxTokens)
 	}
 	if req.Schema != nil {
 		strict := true

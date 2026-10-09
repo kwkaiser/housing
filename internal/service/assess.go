@@ -176,7 +176,7 @@ func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listin
 				return res, err
 			}
 		}
-		assessor := profile.Assessor{Client: client, Model: o.Model, Attempts: profile.DefaultAssessAttempts, ImagePx: DefaultAssessImagePx, ReasoningEffort: profile.DefaultAssessReasoningEffort}
+		assessor := profile.Assessor{Client: client, Model: o.Model, Attempts: profile.DefaultAssessAttempts, ImagePx: DefaultAssessImagePx, ReasoningEffort: profile.DefaultAssessReasoningEffort, MaxTokens: profile.DefaultAssessMaxTokens}
 
 		calibrated, cs, cerr := assessor.AssessListings(ctx, p, refs, t.References,
 			readShrunk(images),
