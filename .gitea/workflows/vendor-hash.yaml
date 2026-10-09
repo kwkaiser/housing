@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ github.token }}
+          token: ${{ secrets.VENDOR_HASH_TOKEN }}
 
       - uses: DeterminateSystems/nix-installer-action@main
 

@@ -13,8 +13,11 @@
   "nix": {
     "enabled": true
   },
+  "platformAutomerge": true,
+  "automergeType": "pr",
   "lockFileMaintenance": {
     "enabled": true,
+    "automerge": true,
     "schedule": [
       "before 6am on monday"
     ]
@@ -36,6 +39,23 @@
         "github-actions"
       ],
       "groupName": "workflow actions"
+    },
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest",
+        "pin",
+        "pinDigest"
+      ],
+      "automerge": true
+    },
+    {
+      "matchCurrentVersion": "/^v?0\\./",
+      "matchUpdateTypes": [
+        "minor"
+      ],
+      "automerge": false
     }
   ]
 }
