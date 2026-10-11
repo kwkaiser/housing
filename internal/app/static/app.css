@@ -77,6 +77,8 @@ tbody tr:nth-child(even) { background: var(--stripe); }
 .section { margin: 0 0 1rem; }
 .section > summary { cursor: pointer; user-select: none; font-weight: 600; padding: .25rem 0; }
 .section[open] > summary { margin-bottom: .5rem; }
+.map { height: 420px; border: 1px solid var(--line); border-radius: 6px; }
+.leaflet-popup-content .muted { margin-top: .25rem; }
 a.button, span.button { display: inline-block; padding: .3rem .6rem; border: 1px solid var(--line); border-radius: 6px; color: inherit; }
 a.button:hover { text-decoration: none; border-color: var(--muted); }
 span.button[aria-disabled=true] { opacity: .4; }

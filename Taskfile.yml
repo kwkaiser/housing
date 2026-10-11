@@ -53,6 +53,19 @@ tasks:
           printf "%s\t%.5f\t%.5f\t%.2f\n", $1, $6, $7, sqrt($4 / 3.14159265)
         }' "$tmp"/*.txt > internal/geo/zips.tsv
 
+  centroids:
+    desc: Regenerate internal/geo/centroids.tsv, the national zip code centroids used to place listings without coordinates.
+    vars:
+      YEAR: '{{.YEAR | default "2024"}}'
+    cmds:
+      - |
+        set -eu
+        tmp=$(mktemp -d)
+        trap 'rm -rf "$tmp"' EXIT
+        curl -fsSL -o "$tmp/zcta.zip" "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/{{.YEAR}}_Gazetteer/{{.YEAR}}_Gaz_zcta_national.zip"
+        unzip -q -d "$tmp" "$tmp/zcta.zip"
+        awk -F'\t' 'NR > 1 { printf "%s\t%.4f\t%.4f\n", $1, $6, $7 }' "$tmp"/*.txt > internal/geo/centroids.tsv
+
   update:
     desc: Update Go dependencies and regenerate vendorHash.
     cmds:
