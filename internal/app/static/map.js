@@ -40,6 +40,7 @@
   const fading = document.querySelector("select.fading");
   const contrastLabel = document.querySelector("label.contrast");
   const contrast = contrastLabel && contrastLabel.querySelector("input");
+  const shows = [...document.querySelectorAll("input[data-show]")];
 
   const hidden = store.get("mapHidden", []);
   for (const box of boxes) box.checked = !hidden.includes(box.dataset.collection);
@@ -47,7 +48,11 @@
   if (fading && [...fading.options].some((o) => o.value === mode)) fading.value = mode;
   const level = store.get("mapContrast", null);
   if (contrast && level !== null) contrast.value = level;
+  const shown = store.get("mapShow", {});
+  for (const box of shows) box.checked = shown[box.dataset.show] === true;
   const enabled = () => new Set(boxes.filter((b) => b.checked).map((b) => b.dataset.collection));
+  const showing = () => Object.fromEntries(shows.map((b) => [b.dataset.show, b.checked]));
+  const visibleIn = (pin, c, show) => (show.ungraded || c in pin.scores) && (show.dealbreakers || !pin.dealbreakers?.[c]);
 
   const spreadOverlapping = () => {
     const groups = new Map();
@@ -92,11 +97,19 @@
     title.textContent = p.title;
     const meta = document.createElement("div");
     const beds = p.beds === "-" ? null : p.beds === "studio" ? p.beds : `${p.beds} bd`;
-    meta.textContent = [p.matches[v.lead], p.price, beds].filter(Boolean).join(" · ");
+    meta.textContent = [p.matches[v.lead] || "Not graded yet", p.price, beds].filter(Boolean).join(" · ");
     const where = document.createElement("div");
     where.className = "muted";
-    where.textContent = `First seen ${p.firstSeen} · ${p.collections.join(", ")}`;
+    const retrieved = p.lastSeen && p.lastSeen !== p.firstSeen ? ` · last retrieved ${p.lastSeen}` : "";
+    where.textContent = `First seen ${p.firstSeen}${retrieved} · ${p.collections.join(", ")}`;
     box.append(title, meta, where);
+    const hits = p.dealbreakers?.[v.lead];
+    if (hits) {
+      const bad = document.createElement("div");
+      bad.className = "bad";
+      bad.textContent = `Dealbreakers: ${hits.join(", ")}`;
+      box.append(bad);
+    }
     if (p.approx) {
       const note = document.createElement("div");
       note.className = "muted";
@@ -200,20 +213,29 @@
     });
   });
 
+  const UNGRADED = "#78716c";
   const views = pins.map((pin) => {
     const v = { pin, lead: null, value: 0 };
-    let content;
+    let content, contentLead;
     const width = pin.preview ? { minWidth: 280, maxWidth: 280 } : { minWidth: 200, maxWidth: 320 };
     v.marker = L.circleMarker([pin.lat, pin.lng], { radius: 7, weight: 2, dashArray: pin.approx ? "3 3" : null })
       .bindTooltip("")
-      .bindPopup(() => (content ??= popup(v)), width);
+      .bindPopup(() => {
+        if (contentLead !== v.lead) [content, contentLead] = [popup(v), v.lead];
+        return content;
+      }, width);
     return v;
   });
 
+  const assignLeads = () => {
+    const on = enabled();
+    const show = showing();
+    for (const v of views) v.lead = v.pin.collections.find((c) => on.has(c) && visibleIn(v.pin, c, show)) || null;
+  };
+
   const fit = () => {
     const on = enabled();
-    const shown = pins.filter((p) => p.collections.some((c) => on.has(c)));
-    let points = (shown.length ? shown : pins).map((p) => [p.lat, p.lng]);
+    let points = views.filter((v) => v.lead).map((v) => [v.pin.lat, v.pin.lng]);
     if (!points.length) {
       const visible = Object.keys(extents).filter((c) => on.has(c));
       points = (visible.length ? visible : Object.keys(extents)).flatMap((c) => extents[c]);
@@ -229,11 +251,9 @@
   };
 
   const apply = () => {
-    const on = enabled();
     const metric = fading && metrics[fading.value];
     const shown = [];
     for (const v of views) {
-      v.lead = v.pin.collections.find((c) => on.has(c));
       if (!v.lead) {
         v.marker.remove();
         continue;
@@ -246,28 +266,36 @@
     const gamma = 0.5 + 3.5 * ((contrast ? Number(contrast.value) : 50) / 100);
     const strength = (v) => {
       if (!metric) return 1;
-      if (!rank.has(v.value)) return 0.08;
+      if (!rank.has(v.value)) return v.pin.ungraded ? 0.5 : 0.08;
       return 0.08 + 0.92 * rank.get(v.value) ** gamma;
     };
     if (contrast) contrast.disabled = !metric;
     shown.sort((a, b) => strength(a) - strength(b));
     for (const v of shown) {
       const s = strength(v);
+      const graded = v.lead in v.pin.scores;
+      const hollow = Boolean(v.pin.dealbreakers?.[v.lead]);
       v.marker
         .setRadius(metric ? 4 + 5 * s : 7)
-        .setStyle({ color: colors[v.lead], opacity: s, fillOpacity: (v.pin.approx ? 0.2 : 0.6) * s })
-        .setTooltipContent(`${v.pin.price} · ${v.pin.matches[v.lead]} · ${v.pin.firstSeen}`)
+        .setStyle({
+          color: graded ? colors[v.lead] : UNGRADED,
+          opacity: s,
+          fillOpacity: hollow ? 0 : (v.pin.approx ? 0.2 : 0.6) * s,
+        })
+        .setTooltipContent([v.pin.price, v.pin.matches[v.lead] || "ungraded", hollow ? "dealbreaker" : null, v.pin.firstSeen].filter(Boolean).join(" · "))
         .addTo(map)
         .bringToFront();
     }
   };
 
+  assignLeads();
   fit();
   apply();
 
   for (const box of boxes) {
     box.addEventListener("change", () => {
       store.set("mapHidden", boxes.filter((b) => !b.checked).map((b) => b.dataset.collection));
+      assignLeads();
       fit();
       apply();
     });
@@ -278,6 +306,14 @@
       apply();
     });
     fading.hidden = false;
+  }
+  for (const box of shows) {
+    box.addEventListener("change", () => {
+      store.set("mapShow", showing());
+      assignLeads();
+      apply();
+    });
+    box.closest("label").hidden = false;
   }
   if (contrast) {
     contrast.addEventListener("input", () => {

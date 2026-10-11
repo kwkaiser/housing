@@ -137,9 +137,7 @@ func (s *Service) CollectionDay(ctx context.Context, collectionID string, o DayO
 	if err != nil {
 		return v, err
 	}
-	r := report.Build(reportTemplates(templates), listings, report.Options{
-		Offer: v.Collection.Mode.Offer(), Model: v.Collection.Model, IncludeStale: true, Dealbreakers: true,
-	})
+	r := report.Build(reportTemplates(templates), listings, reportOptions(v.Collection))
 	v.Graded = len(r.Rows)
 	v.Models = modelsFor(v.Collection, r.Models)
 	for _, row := range r.Rows {
@@ -474,4 +472,77 @@ func ValidMediaKey(key string) bool {
 		return false
 	}
 	return !slices.Contains(strings.Split(key, "/"), "..")
+}
+
+func reportOptions(c collection.Collection) report.Options {
+	return report.Options{Offer: c.Mode.Offer(), Model: c.Model, IncludeStale: true, Dealbreakers: true}
+}
+
+type RangeRow struct {
+	ListingRow
+	Day      string
+	Ungraded bool
+}
+
+type CollectionRangeView struct {
+	Collection collection.Collection
+	Days       []store.DayCount
+	Rows       []RangeRow
+}
+
+func (s *Service) CollectionRange(ctx context.Context, collectionID, from, to string) (CollectionRangeView, error) {
+	db, err := s.catalog(ctx)
+	if err != nil {
+		return CollectionRangeView{}, err
+	}
+	var v CollectionRangeView
+	if v.Collection, err = db.Collection(ctx, collectionID); err != nil {
+		return v, err
+	}
+	if v.Days, err = db.CollectionDays(ctx, collectionID); err != nil {
+		return v, err
+	}
+	templates, err := s.templates(ctx, db, v.Collection.Profiles)
+	if err != nil {
+		return v, err
+	}
+	history, err := db.History(ctx, collectionID)
+	if err != nil {
+		return v, err
+	}
+	index := map[string]int{}
+	for _, d := range v.Days {
+		if from != "" && d.Day < from || to != "" && d.Day > to {
+			continue
+		}
+		listings, err := db.LoadDay(ctx, d.Day, collectionID)
+		if err != nil {
+			return v, err
+		}
+		add := func(rr RangeRow) {
+			key := store.Key(rr.Listing)
+			rr.FirstSeen, rr.Status, rr.PreviousPriceCents = sightings(d.Day, history[key])
+			if i, ok := index[key]; ok {
+				v.Rows[i] = rr
+				return
+			}
+			index[key] = len(v.Rows)
+			v.Rows = append(v.Rows, rr)
+		}
+		graded := map[string]bool{}
+		for _, row := range report.Build(reportTemplates(templates), listings, reportOptions(v.Collection)).Rows {
+			graded[store.Key(row.Listing)] = true
+			for _, also := range row.AlsoListed {
+				graded[string(also.Source)+"/"+also.SourceID] = true
+			}
+			add(RangeRow{ListingRow: ListingRow{Row: row}, Day: d.Day})
+		}
+		for _, g := range dedupe.Groups(listings) {
+			if g.Primary.Offer != v.Collection.Mode.Offer() || slices.ContainsFunc(g.Members(), func(l listing.Listing) bool { return graded[store.Key(l)] }) {
+				continue
+			}
+			add(RangeRow{ListingRow: ListingRow{Row: report.Row{Listing: g.Primary}}, Day: d.Day, Ungraded: true})
+		}
+	}
+	return v, nil
 }
