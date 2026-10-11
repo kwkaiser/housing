@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/apify"
+	"git.kwkaiser.io/kwkaiser/housing/internal/geo"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/providers/zillow"
 )
@@ -195,6 +196,27 @@ func TestSearchZipRadiusUsesTable(t *testing.T) {
 	}
 }
 
+func TestSearchCapsZipsToNearest(t *testing.T) {
+	p, r, _ := newProvider(nil, williamsburg)
+	if _, err := p.Search(t.Context(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "10003", RadiusMiles: 3}}); err != nil {
+		t.Fatal(err)
+	}
+	z, _ := geo.LookupZip("10003")
+	all := geo.ZipsWithin(z.Center, 3)
+	if len(all) <= maxZips {
+		t.Fatalf("radius spans %d zips, want more than %d", len(all), maxZips)
+	}
+	urls := r.urls()
+	if len(urls) != maxZips {
+		t.Fatalf("ran %d searches, want %d", len(urls), maxZips)
+	}
+	for _, zip := range all[:maxZips] {
+		if !slices.ContainsFunc(urls, func(u string) bool { return strings.Contains(u, "zip:"+zip.Code+"?") }) {
+			t.Errorf("searched %v, missing nearby zip %s", urls, zip.Code)
+		}
+	}
+}
+
 func TestSearchRejects(t *testing.T) {
 	boston := zillow.Region{Name: "Somerville, MA", Type: "city", Center: listing.Coordinates{Lat: 42.3876, Lng: -71.0995}}
 	cases := []struct {
@@ -208,7 +230,6 @@ func TestSearchRejects(t *testing.T) {
 		{"amenity", listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "11211"}, Amenities: []listing.Amenity{listing.AmenityAirConditioning}}, williamsburg, "cannot filter by air_conditioning"},
 		{"outside nyc", listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "Somerville, MA", RadiusMiles: 2}}, boston, "only covers the New York City area"},
 		{"no radius for city", listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "Brooklyn"}}, zillow.Region{Name: "Brooklyn", Type: "city", Center: williamsburg.Center}, "set a radius"},
-		{"too many zips", listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "Manhattan", RadiusMiles: 3}}, zillow.Region{Name: "Manhattan", Type: "city", Center: listing.Coordinates{Lat: 40.7359, Lng: -73.9911}}, "zip codes on streeteasy"},
 	}
 	for _, tc := range cases {
 		p, r, _ := newProvider(nil, tc.region)

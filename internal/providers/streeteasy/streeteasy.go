@@ -178,11 +178,8 @@ func (p *Provider) resolve(ctx context.Context, a listing.Area) (searchArea, err
 	if len(zips) == 0 {
 		return searchArea{}, fmt.Errorf("%w: streeteasy only covers the New York City area, not %q", listing.ErrUnsupportedQuery, location)
 	}
-	if len(zips) > maxZips {
-		return searchArea{}, fmt.Errorf("%w: a %.1f mile radius spans %d zip codes on streeteasy; the most is %d", listing.ErrUnsupportedQuery, radius, len(zips), maxZips)
-	}
 	area := searchArea{center: center, radius: radius}
-	for _, z := range zips {
+	for _, z := range zips[:min(len(zips), maxZips)] {
 		area.zips = append(area.zips, z.Code)
 	}
 	return area, nil
