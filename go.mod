@@ -3,15 +3,15 @@ module git.kwkaiser.io/kwkaiser/housing
 go 1.26.7
 
 require (
-	github.com/OpenRouterTeam/go-sdk v0.9.22
+	github.com/OpenRouterTeam/go-sdk v0.9.42
 	github.com/danielgtaylor/huma/v2 v2.39.1
 	github.com/google/renameio/v2 v2.0.2
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/invopop/jsonschema v0.14.0
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/spf13/cobra v1.10.2
-	golang.org/x/image v0.46.0
-	golang.org/x/sync v0.23.0
+	golang.org/x/image v0.47.0
+	golang.org/x/sync v0.24.0
 	golang.org/x/time v0.16.0
 	modernc.org/sqlite v1.60.1
 )
@@ -35,7 +35,7 @@ require (
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
 	modernc.org/libc v1.77.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
