@@ -2,10 +2,12 @@ package app
 
 import (
 	"cmp"
+	"context"
 	"net/http"
 	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/app/view"
+	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
 	"git.kwkaiser.io/kwkaiser/housing/internal/geo"
 	"git.kwkaiser.io/kwkaiser/housing/internal/report"
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
@@ -54,9 +56,8 @@ type mapData struct {
 	Last        string
 	Min         string
 	Max         string
-	Positron    bool
-	Transit     bool
 	Extent      map[string][][2]float64
+	Config      mapConfig
 }
 
 func validDay(s string) string {
@@ -66,58 +67,79 @@ func validDay(s string) string {
 	return s
 }
 
+func day(t time.Time, years, months, days int) string {
+	return t.AddDate(years, months, days).Format(time.DateOnly)
+}
+
 func (a *App) mapPage(w http.ResponseWriter, r *http.Request) {
 	cs, err := a.svc.Collections(r.Context())
 	if err != nil {
 		a.fail(w, r, err)
 		return
 	}
-	q := r.URL.Query()
-	d := mapData{Pins: []mapPin{}, Extent: map[string][][2]float64{}, From: validDay(q.Get("from")), To: validDay(q.Get("to")), Positron: a.positron.Enabled(), Transit: a.overlays["bus"].source.Enabled()}
-	today := a.now()
-	month := today.AddDate(0, -1, 0).Format(time.DateOnly)
-	if !q.Has("from") && !q.Has("to") {
-		d.From = month
+	pins, collections, unplaced, err := a.mapPins(r.Context(), cs)
+	if err != nil {
+		a.fail(w, r, err)
+		return
 	}
+	q := r.URL.Query()
+	today := a.now()
+	from, to := validDay(q.Get("from")), validDay(q.Get("to"))
+	if !q.Has("from") && !q.Has("to") {
+		from = day(today, 0, -1, 0)
+	}
+	d := summarize(pins, collections, from, to)
+	d.Unplaced = unplaced
+	d.Quick = quickRanges(today, d.From, d.To)
+	d.Config = a.mapConfig()
+	a.render(w, r, http.StatusOK, "map", d)
+}
+
+func quickRanges(today time.Time, from, to string) []rangeLink {
+	var links []rangeLink
 	for _, l := range []struct {
 		label, from, href string
 	}{
-		{"Last day", today.AddDate(0, 0, -1).Format(time.DateOnly), ""},
-		{"Last week", today.AddDate(0, 0, -7).Format(time.DateOnly), ""},
-		{"Last 2 weeks", today.AddDate(0, 0, -14).Format(time.DateOnly), ""},
-		{"Last month", month, "/map"},
+		{"Last day", day(today, 0, 0, -1), ""},
+		{"Last week", day(today, 0, 0, -7), ""},
+		{"Last 2 weeks", day(today, 0, 0, -14), ""},
+		{"Last month", day(today, 0, -1, 0), "/map"},
 		{"All dates", "", "/map?from="},
 	} {
-		href := cmp.Or(l.href, "/map?from="+l.from)
-		d.Quick = append(d.Quick, rangeLink{Label: l.label, Href: href, Active: d.From == l.from && d.To == ""})
+		links = append(links, rangeLink{Label: l.label, Href: cmp.Or(l.href, "/map?from="+l.from), Active: from == l.from && to == ""})
 	}
-	if d.From != "" && d.To != "" && d.From > d.To {
-		d.From, d.To = d.To, d.From
-	}
-	var pins []mapPin
-	seen := map[string]int{}
+	return links
+}
+
+func (a *App) mapPins(ctx context.Context, cs []collection.Collection) ([]mapPin, []mapCollection, int, error) {
+	var (
+		pins        []mapPin
+		collections []mapCollection
+		unplaced    int
+		seen        = map[string]int{}
+	)
 	for i, c := range cs {
-		v, err := a.svc.CollectionDay(r.Context(), c.ID, service.DayOptions{})
+		v, err := a.svc.CollectionDay(ctx, c.ID, service.DayOptions{})
 		if err != nil {
-			a.fail(w, r, err)
-			return
+			return nil, nil, 0, err
 		}
-		d.Collections = append(d.Collections, mapCollection{ID: c.ID, Day: v.Day, Color: mapColors[i%len(mapColors)]})
+		collections = append(collections, mapCollection{ID: c.ID, Day: v.Day, Color: mapColors[i%len(mapColors)]})
 		for _, row := range v.Rows {
 			key := string(row.Listing.Source) + "/" + row.Listing.SourceID
+			match := view.Match(row.Match, row.Calibrated, row.Stale)
 			if j, ok := seen[key]; ok {
 				if j >= 0 {
-					pins[j].Collections = append(pins[j].Collections, c.ID)
-					pins[j].Matches[c.ID] = view.Match(row.Match, row.Calibrated, row.Stale)
-					pins[j].Scores[c.ID] = row.Match
-					pins[j].FirstSeen = min(pins[j].FirstSeen, row.FirstSeen)
+					p := &pins[j]
+					p.Collections = append(p.Collections, c.ID)
+					p.Matches[c.ID], p.Scores[c.ID] = match, row.Match
+					p.FirstSeen = min(p.FirstSeen, row.FirstSeen)
 				}
 				continue
 			}
 			loc, approx, ok := geo.Locate(row.Listing)
 			if !ok {
 				seen[key] = -1
-				d.Unplaced++
+				unplaced++
 				continue
 			}
 			seen[key] = len(pins)
@@ -127,7 +149,7 @@ func (a *App) mapPage(w http.ResponseWriter, r *http.Request) {
 				Href:        listingURL(row.Listing, c.ID, v.Day),
 				Price:       view.Money(row.Listing.Price.Cents, row.Listing.Offer),
 				Beds:        view.Beds(row.Listing.Beds),
-				Matches:     map[string]string{c.ID: view.Match(row.Match, row.Calibrated, row.Stale)},
+				Matches:     map[string]string{c.ID: match},
 				Scores:      map[string]float64{c.ID: row.Match},
 				FirstSeen:   row.FirstSeen,
 				Collections: []string{c.ID},
@@ -138,8 +160,16 @@ func (a *App) mapPage(w http.ResponseWriter, r *http.Request) {
 			pins = append(pins, p)
 		}
 	}
+	return pins, collections, unplaced, nil
+}
+
+func summarize(pins []mapPin, collections []mapCollection, from, to string) mapData {
+	if from != "" && to != "" && from > to {
+		from, to = to, from
+	}
+	d := mapData{Collections: collections, Pins: []mapPin{}, Extent: map[string][][2]float64{}, From: from, To: to}
 	index := map[string]int{}
-	for i, c := range d.Collections {
+	for i, c := range collections {
 		index[c.ID] = i
 	}
 	for _, p := range pins {
@@ -154,7 +184,7 @@ func (a *App) mapPage(w http.ResponseWriter, r *http.Request) {
 			d.First = p.FirstSeen
 		}
 		d.Last = max(d.Last, p.FirstSeen)
-		if d.From != "" && p.FirstSeen < d.From || d.To != "" && p.FirstSeen > d.To {
+		if from != "" && p.FirstSeen < from || to != "" && p.FirstSeen > to {
 			d.Filtered++
 			continue
 		}
@@ -167,9 +197,9 @@ func (a *App) mapPage(w http.ResponseWriter, r *http.Request) {
 		d.Pins = append(d.Pins, p)
 	}
 	d.Min, d.Max = d.First, d.Last
-	if d.From != "" {
-		d.Min = min(d.Min, d.From)
+	if from != "" {
+		d.Min = min(d.Min, from)
 	}
-	d.Max = max(d.Max, d.To)
-	a.render(w, r, http.StatusOK, "map", d)
+	d.Max = max(d.Max, to)
+	return d
 }

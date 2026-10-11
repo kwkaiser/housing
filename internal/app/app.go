@@ -46,7 +46,7 @@ type App struct {
 	hashes   map[string]string
 	pages    map[string]*template.Template
 	positron *tiles.Cache
-	overlays map[string]overlay
+	overlays []overlay
 	handler  http.Handler
 }
 

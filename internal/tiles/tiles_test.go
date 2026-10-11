@@ -171,6 +171,14 @@ func TestTransitland(t *testing.T) {
 		t.Errorf("empty tile not cached: %v after %d hits", err, u.hits.Load())
 	}
 
+	u.status = http.StatusNotFound
+	if _, err := c.Get(t.Context(), Tile{Z: 14, X: 3, Y: 3}); !errors.Is(err, ErrUpstream) {
+		t.Errorf("404 err = %v, want ErrUpstream", err)
+	}
+	if _, err := os.Stat(c.path(Tile{Z: 14, X: 3, Y: 3})); err == nil {
+		t.Error("404 tile was cached")
+	}
+
 	u.status, u.ctype = http.StatusOK, "text/html"
 	if _, err := c.Get(t.Context(), Tile{Z: 14, X: 2, Y: 2}); !errors.Is(err, ErrUpstream) {
 		t.Errorf("html response err = %v, want ErrUpstream", err)

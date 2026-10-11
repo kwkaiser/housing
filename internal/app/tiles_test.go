@@ -18,7 +18,7 @@ func TestPositronTiles(t *testing.T) {
 	if res.StatusCode != http.StatusNotFound {
 		t.Errorf("tile without key = %d, want 404", res.StatusCode)
 	}
-	if _, body := get(t, h, "/map"); strings.Contains(body, "data-positron") {
+	if _, body := get(t, h, "/map"); !strings.Contains(body, `"positron":false`) {
 		t.Error("map offers Positron without a key")
 	}
 
@@ -45,7 +45,7 @@ func TestPositronTiles(t *testing.T) {
 	}
 
 	_, page := get(t, h, "/map")
-	if !strings.Contains(page, `<div id="map" class="map" data-positron></div>`) {
+	if !strings.Contains(page, `"positron":true`) {
 		t.Error("map does not offer Positron with a key")
 	}
 	_, js := get(t, h, a.staticURL("map.js"))

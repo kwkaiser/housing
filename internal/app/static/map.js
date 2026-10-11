@@ -1,20 +1,39 @@
 (() => {
   const range = document.querySelector("form.range");
-  if (range) {
-    for (const input of range.querySelectorAll("input[type=date]")) {
-      input.addEventListener("change", () => { if (!input.value || input.checkValidity()) range.requestSubmit(); });
-    }
-    const quick = range.querySelector("select.quick");
-    if (quick) quick.addEventListener("change", () => { if (quick.value) location.href = quick.value; });
+  if (!range) return;
+  for (const input of range.querySelectorAll("input[type=date]")) {
+    input.addEventListener("change", () => { if (!input.value || input.checkValidity()) range.requestSubmit(); });
   }
+  const quick = range.querySelector("select.quick");
+  if (quick) quick.addEventListener("change", () => { if (quick.value) location.href = quick.value; });
 })();
 (() => {
   const el = document.getElementById("map");
-  const data = document.getElementById("map-pins");
-  if (!el || !data || !window.L) return;
-  const pins = JSON.parse(data.textContent);
-  const extentEl = document.getElementById("map-extent");
-  const extents = (extentEl && JSON.parse(extentEl.textContent)) || {};
+  if (!el || !window.L) return;
+
+  const json = (id, fallback) => {
+    const node = document.getElementById(id);
+    return (node && JSON.parse(node.textContent)) || fallback;
+  };
+  const store = {
+    get(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw === null ? fallback : JSON.parse(raw);
+      } catch {
+        return fallback;
+      }
+    },
+    set(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+    },
+  };
+
+  const config = json("map-config", { positron: false, overlays: [] });
+  const available = Object.fromEntries(config.overlays.map((o) => [o.name, o]));
+  const pins = json("map-pins", []);
+  const extents = json("map-extent", {});
+
   const picker = document.querySelector(".picker.collections");
   const boxes = picker ? [...picker.querySelectorAll("input[data-collection]")] : [];
   const colors = Object.fromEntries(boxes.map((b) => [b.dataset.collection, b.dataset.color]));
@@ -22,31 +41,32 @@
   const contrastLabel = document.querySelector("label.contrast");
   const contrast = contrastLabel && contrastLabel.querySelector("input");
 
-  try {
-    const hidden = JSON.parse(localStorage.getItem("mapHidden")) || [];
-    for (const box of boxes) box.checked = !hidden.includes(box.dataset.collection);
-    const mode = localStorage.getItem("mapFading");
-    if (fading && [...fading.options].some((o) => o.value === mode)) fading.value = mode;
-    const level = localStorage.getItem("mapContrast");
-    if (contrast && level !== null) contrast.value = level;
-  } catch {}
+  const hidden = store.get("mapHidden", []);
+  for (const box of boxes) box.checked = !hidden.includes(box.dataset.collection);
+  const mode = store.get("mapFading", null);
+  if (fading && [...fading.options].some((o) => o.value === mode)) fading.value = mode;
+  const level = store.get("mapContrast", null);
+  if (contrast && level !== null) contrast.value = level;
   const enabled = () => new Set(boxes.filter((b) => b.checked).map((b) => b.dataset.collection));
 
-  const spread = new Map();
-  for (const p of pins) {
-    const key = `${p.lat},${p.lng}`;
-    if (!spread.has(key)) spread.set(key, []);
-    spread.get(key).push(p);
-  }
-  for (const group of spread.values()) {
-    if (group.length < 2) continue;
-    const r = 0.0012 * Math.sqrt(group.length);
-    group.forEach((p, i) => {
-      const a = (2 * Math.PI * i) / group.length;
-      p.lat += r * Math.sin(a);
-      p.lng += (r * Math.cos(a)) / Math.cos((p.lat * Math.PI) / 180);
-    });
-  }
+  const spreadOverlapping = () => {
+    const groups = new Map();
+    for (const p of pins) {
+      const key = `${p.lat},${p.lng}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(p);
+    }
+    for (const group of groups.values()) {
+      if (group.length < 2) continue;
+      const r = 0.0012 * Math.sqrt(group.length);
+      group.forEach((p, i) => {
+        const a = (2 * Math.PI * i) / group.length;
+        p.lat += r * Math.sin(a);
+        p.lng += (r * Math.cos(a)) / Math.cos((p.lat * Math.PI) / 180);
+      });
+    }
+  };
+  spreadOverlapping();
 
   const newTab = (a) => {
     a.target = "_blank";
@@ -54,7 +74,8 @@
     return a;
   };
 
-  const popup = (p) => {
+  const popup = (v) => {
+    const p = v.pin;
     const box = document.createElement("div");
     if (p.preview) {
       const img = document.createElement("img");
@@ -71,7 +92,7 @@
     title.textContent = p.title;
     const meta = document.createElement("div");
     const beds = p.beds === "-" ? null : p.beds === "studio" ? p.beds : `${p.beds} bd`;
-    meta.textContent = [p.matches[p.lead], p.price, beds].filter(Boolean).join(" · ");
+    meta.textContent = [p.matches[v.lead], p.price, beds].filter(Boolean).join(" · ");
     const where = document.createElement("div");
     where.className = "muted";
     where.textContent = `First seen ${p.firstSeen} · ${p.collections.join(", ")}`;
@@ -84,21 +105,6 @@
     }
     return box;
   };
-
-  const map = L.map(el);
-  const osm = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
-  const bases = {
-    ...("positron" in el.dataset && {
-      Positron: L.tileLayer("/tiles/positron/{z}/{x}/{y}{r}.png", {
-        maxZoom: 20,
-        attribution: `${osm} &copy; <a href="https://carto.com/attributions">CARTO</a>`,
-      }),
-    }),
-    OpenStreetMap: L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: osm }),
-  };
-  map.createPane("routes").style.zIndex = 350;
-  const routeRenderer = L.canvas({ pane: "routes", tolerance: 4 });
-  const routeTip = L.tooltip({ direction: "top", offset: [0, -8], className: "route-tip" });
 
   const routeLabel = (f) => {
     const box = document.createElement("div");
@@ -116,94 +122,53 @@
     return box;
   };
 
-  const VectorOverlay = L.Layer.extend({
-    initialize(opts) {
-      this.opts = opts;
-      this.loaded = new Map();
-      this.byId = new Map();
-      this.hovered = null;
-    },
-    onAdd(m) {
-      m.on("moveend", this.load, this);
-      m.whenReady(this.load, this);
-    },
-    onRemove(m) {
-      m.off("moveend", this.load, this);
-      for (const key of [...this.loaded.keys()]) this.drop(key);
-      if (this.hovered) m.closeTooltip(routeTip);
-      this.hovered = null;
-    },
-    getAttribution() {
-      return this.opts.attribution;
-    },
-    load() {
-      const zoom = Math.round(map.getZoom());
-      const z = Math.min(zoom, 14);
-      const want = new Set();
-      if (zoom >= this.opts.minZoom) {
-        const b = map.getBounds();
-        const nw = map.project(b.getNorthWest(), z).divideBy(256).floor();
-        const se = map.project(b.getSouthEast(), z).divideBy(256).floor();
-        const last = 2 ** z - 1;
-        for (let x = Math.max(0, nw.x); x <= Math.min(last, se.x); x++) {
-          for (let y = Math.max(0, nw.y); y <= Math.min(last, se.y); y++) want.add(`${z}/${x}/${y}`);
-        }
-      }
-      if (want.size > 64) want.clear();
-      for (const key of [...this.loaded.keys()]) if (!want.has(key)) this.drop(key);
-      for (const key of want) if (!this.loaded.has(key)) this.fetchTile(key);
-    },
-    fetchTile(key) {
-      const entry = { ctrl: new AbortController(), lines: [] };
-      this.loaded.set(key, entry);
-      fetch(`/overlays/${this.opts.name}/${key}.json`, { signal: entry.ctrl.signal })
-        .then((r) => (r.ok ? r.json() : { features: [] }))
-        .then(({ features }) => {
-          if (this.loaded.get(key) !== entry) return;
-          for (const f of features) this.addLine(entry, f);
-        })
-        .catch(() => {});
-    },
-    addLine(entry, f) {
-      const { style, highlight } = this.opts;
-      const line = L.polyline(f.lines, { renderer: routeRenderer, ...(this.hovered === f.id ? highlight(f) : style(f)) });
-      line.feature = f;
-      line.on("mouseover", (e) => {
-        this.hover(f.id);
-        map.openTooltip(routeTip.setContent(routeLabel(f)), e.latlng);
-      });
-      line.on("mousemove", (e) => routeTip.setLatLng(e.latlng));
-      line.on("mouseout", () => {
-        this.hover(null);
-        map.closeTooltip(routeTip);
-      });
-      line.addTo(map);
-      entry.lines.push(line);
-      if (!this.byId.has(f.id)) this.byId.set(f.id, new Set());
-      this.byId.get(f.id).add(line);
-    },
-    hover(id) {
-      const { style, highlight } = this.opts;
-      for (const line of this.byId.get(this.hovered) || []) line.setStyle(style(line.feature));
-      this.hovered = id;
-      for (const line of this.byId.get(id) || []) line.setStyle(highlight(line.feature)).bringToFront();
-    },
-    drop(key) {
-      const entry = this.loaded.get(key);
-      entry.ctrl.abort();
-      for (const line of entry.lines) {
-        line.remove();
-        this.byId.get(line.feature.id)?.delete(line);
-      }
-      this.loaded.delete(key);
-    },
-  });
+  const map = L.map(el);
+  const osm = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+  const bases = {
+    ...(config.positron && {
+      Positron: L.tileLayer("/tiles/positron/{z}/{x}/{y}{r}.png", {
+        maxZoom: 20,
+        attribution: `${osm} &copy; <a href="https://carto.com/attributions">CARTO</a>`,
+      }),
+    }),
+    OpenStreetMap: L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: osm }),
+  };
+
+  map.createPane("routes").style.zIndex = 350;
+  const shared = {
+    renderer: L.canvas({ pane: "routes", tolerance: 4 }),
+    tooltip: L.tooltip({ direction: "top", offset: [0, -8], className: "route-tip" }),
+    label: routeLabel,
+  };
+  const vector = (name, options) =>
+    available[name] &&
+    L.vectorOverlay(`/overlays/${name}/{z}/{x}/{y}.json`, { ...shared, ...available[name], ...options });
 
   const BIKE = "#009400";
   const BUS = "#a16207";
-  const busWeight = (f) => (f.headway && f.headway <= 600 ? 4 : f.headway && f.headway <= 1200 ? 3 : 2);
-  const busOpacity = (f) => (f.headway && f.headway <= 600 ? 0.9 : f.headway && f.headway <= 1200 ? 0.65 : 0.4);
-  const transitAttribution = '<a href="https://www.transit.land/terms">Transitland</a>';
+  const RAIL = "#475569";
+  const busTier = (f) => {
+    if (f.headway && f.headway <= 600) return { weight: 4, opacity: 0.9 };
+    if (f.headway && f.headway <= 1200) return { weight: 3, opacity: 0.65 };
+    return { weight: 2, opacity: 0.4 };
+  };
+  const transitland = '<a href="https://www.transit.land/terms">Transitland</a>';
+
+  const bikeHover = vector("bike", {
+    attribution: '<a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/">OpenMapTiles</a>',
+    style: () => ({ color: BIKE, weight: 12, opacity: 0 }),
+    highlight: () => ({ color: BIKE, weight: 6, opacity: 0.95 }),
+  });
+  const rail = vector("rail", {
+    attribution: transitland,
+    style: (f) => ({ color: f.color || RAIL, weight: 4, opacity: 0.85 }),
+    highlight: (f) => ({ color: f.color || RAIL, weight: 8, opacity: 1 }),
+  });
+  const bus = vector("bus", {
+    attribution: transitland,
+    style: (f) => ({ color: BUS, ...busTier(f) }),
+    highlight: (f) => ({ color: BUS, weight: busTier(f).weight + 4, opacity: 1 }),
+  });
 
   const overlays = {
     "Bike lanes": L.layerGroup([
@@ -212,55 +177,36 @@
         className: "bike-lanes",
         attribution: '<a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases">CyclOSM</a>',
       }),
-      new VectorOverlay({
-        name: "bike",
-        minZoom: 13,
-        attribution: '<a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/">OpenMapTiles</a>',
-        style: () => ({ color: BIKE, weight: 12, opacity: 0 }),
-        highlight: () => ({ color: BIKE, weight: 6, opacity: 0.95 }),
-      }),
+      ...(bikeHover ? [bikeHover] : []),
     ]),
     "Rail transit":
-      "transit" in el.dataset
-        ? new VectorOverlay({
-            name: "rail",
-            minZoom: 9,
-            attribution: transitAttribution,
-            style: (f) => ({ color: f.color || "#475569", weight: 4, opacity: 0.85 }),
-            highlight: (f) => ({ color: f.color || "#475569", weight: 8, opacity: 1 }),
-          })
-        : L.tileLayer("https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png", {
-            maxZoom: 19,
-            attribution: '<a href="https://www.openrailwaymap.org">OpenRailwayMap</a>',
-          }),
-    ...("transit" in el.dataset && {
-      "Bus routes": new VectorOverlay({
-        name: "bus",
-        minZoom: 12,
-        attribution: transitAttribution,
-        style: (f) => ({ color: BUS, weight: busWeight(f), opacity: busOpacity(f) }),
-        highlight: (f) => ({ color: BUS, weight: busWeight(f) + 4, opacity: 1 }),
+      rail ||
+      L.tileLayer("https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '<a href="https://www.openrailwaymap.org">OpenRailwayMap</a>',
       }),
-    }),
+    ...(bus && { "Bus routes": bus }),
   };
-  let layers = {};
-  try { layers = JSON.parse(localStorage.getItem("mapLayers")) || {}; } catch {}
+
+  const layers = store.get("mapLayers", {});
   (bases[layers.base] || bases.Positron || bases.OpenStreetMap).addTo(map);
   for (const name of layers.overlays || []) overlays[name]?.addTo(map);
   L.control.layers(bases, overlays).addTo(map);
-  const saveLayers = () => {
-    const base = Object.keys(bases).find((k) => map.hasLayer(bases[k]));
-    const on = Object.keys(overlays).filter((k) => map.hasLayer(overlays[k]));
-    try { localStorage.setItem("mapLayers", JSON.stringify({ base, overlays: on })); } catch {}
-  };
-  map.on("baselayerchange overlayadd overlayremove", saveLayers);
+  map.on("baselayerchange overlayadd overlayremove", () => {
+    store.set("mapLayers", {
+      base: Object.keys(bases).find((k) => map.hasLayer(bases[k])),
+      overlays: Object.keys(overlays).filter((k) => map.hasLayer(overlays[k])),
+    });
+  });
 
-  const markers = pins.map((p) => {
-    const m = L.circleMarker([p.lat, p.lng], { radius: 7, weight: 2, dashArray: p.approx ? "3 3" : null })
-      .bindTooltip("");
+  const views = pins.map((pin) => {
+    const v = { pin, lead: null, value: 0 };
     let content;
-    const width = p.preview ? { minWidth: 280, maxWidth: 280 } : { minWidth: 200, maxWidth: 320 };
-    return m.bindPopup(() => (content ??= popup(p)), width);
+    const width = pin.preview ? { minWidth: 280, maxWidth: 280 } : { minWidth: 200, maxWidth: 320 };
+    v.marker = L.circleMarker([pin.lat, pin.lng], { radius: 7, weight: 2, dashArray: pin.approx ? "3 3" : null })
+      .bindTooltip("")
+      .bindPopup(() => (content ??= popup(v)), width);
+    return v;
   });
 
   const fit = () => {
@@ -277,40 +223,39 @@
   };
 
   const metrics = {
-    age: (p) => Date.parse(p.firstSeen),
-    match: (p) => p.scores[p.lead],
+    age: (v) => Date.parse(v.pin.firstSeen),
+    match: (v) => v.pin.scores[v.lead],
   };
 
   const apply = () => {
     const on = enabled();
     const metric = fading && metrics[fading.value];
     const shown = [];
-    pins.forEach((p, i) => {
-      p.lead = p.collections.find((c) => on.has(c));
-      if (!p.lead) {
-        markers[i].remove();
-        return;
+    for (const v of views) {
+      v.lead = v.pin.collections.find((c) => on.has(c));
+      if (!v.lead) {
+        v.marker.remove();
+        continue;
       }
-      p.value = metric ? metric(p) : 0;
-      shown.push(i);
-    });
-    const levels = [...new Set(shown.map((i) => pins[i].value).filter(Number.isFinite))].sort((a, b) => a - b);
-    const rank = new Map(levels.map((v, i) => [v, levels.length > 1 ? i / (levels.length - 1) : 1]));
+      v.value = metric ? metric(v) : 0;
+      shown.push(v);
+    }
+    const levels = [...new Set(shown.map((v) => v.value).filter(Number.isFinite))].sort((a, b) => a - b);
+    const rank = new Map(levels.map((value, i) => [value, levels.length > 1 ? i / (levels.length - 1) : 1]));
     const gamma = 0.5 + 3.5 * ((contrast ? Number(contrast.value) : 50) / 100);
-    const strength = (p) => {
+    const strength = (v) => {
       if (!metric) return 1;
-      if (!rank.has(p.value)) return 0.08;
-      return 0.08 + 0.92 * rank.get(p.value) ** gamma;
+      if (!rank.has(v.value)) return 0.08;
+      return 0.08 + 0.92 * rank.get(v.value) ** gamma;
     };
     if (contrast) contrast.disabled = !metric;
-    shown.sort((a, b) => strength(pins[a]) - strength(pins[b]));
-    for (const i of shown) {
-      const p = pins[i];
-      const s = strength(p);
-      markers[i]
+    shown.sort((a, b) => strength(a) - strength(b));
+    for (const v of shown) {
+      const s = strength(v);
+      v.marker
         .setRadius(metric ? 4 + 5 * s : 7)
-        .setStyle({ color: colors[p.lead], opacity: s, fillOpacity: (p.approx ? 0.2 : 0.6) * s })
-        .setTooltipContent(`${p.price} · ${p.matches[p.lead]} · ${p.firstSeen}`)
+        .setStyle({ color: colors[v.lead], opacity: s, fillOpacity: (v.pin.approx ? 0.2 : 0.6) * s })
+        .setTooltipContent(`${v.pin.price} · ${v.pin.matches[v.lead]} · ${v.pin.firstSeen}`)
         .addTo(map)
         .bringToFront();
     }
@@ -321,23 +266,21 @@
 
   for (const box of boxes) {
     box.addEventListener("change", () => {
-      try {
-        localStorage.setItem("mapHidden", JSON.stringify(boxes.filter((b) => !b.checked).map((b) => b.dataset.collection)));
-      } catch {}
+      store.set("mapHidden", boxes.filter((b) => !b.checked).map((b) => b.dataset.collection));
       fit();
       apply();
     });
   }
   if (fading) {
     fading.addEventListener("change", () => {
-      try { localStorage.setItem("mapFading", fading.value); } catch {}
+      store.set("mapFading", fading.value);
       apply();
     });
     fading.hidden = false;
   }
   if (contrast) {
     contrast.addEventListener("input", () => {
-      try { localStorage.setItem("mapContrast", contrast.value); } catch {}
+      store.set("mapContrast", contrast.value);
       apply();
     });
     contrastLabel.hidden = false;

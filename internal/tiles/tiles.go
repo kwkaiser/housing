@@ -21,10 +21,11 @@ import (
 )
 
 const (
-	DefaultTTL   = 30 * 24 * time.Hour
-	MaxZoom      = 20
-	positronPath = "light_all"
-	maxTileBytes = 4 << 20
+	DefaultTTL    = 30 * 24 * time.Hour
+	MaxZoom       = 20
+	VectorMaxZoom = 14
+	positronPath  = "light_all"
+	maxTileBytes  = 4 << 20
 )
 
 var (
@@ -117,7 +118,7 @@ func NewPositron(dir, key string) *Cache {
 func NewTransitland(dir, key string) *Cache {
 	c := newCache(dir, ".pbf")
 	c.Key, c.KeyHeader, c.NeedsKey = key, "apikey", true
-	c.MaxZoom = 14
+	c.MaxZoom = VectorMaxZoom
 	c.TTL = 7 * 24 * time.Hour
 	c.Upstream = func(_ context.Context, t Tile) (string, error) {
 		return fmt.Sprintf("https://transit.land/api/v2/tiles/routes/tiles/%d/%d/%d.pbf", t.Z, t.X, t.Y), nil
@@ -135,7 +136,7 @@ func NewOpenFreeMap(dir string) *Cache {
 
 func newOpenFreeMap(dir, tileJSONURL string) *Cache {
 	c := newCache(dir, ".pbf")
-	c.MaxZoom = 14
+	c.MaxZoom = VectorMaxZoom
 	tj := &tileJSON{url: tileJSONURL, ttl: 24 * time.Hour}
 	c.Upstream = func(ctx context.Context, t Tile) (string, error) {
 		tmpl, err := tj.template(ctx, c.Client, c.Now())
@@ -160,7 +161,7 @@ func vectorCheck(res *http.Response) error {
 }
 
 func vectorEmpty(status int) bool {
-	return status == http.StatusNoContent || status == http.StatusNotFound
+	return status == http.StatusNoContent
 }
 
 func contentType(res *http.Response, prefix string) error {

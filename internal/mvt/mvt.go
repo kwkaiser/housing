@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"slices"
 )
 
 type GeomType int
@@ -42,7 +43,7 @@ const (
 	wire32     = 5
 )
 
-func Decode(data []byte, z, x, y int) ([]Layer, error) {
+func Decode(data []byte, z, x, y int, only ...string) ([]Layer, error) {
 	if len(data) >= 2 && data[0] == 0x1f && data[1] == 0x8b {
 		r, err := gzip.NewReader(bytes.NewReader(data))
 		if err != nil {
@@ -57,6 +58,15 @@ func Decode(data []byte, z, x, y int) ([]Layer, error) {
 		if num != 3 || wire != wireBytes {
 			return nil
 		}
+		if len(only) > 0 {
+			name, err := layerName(b)
+			if err != nil {
+				return err
+			}
+			if !slices.Contains(only, name) {
+				return nil
+			}
+		}
 		l, err := decodeLayer(b, z, x, y)
 		if err != nil {
 			return err
@@ -65,6 +75,17 @@ func Decode(data []byte, z, x, y int) ([]Layer, error) {
 		return nil
 	})
 	return layers, err
+}
+
+func layerName(data []byte) (string, error) {
+	var name string
+	err := fields(data, func(num int, wire int, v uint64, b []byte) error {
+		if num == 1 && wire == wireBytes {
+			name = string(b)
+		}
+		return nil
+	})
+	return name, err
 }
 
 type rawFeature struct {
