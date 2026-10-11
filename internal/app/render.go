@@ -34,6 +34,7 @@ type errorData struct {
 
 var nav = []navItem{
 	{Label: "Listings", Href: "/", prefixes: []string{"/c/", "/listing/"}},
+	{Label: "Map", Href: "/map"},
 	{Label: "Collections", Href: "/collections"},
 	{Label: "Profiles", Href: "/profiles"},
 	{Label: "Jobs", Href: "/jobs"},

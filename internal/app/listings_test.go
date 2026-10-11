@@ -204,9 +204,6 @@ func TestCollectionPage(t *testing.T) {
 			`<option value="/c/zempty">zempty</option>`, `<option value="/c/somerville" selected>somerville</option>`,
 			"Sunny attic", "Skylights", "dealbreaker</span>", "model 80.0",
 			`/static/listings.js?v=`,
-			"3 of 3 listings placed · 3 approximate from zip code",
-			`<script type="application/json" id="map-pins">[{"lat":42.4001,"lng":-71.1231,"approx":true,"rank":1,"title":"7 Windom St, Somerville, MA 02144"`,
-			`/static/leaflet/leaflet.css?v=`, `/static/leaflet/leaflet.js?v=`, `/static/map.js?v=`,
 		}, []string{"9 Carpet Ct", "No run on", "&lt;script&gt;"}},
 		{"/c/somerville?dealbreakers=1", []string{"7 Windom St", "5 New St", "31 Fairmount Ave", "9 Carpet Ct"}, []string{
 			"4 of 5 listings graded", `<td data-col="dealbreakers" class="tags bad off">corp.carpet</td>`, "Hide dealbreakers",
@@ -223,7 +220,7 @@ func TestCollectionPage(t *testing.T) {
 		{"/c/somerville?day=2026-10-15", []string{"7 Windom St", "5 New St", "31 Fairmount Ave"}, []string{
 			"No run on 2026-10-15; showing 2026-09-30.",
 		}, nil},
-		{"/c/zempty", nil, []string{"No listings have been fetched"}, []string{"<table class=\"listings\"", "leaflet", "map-pins"}},
+		{"/c/zempty", nil, []string{"No listings have been fetched"}, []string{"<table class=\"listings\""}},
 	} {
 		res, body := get(t, h, tc.target)
 		if res.StatusCode != http.StatusOK {

@@ -14,7 +14,6 @@ import (
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/app/view"
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
-	"git.kwkaiser.io/kwkaiser/housing/internal/geo"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/report"
@@ -74,18 +73,6 @@ type rowView struct {
 	ChangeClass string
 }
 
-type mapPin struct {
-	Lat    float64 `json:"lat"`
-	Lng    float64 `json:"lng"`
-	Approx bool    `json:"approx,omitempty"`
-	Rank   int     `json:"rank"`
-	Title  string  `json:"title"`
-	Href   string  `json:"href"`
-	Price  string  `json:"price"`
-	Beds   string  `json:"beds"`
-	Match  string  `json:"match"`
-}
-
 type gradeCell struct {
 	report.Grade
 	OK bool
@@ -108,8 +95,6 @@ type listingsData struct {
 	CollectionLink []collectionLink
 	Run            *jobView
 	EditHref       string
-	Pins           []mapPin
-	Approx         int
 }
 
 func (a *App) home(w http.ResponseWriter, r *http.Request) {
@@ -209,20 +194,6 @@ func (a *App) collectionPage(w http.ResponseWriter, r *http.Request) {
 			rv.Change, rv.ChangeClass = "updated", "changed"
 		}
 		d.Rows = append(d.Rows, rv)
-		c, approx, ok := geo.Locate(row.Listing)
-		if !ok {
-			continue
-		}
-		if approx {
-			d.Approx++
-		}
-		d.Pins = append(d.Pins, mapPin{
-			Lat: c.Lat, Lng: c.Lng, Approx: approx, Rank: row.Rank, Href: rv.Href,
-			Title: cmp.Or(report.AddressLine(row.Listing), row.Listing.SourceID),
-			Price: view.Money(row.Listing.Price.Cents, row.Listing.Offer),
-			Beds:  view.Beds(row.Listing.Beds),
-			Match: view.Match(row.Match, row.Calibrated, row.Stale),
-		})
 	}
 	a.render(w, r, http.StatusOK, "listings", d)
 }

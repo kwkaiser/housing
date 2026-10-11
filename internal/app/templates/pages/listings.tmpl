@@ -1,5 +1,4 @@
 {{define "title"}}Listings · {{.Data.Title}}{{if .Data.Day}} · {{.Data.Day}}{{end}}{{end}}
-{{define "head"}}{{if .Data.Pins}}<link rel="stylesheet" href="{{static "leaflet/leaflet.css"}}">{{end}}{{end}}
 {{define "content"}}{{with .Data}}
 <h1>Listings · {{.Collection.ID}}</h1>
 <div class="controls run">
@@ -49,15 +48,6 @@
 </table>
 </div>
 </details>
-{{if .Pins}}
-<details class="section" open>
-<summary>Map <span class="muted">· {{len .Pins}} of {{len .Rows}} listings placed{{if .Approx}} · {{.Approx}} approximate from zip code{{end}}</span></summary>
-<div id="map" class="map"></div>
-</details>
-<script type="application/json" id="map-pins">{{.Pins}}</script>
-<script src="{{static "leaflet/leaflet.js"}}" defer></script>
-<script src="{{static "map.js"}}" defer></script>
-{{end}}
 {{if .Day}}
 <div class="wrap">
 <table class="listings">

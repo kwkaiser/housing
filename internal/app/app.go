@@ -89,6 +89,7 @@ func (a *App) routes() http.Handler {
 	mux.HandleFunc("GET /version", a.version)
 	mux.HandleFunc("GET /static/{path...}", a.serveStatic)
 	mux.HandleFunc("GET /c/{collection}", a.collectionPage)
+	mux.HandleFunc("GET /map", a.mapPage)
 	mux.HandleFunc("GET /listing/{source}/{id}", a.listingPage)
 	mux.HandleFunc("GET /media/{key...}", a.media)
 	mux.HandleFunc("GET /collections", a.collectionsPage)
