@@ -1,5 +1,5 @@
 {{define "title"}}Map{{end}}
-{{define "head"}}{{if .Data.Pins}}<link rel="stylesheet" href="{{static "leaflet/leaflet.css"}}">{{end}}{{end}}
+{{define "head"}}{{if .Data.First}}<link rel="stylesheet" href="{{static "leaflet/leaflet.css"}}">{{end}}{{end}}
 {{define "content"}}{{with .Data}}
 <h1>Map</h1>
 {{if .First}}
@@ -13,24 +13,24 @@
     <input type="date" name="from" value="{{.From}}" min="{{.Min}}" max="{{.Max}}" aria-label="First seen from">
     <span class="muted">to</span>
     <input type="date" name="to" value="{{.To}}" min="{{.Min}}" max="{{.Max}}" aria-label="First seen to">
-    <button type="submit">Go</button>
-    {{if or .From .To}}<a class="button" href="/map?from=">All dates</a>{{end}}
-    {{if not .Default}}<a class="button" href="/map">Past month</a>{{end}}
+    {{$custom := true}}{{range .Quick}}{{if .Active}}{{$custom = false}}{{end}}{{end}}<select class="quick" aria-label="Quick">
+      <option value="" disabled{{if $custom}} selected{{end}}>Quick</option>
+      {{range .Quick}}<option value="{{.Href}}"{{if .Active}} selected{{end}}>{{.Label}}</option>
+      {{end}}
+    </select>
   </form>
   <select class="fading" aria-label="Fading" hidden>
     <option value="">No fading</option>
     <option value="age" selected>Fade by age</option>
     <option value="match">Fade by match</option>
   </select>
+  <label class="toggle contrast" hidden>Contrast <input type="range" min="0" max="100" value="50" aria-label="Fading contrast"></label>
   <span class="muted">{{len .Pins}} listings placed{{if .Approx}} · {{.Approx}} approximate from zip code{{end}}{{if .Filtered}} · {{.Filtered}} outside the date range{{end}}{{if .Unplaced}} · {{.Unplaced}} without a location{{end}}</span>
 </div>
-{{if .Pins}}
-<div id="map" class="map"></div>
+<div id="map" class="map"{{if .Positron}} data-positron{{end}}></div>
 <script type="application/json" id="map-pins">{{.Pins}}</script>
+<script type="application/json" id="map-extent">{{.Extent}}</script>
 <script src="{{static "leaflet/leaflet.js"}}" defer></script>
-{{else}}
-<p>No listings were first seen in this date range.</p>
-{{end}}
 <script src="{{static "map.js"}}" defer></script>
 {{else if .Collections}}
 <p>No listings with a location yet. Run a collection to fetch some.</p>

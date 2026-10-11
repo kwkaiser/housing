@@ -43,16 +43,19 @@ func TestMapPage(t *testing.T) {
 			`<span class="swatch" style="background: #2563eb"></span> somerville <span class="muted">3 · 2026-09-30</span>`,
 			`<input type="checkbox" data-collection="zempty" data-color="#dc2626" checked>`,
 			`zempty <span class="muted">2 · 2026-09-30</span>`,
-			`<input type="date" name="from" value="2026-09-15" min="2026-09-15" max="2026-09-30"`, `<a class="button" href="/map?from=">All dates</a>`,
-			`<select class="fading" aria-label="Fading" hidden>`, `<option value="age" selected>Fade by age</option>`, `<option value="match">Fade by match</option>`,
+			`<input type="date" name="from" value="2026-09-15" min="2026-09-15" max="2026-09-30"`,
+			`<select class="quick" aria-label="Quick">`, `<option value="" disabled>Quick</option>`,
+			`<option value="/map?from=2026-10-14">Last day</option>`, `<option value="/map?from=2026-10-08">Last week</option>`, `<option value="/map?from=2026-10-01">Last 2 weeks</option>`,
+			`<option value="/map" selected>Last month</option>`, `<option value="/map?from=">All dates</option>`,
+			`<select class="fading" aria-label="Fading" hidden>`, `<label class="toggle contrast" hidden>Contrast <input type="range" min="0" max="100" value="50" aria-label="Fading contrast"></label>`, `<option value="age" selected>Fade by age</option>`, `<option value="match">Fade by match</option>`,
 			`"title":"5 New St, Somerville, MA 02144","href":"/listing/zillow/z4?collection=somerville\u0026day=2026-09-30","price":"$2,500/mo","beds":"2","matches":{"somerville":"75%","zempty":"`, `"scores":{"somerville":75,"zempty":`,
 			`"firstSeen":"2026-09-30","collections":["somerville","zempty"]`,
 			`"title":"7 Windom St, Somerville, MA 02144"`, `"firstSeen":"2026-09-29","preview":"/media/` + collageKey + `"`,
 			`{"lat":42.39,"lng":-71.1,"title":"1 Exact Way`,
-		}, []string{"9 Carpet Ct", "Past month</a>", "outside the date range"}},
+		}, []string{"9 Carpet Ct", `selected>All dates`, "outside the date range"}},
 		{"/map?from=2026-09-30", []string{
 			"2 listings placed · 1 approximate from zip code · 2 outside the date range · 1 without a location",
-			`<input type="date" name="from" value="2026-09-30"`, `<a class="button" href="/map?from=">All dates</a>`, `<a class="button" href="/map">Past month</a>`,
+			`<input type="date" name="from" value="2026-09-30"`, `<option value="" disabled selected>Quick</option>`, `<option value="/map">Last month</option>`,
 			`somerville <span class="muted">1 · 2026-09-30</span>`, `zempty <span class="muted">2 · 2026-09-30</span>`,
 		}, []string{"7 Windom St", "31 Fairmount Ave"}},
 		{"/map?from=2026-09-30&to=2026-09-29", []string{
@@ -60,11 +63,14 @@ func TestMapPage(t *testing.T) {
 			`name="from" value="2026-09-29"`, `name="to" value="2026-09-30"`,
 		}, []string{"outside the date range"}},
 		{"/map?to=2026-09-29", []string{"2 listings placed · 2 approximate from zip code · 2 outside the date range"}, []string{"5 New St", "1 Exact Way"}},
-		{"/map?from=bogus", []string{"4 listings placed", `name="from" value=""`, "Past month</a>"}, []string{"All dates</a>"}},
-		{"/map?from=", []string{"4 listings placed", `name="from" value="" min="2026-09-29" max="2026-09-30"`, "Past month</a>"}, []string{"All dates</a>", "outside the date range"}},
+		{"/map?from=bogus", []string{"4 listings placed", `name="from" value=""`, `<option value="/map?from=" selected>All dates</option>`}, nil},
+		{"/map?from=", []string{"4 listings placed", `name="from" value="" min="2026-09-29" max="2026-09-30"`, `<option value="/map?from=" selected>All dates</option>`}, []string{`selected>Last month`, "outside the date range"}},
+		{"/map?from=2026-10-08", []string{`<option value="/map?from=2026-10-08" selected>Last week</option>`, "0 listings placed"}, []string{`selected>Last month`, `disabled selected>Quick`}},
 		{"/map?from=2026-10-05", []string{
-			"No listings were first seen in this date range.", "0 listings placed", `/static/map.js?v=`, `<a class="button" href="/map?from=">All dates</a>`,
-		}, []string{"leaflet", `id="map"`}},
+			"0 listings placed · 4 outside the date range", `/static/map.js?v=`, `/static/leaflet/leaflet.js?v=`, `<option value="" disabled selected>Quick</option>`,
+			`<div id="map" class="map"></div>`, `<script type="application/json" id="map-pins">[]</script>`,
+			`<script type="application/json" id="map-extent">{"somerville":[[42.4001,-71.1231],[42.4001,-71.1231]],"zempty":[[42.39,-71.1231],[42.4001,-71.1]]}</script>`,
+		}, []string{"No listings were first seen"}},
 	} {
 		res, body := get(t, h, tc.target)
 		if res.StatusCode != http.StatusOK {

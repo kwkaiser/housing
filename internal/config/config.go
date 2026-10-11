@@ -8,6 +8,7 @@ import (
 const (
 	EnvApifyToken       = "APIFY_TOKEN"
 	EnvOpenRouterAPIKey = "OPENROUTER_API_KEY"
+	EnvCartoAPIKey      = "CARTO_API_KEY"
 )
 
 var (
@@ -18,12 +19,14 @@ var (
 type Config struct {
 	ApifyToken       string
 	OpenRouterAPIKey string
+	CartoAPIKey      string
 }
 
 func Load() Config {
 	return Config{
 		ApifyToken:       os.Getenv(EnvApifyToken),
 		OpenRouterAPIKey: os.Getenv(EnvOpenRouterAPIKey),
+		CartoAPIKey:      os.Getenv(EnvCartoAPIKey),
 	}
 }
 

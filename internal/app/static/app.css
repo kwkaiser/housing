@@ -23,6 +23,7 @@
     --warn: #fbbf24;
   }
 }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 system-ui, sans-serif; }
 main { padding: 1.5rem 1rem 2rem; }
 h1 { margin: 0 0 .75rem; font-size: 1.4rem; }
@@ -81,11 +82,13 @@ body:has(#map) { display: flex; flex-direction: column; height: 100vh; height: 1
 body:has(#map) main { flex: 1; display: flex; flex-direction: column; min-height: 0; padding-bottom: 1rem; }
 .map { isolation: isolate; flex: 1; min-height: 0; border: 1px solid var(--line); border-radius: 6px; }
 .swatch { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; flex: none; }
+.bike-lanes { filter: hue-rotate(255deg) brightness(2); }
 .leaflet-popup-content .muted { margin-top: .25rem; }
 .leaflet-popup-content img.preview { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; object-position: top; margin-bottom: .4rem; border-radius: 4px; background: #eee; }
 form.range { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
 a.button, span.button { display: inline-block; padding: .3rem .6rem; border: 1px solid var(--line); border-radius: 6px; color: inherit; }
 a.button:hover { text-decoration: none; border-color: var(--muted); }
+.contrast input:disabled { opacity: .4; }
 span.button[aria-disabled=true] { opacity: .4; }
 form.day { display: inline-flex; gap: .35rem; margin: 0; }
 .note { color: var(--fg); }

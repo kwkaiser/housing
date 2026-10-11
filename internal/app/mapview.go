@@ -35,6 +35,12 @@ type mapPin struct {
 	Collections []string           `json:"collections"`
 }
 
+type rangeLink struct {
+	Label  string
+	Href   string
+	Active bool
+}
+
 type mapData struct {
 	Collections []mapCollection
 	Pins        []mapPin
@@ -43,11 +49,13 @@ type mapData struct {
 	Filtered    int
 	From        string
 	To          string
-	Default     bool
+	Quick       []rangeLink
 	First       string
 	Last        string
 	Min         string
 	Max         string
+	Positron    bool
+	Extent      map[string][][2]float64
 }
 
 func validDay(s string) string {
@@ -64,9 +72,23 @@ func (a *App) mapPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := r.URL.Query()
-	d := mapData{From: validDay(q.Get("from")), To: validDay(q.Get("to"))}
+	d := mapData{Pins: []mapPin{}, Extent: map[string][][2]float64{}, From: validDay(q.Get("from")), To: validDay(q.Get("to")), Positron: a.tiles.Enabled()}
+	today := a.now()
+	month := today.AddDate(0, -1, 0).Format(time.DateOnly)
 	if !q.Has("from") && !q.Has("to") {
-		d.From, d.Default = a.now().AddDate(0, -1, 0).Format(time.DateOnly), true
+		d.From = month
+	}
+	for _, l := range []struct {
+		label, from, href string
+	}{
+		{"Last day", today.AddDate(0, 0, -1).Format(time.DateOnly), ""},
+		{"Last week", today.AddDate(0, 0, -7).Format(time.DateOnly), ""},
+		{"Last 2 weeks", today.AddDate(0, 0, -14).Format(time.DateOnly), ""},
+		{"Last month", month, "/map"},
+		{"All dates", "", "/map?from="},
+	} {
+		href := cmp.Or(l.href, "/map?from="+l.from)
+		d.Quick = append(d.Quick, rangeLink{Label: l.label, Href: href, Active: d.From == l.from && d.To == ""})
 	}
 	if d.From != "" && d.To != "" && d.From > d.To {
 		d.From, d.To = d.To, d.From
@@ -120,6 +142,13 @@ func (a *App) mapPage(w http.ResponseWriter, r *http.Request) {
 		index[c.ID] = i
 	}
 	for _, p := range pins {
+		for _, id := range p.Collections {
+			e, ok := d.Extent[id]
+			if !ok {
+				e = [][2]float64{{p.Lat, p.Lng}, {p.Lat, p.Lng}}
+			}
+			d.Extent[id] = [][2]float64{{min(e[0][0], p.Lat), min(e[0][1], p.Lng)}, {max(e[1][0], p.Lat), max(e[1][1], p.Lng)}}
+		}
 		if d.First == "" || p.FirstSeen < d.First {
 			d.First = p.FirstSeen
 		}

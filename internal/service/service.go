@@ -119,6 +119,10 @@ func (s *Service) DataDir() string {
 	return s.cfg.DataDir
 }
 
+func (s *Service) CartoAPIKey() string {
+	return s.cfg.Keys.CartoAPIKey
+}
+
 func (s *Service) logger(log *slog.Logger) *slog.Logger {
 	if log != nil {
 		return log

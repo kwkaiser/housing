@@ -11,11 +11,13 @@ import (
 	"net"
 	"net/http"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/jobs"
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
+	"git.kwkaiser.io/kwkaiser/housing/internal/tiles"
 )
 
 //go:embed templates static
@@ -43,6 +45,7 @@ type App struct {
 	static  fs.FS
 	hashes  map[string]string
 	pages   map[string]*template.Template
+	tiles   *tiles.Cache
 	handler http.Handler
 }
 
@@ -58,7 +61,7 @@ func New(svc *service.Service, q Jobs, log *slog.Logger) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &App{ShutdownTimeout: DefaultShutdownTimeout, Version: "dev", svc: svc, jobs: q, now: time.Now, log: log, static: static}
+	a := &App{ShutdownTimeout: DefaultShutdownTimeout, Version: "dev", svc: svc, jobs: q, now: time.Now, log: log, static: static, tiles: tiles.New(filepath.Join(svc.DataDir(), "tiles", "positron"), svc.CartoAPIKey())}
 	if a.hashes, err = fingerprint(static); err != nil {
 		return nil, fmt.Errorf("static assets: %w", err)
 	}
@@ -90,6 +93,7 @@ func (a *App) routes() http.Handler {
 	mux.HandleFunc("GET /static/{path...}", a.serveStatic)
 	mux.HandleFunc("GET /c/{collection}", a.collectionPage)
 	mux.HandleFunc("GET /map", a.mapPage)
+	mux.HandleFunc("GET /tiles/positron/{z}/{x}/{file}", a.positronTile)
 	mux.HandleFunc("GET /listing/{source}/{id}", a.listingPage)
 	mux.HandleFunc("GET /media/{key...}", a.media)
 	mux.HandleFunc("GET /collections", a.collectionsPage)
