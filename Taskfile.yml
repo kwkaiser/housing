@@ -53,6 +53,32 @@ tasks:
           printf "%s\t%.5f\t%.5f\t%.2f\n", $1, $6, $7, sqrt($4 / 3.14159265)
         }' "$tmp"/*.txt > internal/geo/zips.tsv
 
+  update:
+    desc: Update Go dependencies and regenerate vendorHash.
+    cmds:
+      - go get -u ./...
+      - go mod tidy
+      - task: vendor-hash
+
+  vendor-hash:
+    desc: Regenerate vendorHash in nix/package.nix from go.mod/go.sum.
+    cmds:
+      - |
+        set -eu
+        if out=$(nix build --no-link .#default.goModules 2>&1); then
+          echo "vendorHash is up to date"
+          exit 0
+        fi
+        got=$(printf '%s\n' "$out" | sed -n 's/.*got: *\(sha256-[A-Za-z0-9+/=]*\).*/\1/p' | head -n1)
+        if [ -z "$got" ]; then
+          printf '%s\n' "$out" >&2
+          exit 1
+        fi
+        sed -i.bak "s|vendorHash = \".*\";|vendorHash = \"$got\";|" nix/package.nix
+        rm nix/package.nix.bak
+        nix build --no-link .#default.goModules
+        echo "vendorHash updated to $got"
+
   run:
     deps: [build]
     cmds:
