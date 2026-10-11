@@ -8,12 +8,12 @@ import (
 )
 
 func (a *App) positronTile(w http.ResponseWriter, r *http.Request) {
-	t, err := tiles.Parse(r.PathValue("z"), r.PathValue("x"), r.PathValue("file"))
-	if err != nil || !a.tiles.Enabled() {
+	t, err := tiles.Parse(r.PathValue("z"), r.PathValue("x"), r.PathValue("file"), ".png")
+	if err != nil || !a.positron.Enabled() {
 		a.notFound(w, r)
 		return
 	}
-	b, err := a.tiles.Get(r.Context(), t)
+	b, err := a.positron.Get(r.Context(), t)
 	if err != nil {
 		a.log.Warn("tile", "z", t.Z, "x", t.X, "y", t.Y, "err", err)
 		http.Error(w, "tile unavailable", http.StatusBadGateway)

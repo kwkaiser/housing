@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -29,8 +30,8 @@ func TestPositronTiles(t *testing.T) {
 		w.Write([]byte("png"))
 	}))
 	defer upstream.Close()
-	a.tiles = tiles.New(t.TempDir(), key)
-	a.tiles.Upstream = func(tiles.Tile) string { return upstream.URL + "/tile.png" }
+	a.positron = tiles.NewPositron(t.TempDir(), key)
+	a.positron.Upstream = func(context.Context, tiles.Tile) (string, error) { return upstream.URL + "/tile.png", nil }
 
 	res, body := get(t, h, "/tiles/positron/1/0/0@2x.png")
 	if res.StatusCode != http.StatusOK || body != "png" || res.Header.Get("Content-Type") != "image/png" || res.Header.Get("Cache-Control") != "public, max-age=86400" {

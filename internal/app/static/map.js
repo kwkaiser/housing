@@ -96,15 +96,151 @@
     }),
     OpenStreetMap: L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: osm }),
   };
+  map.createPane("routes").style.zIndex = 350;
+  const routeRenderer = L.canvas({ pane: "routes", tolerance: 4 });
+  const routeTip = L.tooltip({ direction: "top", offset: [0, -8], className: "route-tip" });
+
+  const routeLabel = (f) => {
+    const box = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = f.label;
+    box.append(title);
+    const every = f.headway ? `every ${Math.max(1, Math.round(f.headway / 60))} min` : null;
+    const detail = [f.detail, every].filter(Boolean).join(" · ");
+    if (detail) {
+      const line = document.createElement("div");
+      line.className = "muted";
+      line.textContent = detail;
+      box.append(line);
+    }
+    return box;
+  };
+
+  const VectorOverlay = L.Layer.extend({
+    initialize(opts) {
+      this.opts = opts;
+      this.loaded = new Map();
+      this.byId = new Map();
+      this.hovered = null;
+    },
+    onAdd(m) {
+      m.on("moveend", this.load, this);
+      m.whenReady(this.load, this);
+    },
+    onRemove(m) {
+      m.off("moveend", this.load, this);
+      for (const key of [...this.loaded.keys()]) this.drop(key);
+      if (this.hovered) m.closeTooltip(routeTip);
+      this.hovered = null;
+    },
+    getAttribution() {
+      return this.opts.attribution;
+    },
+    load() {
+      const zoom = Math.round(map.getZoom());
+      const z = Math.min(zoom, 14);
+      const want = new Set();
+      if (zoom >= this.opts.minZoom) {
+        const b = map.getBounds();
+        const nw = map.project(b.getNorthWest(), z).divideBy(256).floor();
+        const se = map.project(b.getSouthEast(), z).divideBy(256).floor();
+        const last = 2 ** z - 1;
+        for (let x = Math.max(0, nw.x); x <= Math.min(last, se.x); x++) {
+          for (let y = Math.max(0, nw.y); y <= Math.min(last, se.y); y++) want.add(`${z}/${x}/${y}`);
+        }
+      }
+      if (want.size > 64) want.clear();
+      for (const key of [...this.loaded.keys()]) if (!want.has(key)) this.drop(key);
+      for (const key of want) if (!this.loaded.has(key)) this.fetchTile(key);
+    },
+    fetchTile(key) {
+      const entry = { ctrl: new AbortController(), lines: [] };
+      this.loaded.set(key, entry);
+      fetch(`/overlays/${this.opts.name}/${key}.json`, { signal: entry.ctrl.signal })
+        .then((r) => (r.ok ? r.json() : { features: [] }))
+        .then(({ features }) => {
+          if (this.loaded.get(key) !== entry) return;
+          for (const f of features) this.addLine(entry, f);
+        })
+        .catch(() => {});
+    },
+    addLine(entry, f) {
+      const { style, highlight } = this.opts;
+      const line = L.polyline(f.lines, { renderer: routeRenderer, ...(this.hovered === f.id ? highlight(f) : style(f)) });
+      line.feature = f;
+      line.on("mouseover", (e) => {
+        this.hover(f.id);
+        map.openTooltip(routeTip.setContent(routeLabel(f)), e.latlng);
+      });
+      line.on("mousemove", (e) => routeTip.setLatLng(e.latlng));
+      line.on("mouseout", () => {
+        this.hover(null);
+        map.closeTooltip(routeTip);
+      });
+      line.addTo(map);
+      entry.lines.push(line);
+      if (!this.byId.has(f.id)) this.byId.set(f.id, new Set());
+      this.byId.get(f.id).add(line);
+    },
+    hover(id) {
+      const { style, highlight } = this.opts;
+      for (const line of this.byId.get(this.hovered) || []) line.setStyle(style(line.feature));
+      this.hovered = id;
+      for (const line of this.byId.get(id) || []) line.setStyle(highlight(line.feature)).bringToFront();
+    },
+    drop(key) {
+      const entry = this.loaded.get(key);
+      entry.ctrl.abort();
+      for (const line of entry.lines) {
+        line.remove();
+        this.byId.get(line.feature.id)?.delete(line);
+      }
+      this.loaded.delete(key);
+    },
+  });
+
+  const BIKE = "#009400";
+  const BUS = "#a16207";
+  const busWeight = (f) => (f.headway && f.headway <= 600 ? 4 : f.headway && f.headway <= 1200 ? 3 : 2);
+  const busOpacity = (f) => (f.headway && f.headway <= 600 ? 0.9 : f.headway && f.headway <= 1200 ? 0.65 : 0.4);
+  const transitAttribution = '<a href="https://www.transit.land/terms">Transitland</a>';
+
   const overlays = {
-    "Bike lanes": L.tileLayer("https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm-lite/{z}/{x}/{y}.png", {
-      maxZoom: 20,
-      className: "bike-lanes",
-      attribution: '<a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases">CyclOSM</a>',
-    }),
-    "Rail transit": L.tileLayer("https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '<a href="https://www.openrailwaymap.org">OpenRailwayMap</a>',
+    "Bike lanes": L.layerGroup([
+      L.tileLayer("https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm-lite/{z}/{x}/{y}.png", {
+        maxZoom: 20,
+        className: "bike-lanes",
+        attribution: '<a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases">CyclOSM</a>',
+      }),
+      new VectorOverlay({
+        name: "bike",
+        minZoom: 13,
+        attribution: '<a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/">OpenMapTiles</a>',
+        style: () => ({ color: BIKE, weight: 12, opacity: 0 }),
+        highlight: () => ({ color: BIKE, weight: 6, opacity: 0.95 }),
+      }),
+    ]),
+    "Rail transit":
+      "transit" in el.dataset
+        ? new VectorOverlay({
+            name: "rail",
+            minZoom: 9,
+            attribution: transitAttribution,
+            style: (f) => ({ color: f.color || "#475569", weight: 4, opacity: 0.85 }),
+            highlight: (f) => ({ color: f.color || "#475569", weight: 8, opacity: 1 }),
+          })
+        : L.tileLayer("https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: '<a href="https://www.openrailwaymap.org">OpenRailwayMap</a>',
+          }),
+    ...("transit" in el.dataset && {
+      "Bus routes": new VectorOverlay({
+        name: "bus",
+        minZoom: 12,
+        attribution: transitAttribution,
+        style: (f) => ({ color: BUS, weight: busWeight(f), opacity: busOpacity(f) }),
+        highlight: (f) => ({ color: BUS, weight: busWeight(f) + 4, opacity: 1 }),
+      }),
     }),
   };
   let layers = {};

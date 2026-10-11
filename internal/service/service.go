@@ -123,6 +123,10 @@ func (s *Service) CartoAPIKey() string {
 	return s.cfg.Keys.CartoAPIKey
 }
 
+func (s *Service) TransitlandKey() string {
+	return s.cfg.Keys.TransitlandKey
+}
+
 func (s *Service) logger(log *slog.Logger) *slog.Logger {
 	if log != nil {
 		return log

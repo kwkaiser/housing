@@ -38,15 +38,16 @@ type App struct {
 	ShutdownTimeout time.Duration
 	Version         string
 
-	svc     *service.Service
-	jobs    Jobs
-	now     func() time.Time
-	log     *slog.Logger
-	static  fs.FS
-	hashes  map[string]string
-	pages   map[string]*template.Template
-	tiles   *tiles.Cache
-	handler http.Handler
+	svc      *service.Service
+	jobs     Jobs
+	now      func() time.Time
+	log      *slog.Logger
+	static   fs.FS
+	hashes   map[string]string
+	pages    map[string]*template.Template
+	positron *tiles.Cache
+	overlays map[string]overlay
+	handler  http.Handler
 }
 
 func New(svc *service.Service, q Jobs, log *slog.Logger) (*App, error) {
@@ -61,7 +62,10 @@ func New(svc *service.Service, q Jobs, log *slog.Logger) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &App{ShutdownTimeout: DefaultShutdownTimeout, Version: "dev", svc: svc, jobs: q, now: time.Now, log: log, static: static, tiles: tiles.New(filepath.Join(svc.DataDir(), "tiles", "positron"), svc.CartoAPIKey())}
+	a := &App{ShutdownTimeout: DefaultShutdownTimeout, Version: "dev", svc: svc, jobs: q, now: time.Now, log: log, static: static}
+	tileDir := filepath.Join(svc.DataDir(), "tiles")
+	a.positron = tiles.NewPositron(filepath.Join(tileDir, "positron"), svc.CartoAPIKey())
+	a.overlays = newOverlays(tiles.NewTransitland(filepath.Join(tileDir, "transitland"), svc.TransitlandKey()), tiles.NewOpenFreeMap(filepath.Join(tileDir, "openfreemap")))
 	if a.hashes, err = fingerprint(static); err != nil {
 		return nil, fmt.Errorf("static assets: %w", err)
 	}
@@ -94,6 +98,7 @@ func (a *App) routes() http.Handler {
 	mux.HandleFunc("GET /c/{collection}", a.collectionPage)
 	mux.HandleFunc("GET /map", a.mapPage)
 	mux.HandleFunc("GET /tiles/positron/{z}/{x}/{file}", a.positronTile)
+	mux.HandleFunc("GET /overlays/{name}/{z}/{x}/{file}", a.overlayTile)
 	mux.HandleFunc("GET /listing/{source}/{id}", a.listingPage)
 	mux.HandleFunc("GET /media/{key...}", a.media)
 	mux.HandleFunc("GET /collections", a.collectionsPage)

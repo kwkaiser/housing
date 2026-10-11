@@ -27,7 +27,7 @@
   <label class="toggle contrast" hidden>Contrast <input type="range" min="0" max="100" value="50" aria-label="Fading contrast"></label>
   <span class="muted">{{len .Pins}} listings placed{{if .Approx}} · {{.Approx}} approximate from zip code{{end}}{{if .Filtered}} · {{.Filtered}} outside the date range{{end}}{{if .Unplaced}} · {{.Unplaced}} without a location{{end}}</span>
 </div>
-<div id="map" class="map"{{if .Positron}} data-positron{{end}}></div>
+<div id="map" class="map"{{if .Positron}} data-positron{{end}}{{if .Transit}} data-transit{{end}}></div>
 <script type="application/json" id="map-pins">{{.Pins}}</script>
 <script type="application/json" id="map-extent">{{.Extent}}</script>
 <script src="{{static "leaflet/leaflet.js"}}" defer></script>

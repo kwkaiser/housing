@@ -55,6 +55,7 @@ type mapData struct {
 	Min         string
 	Max         string
 	Positron    bool
+	Transit     bool
 	Extent      map[string][][2]float64
 }
 
@@ -72,7 +73,7 @@ func (a *App) mapPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := r.URL.Query()
-	d := mapData{Pins: []mapPin{}, Extent: map[string][][2]float64{}, From: validDay(q.Get("from")), To: validDay(q.Get("to")), Positron: a.tiles.Enabled()}
+	d := mapData{Pins: []mapPin{}, Extent: map[string][][2]float64{}, From: validDay(q.Get("from")), To: validDay(q.Get("to")), Positron: a.positron.Enabled(), Transit: a.overlays["bus"].source.Enabled()}
 	today := a.now()
 	month := today.AddDate(0, -1, 0).Format(time.DateOnly)
 	if !q.Has("from") && !q.Has("to") {
