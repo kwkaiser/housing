@@ -140,9 +140,10 @@
     tooltip: L.tooltip({ direction: "top", offset: [0, -8], className: "route-tip" }),
     label: routeLabel,
   };
-  const vector = (name, options) =>
-    available[name] &&
-    L.vectorOverlay(`/overlays/${name}/{z}/{x}/{y}.json`, { ...shared, ...available[name], ...options });
+  const vector = (name, options) => {
+    const o = available[name];
+    return o && L.vectorOverlay(`/overlays/${name}/{z}/{x}/{y}.json`, { ...shared, tileMinZoom: o.minZoom, tileMaxZoom: o.maxZoom, ...options });
+  };
 
   const BIKE = "#009400";
   const BUS = "#a16207";

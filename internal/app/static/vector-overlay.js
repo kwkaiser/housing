@@ -1,7 +1,7 @@
 L.VectorOverlay = L.Layer.extend({
   options: {
-    minZoom: 0,
-    maxZoom: 14,
+    tileMinZoom: 0,
+    tileMaxZoom: 14,
     tileSize: 256,
     maxTiles: 64,
     renderer: null,
@@ -38,11 +38,11 @@ L.VectorOverlay = L.Layer.extend({
 
   _wanted() {
     const map = this._map;
-    const { minZoom, maxZoom, tileSize, maxTiles } = this.options;
+    const { tileMinZoom, tileMaxZoom, tileSize, maxTiles } = this.options;
     const zoom = Math.round(map.getZoom());
     const want = new Map();
-    if (zoom < minZoom) return want;
-    const z = Math.min(zoom, maxZoom);
+    if (zoom < tileMinZoom) return want;
+    const z = Math.min(zoom, tileMaxZoom);
     const bounds = map.getBounds();
     const nw = map.project(bounds.getNorthWest(), z).divideBy(tileSize).floor();
     const se = map.project(bounds.getSouthEast(), z).divideBy(tileSize).floor();
