@@ -1,5 +1,5 @@
-github.com/OpenRouterTeam/go-sdk v0.9.42 h1:QDm1DWID0po0O5ELaNsiSA0CiV6+oCuRctlkrCimVPE=
-github.com/OpenRouterTeam/go-sdk v0.9.42/go.mod h1:8vFtUZ9I2YiDntYbck42wQhrx9DsJN5PHbViaHwTkXc=
+github.com/OpenRouterTeam/go-sdk v0.9.48 h1:O1NynaeI4x0kd7Uy5YN0r3y9o+C3KCbJx0y4s5jnpTs=
+github.com/OpenRouterTeam/go-sdk v0.9.48/go.mod h1:8vFtUZ9I2YiDntYbck42wQhrx9DsJN5PHbViaHwTkXc=
 github.com/bahlo/generic-list-go v0.2.0 h1:5sz/EEAK+ls5wF+NeqDpk5+iNdMDXrh3z3nPnH1Wvgk=
 github.com/bahlo/generic-list-go v0.2.0/go.mod h1:2KvAjgMlE5NNynlg/5iLrrCCZ2+5xWbdbCW3pNTGyYg=
 github.com/buger/jsonparser v1.6.1 h1:I0phFv0PlbLHnM7TZAVjZ2MJ2/eWRTDyuO7GLR98IEs=
