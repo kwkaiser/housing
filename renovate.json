@@ -27,6 +27,20 @@
       "matchManagers": [
         "gomod"
       ],
+      "postUpgradeTasks": {
+        "commands": [
+          "./nix/vendor-hash.sh"
+        ],
+        "fileFilters": [
+          "nix/package.nix"
+        ],
+        "executionMode": "branch"
+      }
+    },
+    {
+      "matchManagers": [
+        "gomod"
+      ],
       "matchUpdateTypes": [
         "minor",
         "patch",
