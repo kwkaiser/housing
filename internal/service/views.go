@@ -35,6 +35,7 @@ type ListingRow struct {
 	FirstSeen          string
 	Status             Status
 	PreviousPriceCents *int64
+	Favorite           bool
 }
 
 func (r ListingRow) New() bool {
@@ -137,6 +138,10 @@ func (s *Service) CollectionDay(ctx context.Context, collectionID string, o DayO
 	if err != nil {
 		return v, err
 	}
+	favorites, err := db.FavoriteKeys(ctx)
+	if err != nil {
+		return v, err
+	}
 	r := report.Build(reportTemplates(templates), listings, reportOptions(v.Collection))
 	v.Graded = len(r.Rows)
 	v.Models = modelsFor(v.Collection, r.Models)
@@ -145,7 +150,7 @@ func (s *Service) CollectionDay(ctx context.Context, collectionID string, o DayO
 			v.Hidden++
 			continue
 		}
-		lr := ListingRow{Row: row}
+		lr := ListingRow{Row: row, Favorite: favorites[store.Key(row.Listing)]}
 		lr.FirstSeen, lr.Status, lr.PreviousPriceCents = sightings(v.Day, history[store.Key(row.Listing)])
 		lr.Rank = len(v.Rows) + 1
 		v.Stale = v.Stale || row.Stale
@@ -305,6 +310,7 @@ type ListingView struct {
 	AlsoListed []listing.Listing
 	History    []store.Sighting
 	Grades     []GradeView
+	Favorite   bool
 }
 
 type GradeView struct {
@@ -350,6 +356,9 @@ func (s *Service) ListingDetail(ctx context.Context, source listing.Source, sour
 		}
 	}
 	if v.History, err = db.ListingHistory(ctx, source, sourceID); err != nil {
+		return v, err
+	}
+	if v.Favorite, err = db.IsFavorite(ctx, source, sourceID); err != nil {
 		return v, err
 	}
 

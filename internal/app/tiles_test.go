@@ -49,7 +49,8 @@ func TestPositronTiles(t *testing.T) {
 		t.Error("map does not offer Positron with a key")
 	}
 	_, js := get(t, h, a.staticURL("map.js"))
-	for name, s := range map[string]string{"map page": page, "map.js": js} {
+	_, layers := get(t, h, a.staticURL("map-layers.js"))
+	for name, s := range map[string]string{"map page": page, "map.js": js, "map-layers.js": layers} {
 		if strings.Contains(s, key) || strings.Contains(s, "cartocdn") {
 			t.Errorf("%s exposes the CARTO key or upstream", name)
 		}

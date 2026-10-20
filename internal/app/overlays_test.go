@@ -97,7 +97,7 @@ func TestOverlayTiles(t *testing.T) {
 	if !strings.Contains(page, `"overlays":[{"name":"bike","minZoom":13,"maxZoom":14},{"name":"rail","minZoom":9,"maxZoom":14},{"name":"bus","minZoom":12,"maxZoom":14}]`) {
 		t.Error("map config with a Transitland key should offer bike, rail and bus")
 	}
-	for _, path := range []string{"map.js", "vector-overlay.js"} {
+	for _, path := range []string{"map.js", "map-layers.js", "vector-overlay.js"} {
 		_, js := get(t, h, a.staticURL(path))
 		for name, s := range map[string]string{"map page": page, path: js} {
 			if strings.Contains(s, "tl-secret") || strings.Contains(s, "transit.land/api") {

@@ -14,6 +14,7 @@ import (
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/app/view"
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
+	"git.kwkaiser.io/kwkaiser/housing/internal/geo"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/report"
@@ -95,6 +96,7 @@ type listingsData struct {
 	CollectionLink []collectionLink
 	Run            *jobView
 	EditHref       string
+	Here           string
 }
 
 func (a *App) home(w http.ResponseWriter, r *http.Request) {
@@ -123,7 +125,7 @@ func (a *App) collectionPage(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, r, err)
 		return
 	}
-	d := listingsData{CollectionDayView: v, Title: v.Collection.ID, Multi: len(v.Collection.Profiles) > 1, Dealbreakers: st.dealbreakers, EditHref: editCollectionURL(v.Collection.ID)}
+	d := listingsData{CollectionDayView: v, Title: v.Collection.ID, Multi: len(v.Collection.Profiles) > 1, Dealbreakers: st.dealbreakers, EditHref: editCollectionURL(v.Collection.ID), Here: r.URL.RequestURI()}
 	cols := columns(v.Collection.Profiles, d.Multi)
 	i := slices.IndexFunc(cols, func(c column) bool { return c.Key == st.sort })
 	if i < 0 {
@@ -256,6 +258,16 @@ type listingData struct {
 	BackHref string
 	Collages []string
 	Offer    listing.OfferType
+	Here     string
+	Pin      *listingPin
+	Config   mapConfig
+}
+
+type listingPin struct {
+	Lat    float64 `json:"lat"`
+	Lng    float64 `json:"lng"`
+	Approx bool    `json:"approx,omitempty"`
+	Title  string  `json:"title"`
 }
 
 func (a *App) listingPage(w http.ResponseWriter, r *http.Request) {
@@ -266,9 +278,13 @@ func (a *App) listingPage(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, r, err)
 		return
 	}
-	d := listingData{ListingView: v, Title: report.AddressLine(v.Listing), Offer: v.Listing.Offer}
+	d := listingData{ListingView: v, Title: report.AddressLine(v.Listing), Offer: v.Listing.Offer, Here: r.URL.RequestURI()}
 	if d.Title == "" {
 		d.Title = string(v.Listing.Source) + " " + v.Listing.SourceID
+	}
+	if loc, approx, ok := geo.Locate(v.Listing); ok {
+		d.Pin = &listingPin{Lat: loc.Lat, Lng: loc.Lng, Approx: approx, Title: d.Title}
+		d.Config = a.mapConfig()
 	}
 	if v.Collection != "" {
 		d.BackHref = listingsState{collection: v.Collection, day: o.Day}.href()

@@ -56,7 +56,7 @@
 {{end}}</tr></thead>
 <tbody>
 {{range .Rows}}<tr>
-  <td data-col="rank" class="num">{{.Rank}}</td>
+  <td data-col="rank" class="num"><span class="rank">{{template "star" (star .Listing .Favorite $.Data.Here)}}{{.Rank}}</span></td>
   <td data-col="match" class="num score">{{match .Match .Calibrated .Stale}}</td>
   <td data-col="score" class="num">{{fixed1 .Score}}</td>
   {{if $.Data.Multi}}<td data-col="profile">{{.Profile}}</td>

@@ -44,7 +44,7 @@ func TestMapPage(t *testing.T) {
 		{"/map", []string{
 			"<title>Map · housing</title>",
 			`<a href="/map" aria-current="page">Map</a>`,
-			`/static/leaflet/leaflet.css?v=`, `/static/leaflet/leaflet.js?v=`, `/static/vector-overlay.js?v=`, `/static/map.js?v=`,
+			`/static/leaflet/leaflet.css?v=`, `/static/leaflet/leaflet.js?v=`, `/static/vector-overlay.js?v=`, `/static/map-layers.js?v=`, `/static/map.js?v=`,
 			all,
 			`<details class="picker collections" hidden>`,
 			`<input type="checkbox" data-collection="somerville" data-color="#2563eb" checked>`,

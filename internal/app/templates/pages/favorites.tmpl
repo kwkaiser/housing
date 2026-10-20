@@ -1,0 +1,26 @@
+{{define "title"}}Favorites{{end}}
+{{define "content"}}{{with .Data}}
+<h1>Favorites</h1>
+{{if .Rows}}
+<div class="wrap">
+<table class="favorites">
+<thead><tr><th></th><th class="num">Match</th><th>Profile</th><th class="num">Price</th><th class="num">Beds</th><th>Address</th><th>Source</th><th>Added</th><th>Last seen</th></tr></thead>
+<tbody>
+{{range .Rows}}<tr>
+  <td>{{template "star" .Star}}</td>
+  <td class="num score">{{if .Graded}}{{match .Match .Calibrated .Stale}}{{else}}-{{end}}</td>
+  <td>{{if .Graded}}<a href="{{profileURL .Profile}}">{{.Profile}}</a>{{with .Dealbreakers}} <span class="tags bad">{{join . ", "}}</span>{{end}}{{else}}<span class="muted">not graded</span>{{end}}</td>
+  <td class="num">{{money .Listing.Price.Cents .Listing.Offer}}</td>
+  <td class="num">{{beds .Listing.Beds}}</td>
+  <td><a href="{{.Href}}">{{or (address .Listing) .Listing.SourceID}}</a></td>
+  <td><a href="{{.Listing.URL}}" target="_blank" rel="noopener">{{.Listing.Source}}</a></td>
+  <td class="nowrap">{{.Added}}</td>
+  <td class="nowrap">{{or .LastSeen "-"}}</td>
+</tr>
+{{end}}</tbody>
+</table>
+</div>
+{{else}}
+<p>No favorites yet. Star a listing with ☆ to keep it here.</p>
+{{end}}
+{{end}}{{end}}

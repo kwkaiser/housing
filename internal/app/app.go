@@ -100,6 +100,8 @@ func (a *App) routes() http.Handler {
 	mux.HandleFunc("GET /tiles/positron/{z}/{x}/{file}", a.positronTile)
 	mux.HandleFunc("GET /overlays/{name}/{z}/{x}/{file}", a.overlayTile)
 	mux.HandleFunc("GET /listing/{source}/{id}", a.listingPage)
+	mux.HandleFunc("POST /listing/{source}/{id}/favorite", a.setFavorite)
+	mux.HandleFunc("GET /favorites", a.favoritesPage)
 	mux.HandleFunc("GET /media/{key...}", a.media)
 	mux.HandleFunc("GET /collections", a.collectionsPage)
 	mux.HandleFunc("GET /collections/new", a.newCollectionPage)

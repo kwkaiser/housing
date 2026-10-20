@@ -21,3 +21,4 @@
 </body>
 </html>
 {{end}}
+{{define "star"}}<form method="post" action="{{.Action}}" class="star"><input type="hidden" name="on" value="{{if .On}}0{{else}}1{{end}}"><input type="hidden" name="next" value="{{.Next}}"><button type="submit" aria-pressed="{{.On}}" aria-label="{{if .On}}Remove from favorites{{else}}Add to favorites{{end}}" title="{{if .On}}Remove from favorites{{else}}Add to favorites{{end}}">{{if .On}}★{{else}}☆{{end}}</button></form>{{end}}

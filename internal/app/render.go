@@ -34,6 +34,7 @@ type errorData struct {
 
 var nav = []navItem{
 	{Label: "Listings", Href: "/", prefixes: []string{"/c/", "/listing/"}},
+	{Label: "Favorites", Href: "/favorites"},
 	{Label: "Map", Href: "/map"},
 	{Label: "Collections", Href: "/collections"},
 	{Label: "Profiles", Href: "/profiles"},
@@ -45,6 +46,7 @@ func (a *App) funcs() template.FuncMap {
 	funcs := view.Funcs()
 	funcs["static"] = a.staticURL
 	funcs["profileURL"] = profileURL
+	funcs["star"] = star
 	return funcs
 }
 

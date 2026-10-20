@@ -185,3 +185,11 @@ form.form table.criteria-edit tr.invalid input, form.form table.criteria-edit tr
 .notice p { margin: 0 0 .5rem; }
 .notice input.secret { width: 100%; font-family: ui-monospace, monospace; }
 table.keys td form { margin: 0; }
+form.star { display: inline; margin: 0; }
+form.star button { padding: 0 .2rem; border: 0; background: none; color: var(--muted); font-size: 1.05em; line-height: 1; }
+form.star button[aria-pressed=true] { color: var(--warn); }
+form.star button:hover { color: var(--warn); }
+h1.starred form.star { margin-right: .35rem; }
+h1.starred form.star button { font-size: inherit; vertical-align: baseline; }
+td .rank { display: inline-flex; align-items: center; gap: .35rem; }
+.listing-map { isolation: isolate; height: 24rem; max-height: 60vh; border: 1px solid var(--line); border-radius: 6px; }

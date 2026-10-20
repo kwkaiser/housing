@@ -1,7 +1,8 @@
 {{define "title"}}{{.Data.Title}}{{end}}
+{{define "head"}}{{if .Data.Pin}}<link rel="stylesheet" href="{{static "leaflet/leaflet.css"}}">{{end}}{{end}}
 {{define "content"}}{{with .Data}}
 {{if .BackHref}}<p><a href="{{.BackHref}}">← {{.Collection}}{{with .Day}} · {{.}}{{end}}</a></p>{{end}}
-<h1>{{.Title}}</h1>
+<h1 class="starred">{{template "star" (star .Listing .Favorite .Here)}}{{.Title}}</h1>
 <p class="facts">
   <span class="score">{{money .Listing.Price.Cents .Offer}}</span>
   · {{beds .Listing.Beds}} beds · {{baths .Listing.Baths}} baths · {{sqft .Listing.SqFt}} sqft
@@ -10,6 +11,19 @@
   <a href="{{.Listing.URL}}" target="_blank" rel="noopener">{{.Listing.Source}}</a>
   {{range .AlsoListed}} · <a href="{{.URL}}" target="_blank" rel="noopener">{{.Source}}</a> <span class="muted">{{money .Price.Cents .Offer}}</span>{{end}}
 </p>
+
+{{with .Pin}}
+<details class="section listing-map-section">
+<summary>Map{{if .Approx}} <span class="muted">· approximate, placed at the zip code's center</span>{{end}}</summary>
+<div id="listing-map" class="listing-map"></div>
+</details>
+<script type="application/json" id="map-config">{{$.Data.Config}}</script>
+<script type="application/json" id="listing-pin">{{.}}</script>
+<script src="{{static "leaflet/leaflet.js"}}" defer></script>
+<script src="{{static "vector-overlay.js"}}" defer></script>
+<script src="{{static "map-layers.js"}}" defer></script>
+<script src="{{static "listing-map.js"}}" defer></script>
+{{end}}
 
 {{if .Collages}}
 <div class="collages">
