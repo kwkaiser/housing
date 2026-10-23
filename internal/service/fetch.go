@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -42,7 +43,17 @@ type FetchResult struct {
 	Observed   int
 	Distinct   int
 	Duplicates int
+	SourceErrs []SourceError
 }
+
+type SourceError struct {
+	Source listing.Source
+	Err    error
+}
+
+func (e SourceError) Error() string { return string(e.Source) + ": " + e.Err.Error() }
+
+func (e SourceError) Unwrap() error { return e.Err }
 
 func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (FetchResult, error) {
 	var res FetchResult
@@ -89,19 +100,33 @@ func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (
 	db := s.db
 
 	results := make([][]listing.Listing, len(providers))
-	g, gctx := errgroup.WithContext(ctx)
+	failures := make([]error, len(providers))
+	var g errgroup.Group
 	for i, p := range providers {
 		g.Go(func() error {
-			ls, err := s.fetchOne(gctx, p, q, o, flog.With("source", p.Source()))
+			ls, err := s.fetchOne(ctx, p, q, o, flog.With("source", p.Source()))
 			if err != nil {
-				return fmt.Errorf("%s: %w", p.Source(), err)
+				failures[i] = SourceError{Source: p.Source(), Err: err}
+				return nil
 			}
 			results[i] = ls
 			return nil
 		})
 	}
-	if err := g.Wait(); err != nil {
+	g.Wait()
+	if err := ctx.Err(); err != nil {
 		return res, err
+	}
+	for _, err := range failures {
+		if se, ok := err.(SourceError); ok {
+			res.SourceErrs = append(res.SourceErrs, se)
+		}
+	}
+	if len(res.SourceErrs) == len(providers) {
+		return res, errors.Join(failures...)
+	}
+	for _, se := range res.SourceErrs {
+		flog.Warn("source failed; continuing without it", "source", se.Source, "err", se.Err)
 	}
 	listings := slices.Concat(results...)
 

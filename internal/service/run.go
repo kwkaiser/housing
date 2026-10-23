@@ -26,6 +26,7 @@ type RunResult struct {
 	Fetched         int
 	Distinct        int
 	Duplicates      int
+	SourceErrs      []SourceError
 	Collaged        int
 	Collages        int
 	WithoutCollages int
@@ -86,7 +87,7 @@ func (s *Service) Run(ctx context.Context, o RunOptions, log *slog.Logger) (RunR
 	if err != nil {
 		return res, err
 	}
-	res.Day, res.Fetched, res.Distinct, res.Duplicates = fetched.Day, fetched.Observed, fetched.Distinct, fetched.Duplicates
+	res.Day, res.Fetched, res.Distinct, res.Duplicates, res.SourceErrs = fetched.Day, fetched.Observed, fetched.Distinct, fetched.Duplicates, fetched.SourceErrs
 	if len(fetched.Listings) == 0 {
 		log.Info("no listings matched; nothing to assess", "stage", StageRun)
 		return res, nil

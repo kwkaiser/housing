@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
+	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
 	"git.kwkaiser.io/kwkaiser/housing/internal/store"
@@ -95,20 +98,21 @@ type DraftProfileParams struct {
 func (DraftProfileParams) Kind() Kind { return KindDraftProfile }
 
 type RunResult struct {
-	Collection      string             `json:"collection"`
-	Mode            profile.Mode       `json:"mode"`
-	Day             string             `json:"day,omitempty"`
-	Fetched         int                `json:"fetched"`
-	Distinct        int                `json:"distinct"`
-	Duplicates      int                `json:"duplicates"`
-	Collaged        int                `json:"collaged"`
-	Collages        int                `json:"collages"`
-	WithoutCollages int                `json:"without_collages"`
-	Stats           profile.BatchStats `json:"stats"`
-	BudgetReached   bool               `json:"budget_reached"`
-	AssessError     string             `json:"assess_error,omitempty"`
-	Notified        int                `json:"notified,omitempty"`
-	NotifyError     string             `json:"notify_error,omitempty"`
+	Collection      string                    `json:"collection"`
+	Mode            profile.Mode              `json:"mode"`
+	Day             string                    `json:"day,omitempty"`
+	Fetched         int                       `json:"fetched"`
+	Distinct        int                       `json:"distinct"`
+	Duplicates      int                       `json:"duplicates"`
+	SourceErrors    map[listing.Source]string `json:"source_errors,omitempty"`
+	Collaged        int                       `json:"collaged"`
+	Collages        int                       `json:"collages"`
+	WithoutCollages int                       `json:"without_collages"`
+	Stats           profile.BatchStats        `json:"stats"`
+	BudgetReached   bool                      `json:"budget_reached"`
+	AssessError     string                    `json:"assess_error,omitempty"`
+	Notified        int                       `json:"notified,omitempty"`
+	NotifyError     string                    `json:"notify_error,omitempty"`
 }
 
 func runResult(r service.RunResult) RunResult {
@@ -126,6 +130,12 @@ func runResult(r service.RunResult) RunResult {
 		BudgetReached:   r.BudgetReached,
 		Notified:        r.Notified,
 	}
+	for _, se := range r.SourceErrs {
+		if out.SourceErrors == nil {
+			out.SourceErrors = make(map[listing.Source]string, len(r.SourceErrs))
+		}
+		out.SourceErrors[se.Source] = se.Err.Error()
+	}
 	if r.AssessErr != nil {
 		out.AssessError = r.AssessErr.Error()
 	}
@@ -137,6 +147,9 @@ func runResult(r service.RunResult) RunResult {
 
 func (r RunResult) Degraded() string {
 	var reasons []string
+	for _, src := range slices.Sorted(maps.Keys(r.SourceErrors)) {
+		reasons = append(reasons, "fetch: "+string(src)+": "+r.SourceErrors[src])
+	}
 	if r.AssessError != "" {
 		reasons = append(reasons, "assess: "+r.AssessError)
 	}

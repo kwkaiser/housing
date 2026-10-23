@@ -38,12 +38,13 @@ func (c *clock) Set(t time.Time) {
 }
 
 type fakeExec struct {
-	mu        sync.Mutex
-	runs      []string
-	started   chan string
-	block     bool
-	err       error
-	assessErr error
+	mu         sync.Mutex
+	runs       []string
+	started    chan string
+	block      bool
+	err        error
+	assessErr  error
+	sourceErrs []service.SourceError
 }
 
 func (f *fakeExec) RunCollection(ctx context.Context, id string, log *slog.Logger) (service.RunResult, error) {
@@ -61,6 +62,7 @@ func (f *fakeExec) RunCollection(ctx context.Context, id string, log *slog.Logge
 	}
 	res := service.RunResult{Collection: id, Mode: profile.ModeRent, Fetched: 3, Stats: profile.BatchStats{Calls: 2, CostUSD: 0.04}}
 	res.AssessErr = f.assessErr
+	res.SourceErrs = f.sourceErrs
 	if f.err != nil {
 		return res, f.err
 	}
@@ -203,6 +205,26 @@ func TestRunnerRecordsDegraded(t *testing.T) {
 			t.Fatal(err)
 		}
 		if j.Status != StatusDegraded || j.Error != "assess: openrouter: 402 out of credits" || res.AssessError != "openrouter: 402 out of credits" || res.Fetched != 3 {
+			t.Errorf("job = %+v result = %+v", j, res)
+		}
+	})
+}
+
+func TestRunnerRecordsDegradedSources(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		q := New(openStore(t), nil)
+		start(t, q, &fakeExec{sourceErrs: []service.SourceError{
+			{Source: listing.SourceRedfin, Err: errors.New("actor timed out")},
+			{Source: listing.SourceFacebook, Err: errors.New("stream error")},
+		}})
+		id, _ := q.Enqueue(t.Context(), RunCollectionParams{CollectionID: "c"})
+		j := wait(t, q, id)
+		var res RunResult
+		if err := json.Unmarshal(j.Result, &res); err != nil {
+			t.Fatal(err)
+		}
+		if j.Status != StatusDegraded || j.Error != "fetch: facebook: stream error; fetch: redfin: actor timed out" ||
+			res.SourceErrors[listing.SourceFacebook] != "stream error" || res.Fetched != 3 {
 			t.Errorf("job = %+v result = %+v", j, res)
 		}
 	})

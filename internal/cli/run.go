@@ -27,7 +27,11 @@ func newRunCmd(dataDir *string) *cobra.Command {
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "run: %s on %s: %d fetched, %d distinct, %d graded, %d failed, %d notified, $%.4f\n",
 				res.Collection, res.Day, res.Fetched, res.Distinct, res.Stats.Updated, res.Stats.Failed, res.Notified, res.Stats.CostUSD)
-			return errors.Join(res.AssessErr, res.NotifyErr)
+			var errs []error
+			for _, se := range res.SourceErrs {
+				errs = append(errs, se)
+			}
+			return errors.Join(append(errs, res.AssessErr, res.NotifyErr)...)
 		},
 	}
 }

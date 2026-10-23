@@ -68,12 +68,13 @@ func (f fakePhotos) Fetch(context.Context, string) (io.ReadCloser, error) {
 type fakeProvider struct {
 	source   listing.Source
 	listings []listing.Listing
+	err      error
 }
 
 func (p fakeProvider) Source() listing.Source                                 { return p.source }
 func (p fakeProvider) SupportedAmenities(listing.OfferType) []listing.Amenity { return nil }
 func (p fakeProvider) Search(context.Context, listing.Query) ([]listing.Listing, error) {
-	return slices.Clone(p.listings), nil
+	return slices.Clone(p.listings), p.err
 }
 
 type fakeLookup struct{ ref listing.Listing }
@@ -282,6 +283,48 @@ func TestRunCollection(t *testing.T) {
 	}
 	if again.Stats.Calls != 0 || again.Stats.Cached != 3 {
 		t.Errorf("a second run should reuse current grades: %+v", again.Stats)
+	}
+}
+
+func TestRunContinuesWithoutFailedSource(t *testing.T) {
+	ctx := t.Context()
+	svc := newTestService(t, &fakeCompleter{})
+	streamErr := errors.New("stream error: stream ID 21; INTERNAL_ERROR")
+	working := svc.cfg.Clients.Provider
+	svc.cfg.Clients.Provider = func(source listing.Source, r apify.Runner) (listing.Provider, error) {
+		if source == listing.SourceFacebook || source == listing.SourceCraigslist {
+			return fakeProvider{source: source, err: streamErr}, nil
+		}
+		return working(source, r)
+	}
+	if _, err := svc.CreateProfileFromURL(ctx, CreateProfileOptions{URL: "https://www.zillow.com/homedetails/ref", ID: "attic", Kind: profile.KindWant, Model: "m"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	for id, sources := range map[string][]listing.Source{
+		"partial": {listing.SourceZillow, listing.SourceFacebook},
+		"broken":  {listing.SourceFacebook, listing.SourceCraigslist},
+	} {
+		c := collection.Collection{ID: id, Mode: profile.ModeRent, Profiles: []string{"attic"}, Sources: sources, Search: profile.Search{Location: "x", Limit: 5}}
+		if err := svc.SaveCollection(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	var logs logBuffer
+	res, err := svc.RunCollection(ctx, "partial", logs.logger())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Fetched != 2 || res.Distinct != 2 || len(res.SourceErrs) != 1 || res.SourceErrs[0].Source != listing.SourceFacebook || !errors.Is(res.SourceErrs[0], streamErr) {
+		t.Errorf("result = %+v", res)
+	}
+	if want := `msg="source failed; continuing without it" stage=fetch source=facebook`; !strings.Contains(logs.String(), want) {
+		t.Errorf("missing %q in\n%s", want, logs.String())
+	}
+
+	res, err = svc.RunCollection(ctx, "broken", nil)
+	if err == nil || !strings.Contains(err.Error(), "facebook: stream error") || !strings.Contains(err.Error(), "craigslist: stream error") || res.Day != "" {
+		t.Errorf("every source failing should fail the run: %+v %v", res, err)
 	}
 }
 

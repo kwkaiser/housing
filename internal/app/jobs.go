@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
 	"net/http"
 	"net/url"
 	"slices"
@@ -320,6 +321,9 @@ func runFields(r jobs.RunResult) []field {
 		field{Label: "Tokens", Value: r.Stats.Tokens.String()},
 		field{Label: "Budget reached", Value: yes[r.BudgetReached]},
 	)
+	for _, src := range slices.Sorted(maps.Keys(r.SourceErrors)) {
+		fs = append(fs, field{Label: "Fetch error (" + string(src) + ")", Value: r.SourceErrors[src]})
+	}
 	if r.AssessError != "" {
 		fs = append(fs, field{Label: "Assess error", Value: r.AssessError})
 	}
