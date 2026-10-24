@@ -7,6 +7,7 @@ import (
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
+	"git.kwkaiser.io/kwkaiser/housing/internal/store"
 )
 
 func (s *Service) Collection(ctx context.Context, id string) (collection.Collection, error) {
@@ -15,6 +16,17 @@ func (s *Service) Collection(ctx context.Context, id string) (collection.Collect
 		return collection.Collection{}, err
 	}
 	return db.Collection(ctx, id)
+}
+
+func (s *Service) CollectionDays(ctx context.Context, id string) ([]store.DayCount, error) {
+	db, err := s.catalog(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := db.Collection(ctx, id); err != nil {
+		return nil, err
+	}
+	return db.CollectionDays(ctx, id)
 }
 
 func (s *Service) Collections(ctx context.Context) ([]collection.Collection, error) {

@@ -229,7 +229,7 @@ func (s *Store) ReferenceListings(ctx context.Context, p profile.Profile) ([]lis
 	for _, r := range p.References {
 		owner := cmp.Or(r.Profile, p.ID)
 		ls, err := s.load(ctx, `
-			SELECT l.price_cents, l.currency, l.observed_at, l.url, l.offer, v.data, v.raw, v.collages
+			SELECT l.price_cents, l.currency, l.observed_at, l.url, l.offer, v.data, v.collages
 			FROM profile_references r
 			JOIN versions v ON v.id = r.version_id
 			JOIN listings l ON l.source = v.source AND l.source_id = v.source_id

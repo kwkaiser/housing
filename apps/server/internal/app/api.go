@@ -375,12 +375,12 @@ func (a *App) apiCollection(ctx context.Context, in *collectionInput) (*struct{ 
 }
 
 func (a *App) apiCollectionDays(ctx context.Context, in *collectionInput) (*struct{ Body []APIDay }, error) {
-	v, err := a.svc.CollectionDay(ctx, in.ID, service.DayOptions{})
+	days, err := a.svc.CollectionDays(ctx, in.ID)
 	if err != nil {
 		return nil, a.apiError(ctx, err)
 	}
-	out := make([]APIDay, len(v.Days))
-	for i, d := range v.Days {
+	out := make([]APIDay, len(days))
+	for i, d := range days {
 		out[i] = APIDay{Day: d.Day, Listings: d.Listings}
 	}
 	return &struct{ Body []APIDay }{out}, nil

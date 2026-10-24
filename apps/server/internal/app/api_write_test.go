@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -526,5 +527,16 @@ func TestSearchArea(t *testing.T) {
 	}
 	if area := searchArea(collection.Collection{Search: profile.Search{Location: "Somerville, MA"}}); area != nil {
 		t.Error("searchArea should not resolve a non-zip location")
+	}
+}
+
+func TestAPICollectionDays(t *testing.T) {
+	_, h, key := apiApp(t)
+	got := apiGet[[]APIDay](t, h, key, apiV1+"/collections/somerville/days")
+	if want := []APIDay{{Day: day1, Listings: 3}, {Day: day2, Listings: 5}}; !reflect.DeepEqual(got, want) {
+		t.Errorf("days = %+v, want %+v", got, want)
+	}
+	if res, _ := apiDo(t, h, http.MethodGet, apiV1+"/collections/nope/days", key); res.StatusCode != http.StatusNotFound {
+		t.Errorf("missing collection = %d, want 404", res.StatusCode)
 	}
 }

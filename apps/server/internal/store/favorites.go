@@ -52,7 +52,7 @@ func (s *Store) FavoriteKeys(ctx context.Context) (map[string]bool, error) {
 
 func (s *Store) Favorites(ctx context.Context) ([]Favorite, error) {
 	ls, err := s.load(ctx, `
-		SELECT l.price_cents, l.currency, l.observed_at, l.url, l.offer, v.data, v.raw, v.collages
+		SELECT l.price_cents, l.currency, l.observed_at, l.url, l.offer, v.data, v.collages
 		FROM favorites f
 		JOIN listings l ON l.source = f.source AND l.source_id = f.source_id
 		JOIN versions v ON v.id = l.current_version

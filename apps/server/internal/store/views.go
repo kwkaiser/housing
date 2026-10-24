@@ -12,7 +12,7 @@ var ErrListingNotFound = errors.New("listing not found")
 
 func (s *Store) CurrentListing(ctx context.Context, source listing.Source, sourceID string) (listing.Listing, error) {
 	ls, err := s.load(ctx, `
-		SELECT l.price_cents, l.currency, l.observed_at, l.url, l.offer, v.data, v.raw, v.collages
+		SELECT l.price_cents, l.currency, l.observed_at, l.url, l.offer, v.data, v.collages
 		FROM listings l JOIN versions v ON v.id = l.current_version
 		WHERE l.source = ? AND l.source_id = ?`, source, sourceID)
 	if err != nil {

@@ -89,8 +89,17 @@ func TestRoundTrip(t *testing.T) {
 	}
 	g := got[0]
 	if g.URL != l.URL || g.Price != l.Price || g.Description != "sunny" || *g.Beds != 2 || g.Coordinates.Lng != -71.11 ||
-		!g.ObservedAt.Equal(l.ObservedAt) || string(g.Raw) != `{"id":"1"}` || len(g.Collages) != 1 || g.Photos[0] != l.Photos[0] {
+		!g.ObservedAt.Equal(l.ObservedAt) || len(g.Collages) != 1 || g.Photos[0] != l.Photos[0] {
 		t.Errorf("round trip lost data: %+v", g)
+	}
+	if len(g.Raw) != 0 {
+		t.Errorf("load should leave out raw provider data: %s", g.Raw)
+	}
+	if err := s.Save(ctx, []listing.Listing{g}); err != nil {
+		t.Fatal(err)
+	}
+	if n := count(t, s, `SELECT count(*) FROM versions WHERE raw = '{"id":"1"}'`); n != 1 {
+		t.Errorf("saving a loaded listing should keep its raw provider data: %d rows", n)
 	}
 	if a, ok := g.Assessment("attic", "m"); !ok || a.Score != 70 {
 		t.Errorf("load should return the latest assessment: %+v", a)
