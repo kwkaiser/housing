@@ -48,6 +48,8 @@ type App struct {
 	positron *tiles.Cache
 	overlays []overlay
 	handler  http.Handler
+
+	streamPoll time.Duration
 }
 
 func New(svc *service.Service, q Jobs, log *slog.Logger) (*App, error) {
@@ -62,7 +64,7 @@ func New(svc *service.Service, q Jobs, log *slog.Logger) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &App{ShutdownTimeout: DefaultShutdownTimeout, Version: "dev", svc: svc, jobs: q, now: time.Now, log: log, static: static}
+	a := &App{ShutdownTimeout: DefaultShutdownTimeout, Version: "dev", svc: svc, jobs: q, now: time.Now, log: log, static: static, streamPoll: defaultStreamPoll}
 	tileDir := filepath.Join(svc.DataDir(), "tiles")
 	a.positron = tiles.NewPositron(filepath.Join(tileDir, "positron"), svc.CartoAPIKey())
 	a.overlays = newOverlays(tiles.NewTransitland(filepath.Join(tileDir, "transitland"), svc.TransitlandKey()), tiles.NewOpenFreeMap(filepath.Join(tileDir, "openfreemap")))
@@ -73,7 +75,7 @@ func New(svc *service.Service, q Jobs, log *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("templates: %w", err)
 	}
 	web := a.sameOrigin(a.routes())
-	api := a.apiHandler()
+	api := a.etags(a.apiHandler())
 	a.handler = a.logRequests(a.recoverPanics(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, apiPrefix+"/") {
 			api.ServeHTTP(w, r)

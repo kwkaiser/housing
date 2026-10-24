@@ -1,21 +1,29 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"maps"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
+	"github.com/google/renameio/v2"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
+	"git.kwkaiser.io/kwkaiser/housing/internal/geo"
 	"git.kwkaiser.io/kwkaiser/housing/internal/jobs"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
+	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/report"
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
@@ -26,7 +34,7 @@ const (
 	apiPrefix      = "/api"
 	apiV1          = apiPrefix + "/v1"
 	apiAuthScheme  = "bearer"
-	apiSpecVersion = "1.0.0"
+	apiSpecVersion = "1.1.0"
 )
 
 func (a *App) apiHandler() http.Handler {
@@ -36,7 +44,7 @@ func (a *App) apiHandler() http.Handler {
 	cfg.OpenAPIPath = apiPrefix + "/openapi"
 	cfg.DocsPath = apiPrefix + "/docs"
 	cfg.SchemasPath = apiPrefix + "/schemas"
-	cfg.Info.Description = "Read collections, ranked listings, profiles and jobs, and queue collection runs."
+	cfg.Info.Description = "Manage collections, profiles, favorites and API keys, read ranked listings and map pins, and queue and follow jobs."
 	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
 		apiAuthScheme: {Type: "http", Scheme: "bearer", Description: "An API key created on the server's API keys page or with `housing apikeys create`."},
 	}
@@ -44,8 +52,19 @@ func (a *App) apiHandler() http.Handler {
 	api := humago.New(mux, cfg)
 	api.UseMiddleware(a.apiAuth(api))
 
+	huma.Get(api, apiV1+"/meta", a.apiMeta, op("getMeta", "Get the server version, choices and defaults for building forms", "meta"))
 	huma.Get(api, apiV1+"/collections", a.apiCollections, op("listCollections", "List collections", "collections"))
+	huma.Register(api, huma.Operation{
+		OperationID:   "createCollection",
+		Method:        http.MethodPost,
+		Path:          apiV1 + "/collections",
+		Summary:       "Create a collection",
+		Description:   "Does not run it; queue a run for that.",
+		Tags:          []string{"collections"},
+		DefaultStatus: http.StatusCreated,
+	}, a.apiCreateCollection)
 	huma.Get(api, apiV1+"/collections/{id}", a.apiCollection, op("getCollection", "Get a collection", "collections"))
+	huma.Patch(api, apiV1+"/collections/{id}", a.apiUpdateCollection, op("updateCollection", "Change a collection's settings; only the fields given change", "collections"))
 	huma.Get(api, apiV1+"/collections/{id}/days", a.apiCollectionDays, op("listCollectionDays", "List the days a collection was run", "collections"))
 	huma.Get(api, apiV1+"/collections/{id}/listings", a.apiCollectionListings, op("listCollectionListings", "List a collection's ranked listings for one day", "listings"))
 	huma.Register(api, huma.Operation{
@@ -57,11 +76,70 @@ func (a *App) apiHandler() http.Handler {
 		DefaultStatus: http.StatusAccepted,
 	}, a.apiRunCollection)
 	huma.Get(api, apiV1+"/listings/{source}/{source_id}", a.apiListing, op("getListing", "Get a listing with its grades", "listings"))
+	huma.Get(api, apiV1+"/favorites", a.apiFavorites, op("listFavorites", "List favorite listings, newest first", "favorites"))
+	huma.Register(api, huma.Operation{
+		OperationID:   "addFavorite",
+		Method:        http.MethodPut,
+		Path:          apiV1 + "/listings/{source}/{source_id}/favorite",
+		Summary:       "Mark a listing as a favorite",
+		Tags:          []string{"favorites"},
+		DefaultStatus: http.StatusNoContent,
+	}, a.apiSetFavorite(true))
+	huma.Register(api, huma.Operation{
+		OperationID:   "removeFavorite",
+		Method:        http.MethodDelete,
+		Path:          apiV1 + "/listings/{source}/{source_id}/favorite",
+		Summary:       "Unmark a favorite listing",
+		Tags:          []string{"favorites"},
+		DefaultStatus: http.StatusNoContent,
+	}, a.apiSetFavorite(false))
 	huma.Get(api, apiV1+"/profiles", a.apiProfiles, op("listProfiles", "List profiles", "profiles"))
+	huma.Register(api, huma.Operation{
+		OperationID:   "createProfile",
+		Method:        http.MethodPost,
+		Path:          apiV1 + "/profiles",
+		Summary:       "Queue creation of a profile from a reference listing",
+		Description:   "Looking up the listing spends money on scraping, and drafting criteria spends money on a model call. Follow the returned job for progress.",
+		Tags:          []string{"profiles"},
+		DefaultStatus: http.StatusAccepted,
+	}, a.apiCreateProfile)
 	huma.Get(api, apiV1+"/profiles/{id}", a.apiProfile, op("getProfile", "Get a profile", "profiles"))
+	huma.Patch(api, apiV1+"/profiles/{id}", a.apiUpdateProfile, op("updateProfile", "Change a profile's name, summary, notes or own criteria; only the fields given change", "profiles"))
+	huma.Register(api, huma.Operation{
+		OperationID:   "redraftProfile",
+		Method:        http.MethodPost,
+		Path:          apiV1 + "/profiles/{id}/drafts",
+		Summary:       "Queue a re-draft of a profile's criteria from its reference listings",
+		Description:   "Replaces the profile's criteria and spends money on a model call. Follow the returned job for progress.",
+		Tags:          []string{"profiles"},
+		DefaultStatus: http.StatusAccepted,
+	}, a.apiRedraftProfile)
 	huma.Get(api, apiV1+"/jobs", a.apiJobs, op("listJobs", "List jobs, newest first", "jobs"))
 	huma.Get(api, apiV1+"/jobs/{id}", a.apiJob, op("getJob", "Get a job", "jobs"))
 	huma.Get(api, apiV1+"/jobs/{id}/events", a.apiJobEvents, op("listJobEvents", "List a job's progress log", "jobs"))
+	a.registerJobStream(api)
+	huma.Get(api, apiV1+"/map/pins", a.apiMapPins, op("listMapPins", "List map pins for every collection's listings over a range of runs", "map"))
+	huma.Get(api, apiV1+"/map/config", a.apiMapConfig, op("getMapConfig", "Get the tile layers and overlays the server can serve", "map"))
+	huma.Get(api, apiV1+"/tiles/positron/{z}/{x}/{file}", a.apiPositronTile, op("getPositronTile", "Get a cached CARTO Positron base map tile", "map"))
+	huma.Get(api, apiV1+"/overlays/{name}/{z}/{x}/{file}", a.apiOverlayTile, op("getOverlayTile", "Get a transit or bike lane overlay tile", "map"))
+	huma.Get(api, apiV1+"/keys", a.apiKeys, op("listKeys", "List API keys", "keys"))
+	huma.Register(api, huma.Operation{
+		OperationID:   "createKey",
+		Method:        http.MethodPost,
+		Path:          apiV1 + "/keys",
+		Summary:       "Create an API key",
+		Description:   "The token is returned only in this response.",
+		Tags:          []string{"keys"},
+		DefaultStatus: http.StatusCreated,
+	}, a.apiCreateKey)
+	huma.Register(api, huma.Operation{
+		OperationID:   "deleteKey",
+		Method:        http.MethodDelete,
+		Path:          apiV1 + "/keys/{id}",
+		Summary:       "Delete an API key",
+		Tags:          []string{"keys"},
+		DefaultStatus: http.StatusNoContent,
+	}, a.apiDeleteKey)
 	mux.Handle(mcpPath, a.mcpHandler())
 	huma.Get(api, apiV1+"/media/{key...}", a.apiMedia, op("getMedia", "Get a stored image such as a listing collage", "media"))
 	paths := api.OpenAPI().Paths
@@ -105,25 +183,50 @@ func (a *App) authenticate(ctx context.Context, header string) (bool, error) {
 }
 
 func (a *App) apiError(ctx context.Context, err error) error {
-	if errors.Is(err, collection.ErrNotFound) || errors.Is(err, store.ErrListingNotFound) || errors.Is(err, store.ErrJobNotFound) || errors.Is(err, profile.ErrNotFound) {
+	if errors.Is(err, collection.ErrNotFound) || errors.Is(err, store.ErrListingNotFound) || errors.Is(err, store.ErrJobNotFound) || errors.Is(err, profile.ErrNotFound) || errors.Is(err, store.ErrAPIKeyNotFound) {
 		return huma.Error404NotFound(err.Error())
 	}
 	a.log.ErrorContext(ctx, "api", "err", err)
 	return huma.Error500InternalServerError("internal error")
 }
 
+func (a *App) apiSaveError(ctx context.Context, err error) error {
+	var fe profile.FieldError
+	if !errors.As(err, &fe) {
+		return a.apiError(ctx, err)
+	}
+	fields := map[string]string{}
+	var general []string
+	collectErrors(err, fields, &general)
+	var details []error
+	for _, k := range slices.Sorted(maps.Keys(fields)) {
+		details = append(details, &huma.ErrorDetail{Location: "body." + k, Message: fields[k]})
+	}
+	for _, g := range general {
+		details = append(details, &huma.ErrorDetail{Location: "body", Message: g})
+	}
+	return huma.Error422UnprocessableEntity("validation failed", details...)
+}
+
 type APICollection struct {
-	ID       string           `json:"id"`
-	Mode     profile.Mode     `json:"mode"`
-	Sources  []listing.Source `json:"sources"`
-	Profiles []string         `json:"profiles"`
-	Search   profile.Search   `json:"search"`
-	Model    string           `json:"model,omitempty"`
-	Schedule string           `json:"schedule,omitempty" doc:"Daily run time, HH:MM in server-local time"`
+	ID             string           `json:"id"`
+	Mode           profile.Mode     `json:"mode"`
+	Sources        []listing.Source `json:"sources"`
+	Profiles       []string         `json:"profiles"`
+	Search         profile.Search   `json:"search"`
+	Model          string           `json:"model,omitempty"`
+	Schedule       string           `json:"schedule,omitempty" doc:"Daily run time, HH:MM in server-local time"`
+	MaxRunCostUSD  float64          `json:"max_run_cost_usd,omitempty" doc:"Spending cap per run; absent means the default"`
+	NotifyURL      string           `json:"notify_url,omitempty"`
+	NotifyMinScore float64          `json:"notify_min_score,omitempty" doc:"Minimum match to notify about; absent means the default"`
+	LastRun        *APIJob          `json:"last_run,omitempty" doc:"The active run, or else the most recent one"`
 }
 
 func apiCollection(c collection.Collection) APICollection {
-	return APICollection{ID: c.ID, Mode: c.Mode, Sources: c.Sources, Profiles: c.Profiles, Search: c.Search, Model: c.Model, Schedule: c.Schedule}
+	return APICollection{
+		ID: c.ID, Mode: c.Mode, Sources: c.Sources, Profiles: c.Profiles, Search: c.Search, Model: c.Model, Schedule: c.Schedule,
+		MaxRunCostUSD: c.MaxRunCostUSD, NotifyURL: c.Notify.URL, NotifyMinScore: c.Notify.MinScore,
+	}
 }
 
 type APIListing struct {
@@ -208,6 +311,7 @@ type APIListingRow struct {
 	New                bool           `json:"new"`
 	Status             service.Status `json:"status" enum:"new,changed,repeat" doc:"new: first seen this day; changed: price, description or photos differ from the previous sighting; repeat: unchanged since the previous sighting, so its grade carries over"`
 	PreviousPriceCents *int64         `json:"previous_price_cents,omitempty"`
+	Favorite           bool           `json:"favorite"`
 }
 
 type APIDay struct {
@@ -222,7 +326,9 @@ func (a *App) apiCollections(ctx context.Context, _ *struct{}) (*struct{ Body []
 	}
 	out := make([]APICollection, len(cs))
 	for i, c := range cs {
-		out[i] = apiCollection(c)
+		if out[i], err = a.apiCollectionWithRun(ctx, c); err != nil {
+			return nil, a.apiError(ctx, err)
+		}
 	}
 	return &struct{ Body []APICollection }{out}, nil
 }
@@ -236,7 +342,11 @@ func (a *App) apiCollection(ctx context.Context, in *collectionInput) (*struct{ 
 	if err != nil {
 		return nil, a.apiError(ctx, err)
 	}
-	return &struct{ Body APICollection }{apiCollection(c)}, nil
+	out, err := a.apiCollectionWithRun(ctx, c)
+	if err != nil {
+		return nil, a.apiError(ctx, err)
+	}
+	return &struct{ Body APICollection }{out}, nil
 }
 
 func (a *App) apiCollectionDays(ctx context.Context, in *collectionInput) (*struct{ Body []APIDay }, error) {
@@ -259,6 +369,7 @@ type collectionListingsInput struct {
 	NewOnly      bool    `query:"new_only" doc:"Only listings first seen on this day"`
 	HideRepeats  bool    `query:"hide_repeats" doc:"Leave out listings unchanged since their previous sighting"`
 	Limit        int     `query:"limit" minimum:"0" doc:"Maximum rows to return; 0 for all"`
+	Offset       int     `query:"offset" minimum:"0" doc:"Rows to skip after filtering"`
 }
 
 type APICollectionListings struct {
@@ -269,6 +380,7 @@ type APICollectionListings struct {
 	Listings    int                 `json:"listings" doc:"Listings observed that day"`
 	Graded      int                 `json:"graded" doc:"Distinct listings with a grade"`
 	Hidden      int                 `json:"hidden" doc:"Graded listings left out for hitting a dealbreaker"`
+	Matched     int                 `json:"matched" doc:"Rows that pass the filters, before offset and limit"`
 	Stale       bool                `json:"stale"`
 	Models      []string            `json:"models"`
 	Profiles    []APIProfileSummary `json:"profiles"`
@@ -295,9 +407,13 @@ func (a *App) apiCollectionListings(ctx context.Context, in *collectionListingsI
 		if row.Match < in.MinMatch || in.NewOnly && !row.New() || in.HideRepeats && row.Repeat() {
 			continue
 		}
+		out.Matched++
+		if out.Matched <= in.Offset || in.Limit > 0 && len(out.Rows) == in.Limit {
+			continue
+		}
 		r := APIListingRow{
 			Rank: row.Rank, Listing: apiListing(row.Listing), Best: apiGrade(row.Grade), Grades: []APIGrade{}, AlsoListed: row.AlsoListed,
-			FirstSeen: row.FirstSeen, New: row.New(), Status: row.Status, PreviousPriceCents: row.PreviousPriceCents,
+			FirstSeen: row.FirstSeen, New: row.New(), Status: row.Status, PreviousPriceCents: row.PreviousPriceCents, Favorite: row.Favorite,
 		}
 		for _, id := range v.Collection.Profiles {
 			if g, ok := row.Grades[id]; ok {
@@ -305,9 +421,6 @@ func (a *App) apiCollectionListings(ctx context.Context, in *collectionListingsI
 			}
 		}
 		out.Rows = append(out.Rows, r)
-		if in.Limit > 0 && len(out.Rows) == in.Limit {
-			break
-		}
 	}
 	return &struct{ Body APICollectionListings }{out}, nil
 }
@@ -345,6 +458,14 @@ type APIListingDetail struct {
 	AlsoListed []APIListing       `json:"also_listed"`
 	History    []APIPriceSighting `json:"history"`
 	Grades     []APIListingGrade  `json:"grades"`
+	Favorite   bool               `json:"favorite"`
+	Location   *APILocation       `json:"location,omitempty" doc:"Where to place the listing on a map"`
+}
+
+type APILocation struct {
+	Lat    float64 `json:"lat"`
+	Lng    float64 `json:"lng"`
+	Approx bool    `json:"approx,omitempty" doc:"Placed at the zip code's center because the listing has no coordinates"`
 }
 
 type APIPriceSighting struct {
@@ -387,7 +508,10 @@ func (a *App) apiListing(ctx context.Context, in *listingInput) (*struct{ Body A
 	}
 	out := APIListingDetail{
 		Listing: apiListing(v.Listing), Collection: v.Collection, Day: v.Day,
-		AlsoListed: []APIListing{}, History: []APIPriceSighting{}, Grades: []APIListingGrade{},
+		AlsoListed: []APIListing{}, History: []APIPriceSighting{}, Grades: []APIListingGrade{}, Favorite: v.Favorite,
+	}
+	if loc, approx, ok := geo.Locate(v.Listing); ok {
+		out.Location = &APILocation{Lat: loc.Lat, Lng: loc.Lng, Approx: approx}
 	}
 	for _, l := range v.AlsoListed {
 		out.AlsoListed = append(out.AlsoListed, apiListing(l))
@@ -422,16 +546,28 @@ func apiResults(rs []service.ResultView) []APICriterionResult {
 	return out
 }
 
-func (a *App) apiProfiles(ctx context.Context, _ *struct{}) (*struct{ Body []APIProfileSummary }, error) {
+func (a *App) apiProfiles(ctx context.Context, _ *struct{}) (*struct{ Body []APIProfileListItem }, error) {
 	ps, err := a.svc.Profiles(ctx)
 	if err != nil {
 		return nil, a.apiError(ctx, err)
 	}
-	out := make([]APIProfileSummary, len(ps))
-	for i, p := range ps {
-		out[i] = APIProfileSummary{ID: p.ID, Kind: kindOf(p), Name: p.Name, Summary: p.Summary}
+	cs, err := a.svc.Collections(ctx)
+	if err != nil {
+		return nil, a.apiError(ctx, err)
 	}
-	return &struct{ Body []APIProfileSummary }{out}, nil
+	out := make([]APIProfileListItem, len(ps))
+	for i, p := range ps {
+		out[i] = APIProfileListItem{
+			APIProfileSummary: APIProfileSummary{ID: p.ID, Kind: kindOf(p), Name: p.Name, Summary: p.Summary},
+			Wants:             len(p.Want), Avoids: len(p.Avoid), References: len(p.References), Collections: []string{}, Drafted: p.Drafted,
+		}
+		for _, c := range cs {
+			if slices.Contains(c.Profiles, p.ID) {
+				out[i].Collections = append(out[i].Collections, c.ID)
+			}
+		}
+	}
+	return &struct{ Body []APIProfileListItem }{out}, nil
 }
 
 type profileInput struct {
@@ -442,6 +578,7 @@ type APIProfileDetail struct {
 	Profile         profile.Profile         `json:"profile"`
 	InheritedAvoids []APIInheritedCriterion `json:"inherited_avoids" doc:"Avoid criteria applied from avoid profiles"`
 	Collections     []string                `json:"collections" doc:"Collections that use this profile"`
+	References      []APIReference          `json:"references" doc:"The listings the profile's criteria were drafted from"`
 }
 
 type APIInheritedCriterion struct {
@@ -455,7 +592,14 @@ func (a *App) apiProfile(ctx context.Context, in *profileInput) (*struct{ Body A
 	if err != nil {
 		return nil, a.apiError(ctx, err)
 	}
-	out := APIProfileDetail{Profile: v.Profile, InheritedAvoids: []APIInheritedCriterion{}, Collections: v.Collections}
+	out := APIProfileDetail{Profile: v.Profile, InheritedAvoids: []APIInheritedCriterion{}, Collections: v.Collections, References: []APIReference{}}
+	for _, r := range v.References {
+		ref := APIReference{Source: r.Source, SourceID: r.SourceID, URL: r.URL, Address: r.Address, Collages: []string{}, Scores: r.Scores}
+		for _, k := range r.Collages {
+			ref.Collages = append(ref.Collages, apiV1+"/media/"+k)
+		}
+		out.References = append(out.References, ref)
+	}
 	out.Profile.Kind = kindOf(out.Profile)
 	if out.Collections == nil {
 		out.Collections = []string{}
@@ -504,24 +648,48 @@ func apiJob(j jobs.Job) APIJob {
 
 type jobsInput struct {
 	Collection string      `query:"collection" doc:"Only this collection's jobs"`
+	Profile    string      `query:"profile" doc:"Only jobs that create or draft this profile"`
+	Kind       jobs.Kind   `query:"kind" enum:"run_collection,create_profile,draft_profile"`
 	Status     jobs.Status `query:"status" enum:"queued,running,succeeded,degraded,failed,cancelled"`
 	Limit      int         `query:"limit" minimum:"0" default:"20" doc:"Maximum jobs to return; 0 for all"`
+	Before     int64       `query:"before" minimum:"0" doc:"Only jobs older than this job id; pass the last id of the previous page"`
 }
 
-func (a *App) apiJobs(ctx context.Context, in *jobsInput) (*struct{ Body []APIJob }, error) {
-	js, err := a.jobs.Jobs(ctx, jobs.Filter{CollectionID: in.Collection, Status: in.Status, Limit: in.Limit})
+type jobsOutput struct {
+	Link string `header:"Link" doc:"The next page, as rel=\"next\", when there may be more jobs"`
+	Body []APIJob
+}
+
+func (a *App) apiJobs(ctx context.Context, in *jobsInput) (*jobsOutput, error) {
+	js, err := a.jobs.Jobs(ctx, jobs.Filter{Kind: string(in.Kind), CollectionID: in.Collection, ProfileID: in.Profile, Status: in.Status, Limit: in.Limit, BeforeID: in.Before})
 	if err != nil {
 		return nil, a.apiError(ctx, err)
 	}
-	out := make([]APIJob, len(js))
+	out := &jobsOutput{Body: make([]APIJob, len(js))}
 	for i, j := range js {
-		out[i] = apiJob(j)
+		out.Body[i] = apiJob(j)
 	}
-	return &struct{ Body []APIJob }{out}, nil
+	if in.Limit > 0 && len(js) == in.Limit {
+		q := url.Values{}
+		for k, v := range map[string]string{"collection": in.Collection, "profile": in.Profile, "kind": string(in.Kind), "status": string(in.Status)} {
+			if v != "" {
+				q.Set(k, v)
+			}
+		}
+		q.Set("limit", strconv.Itoa(in.Limit))
+		q.Set("before", strconv.FormatInt(js[len(js)-1].ID, 10))
+		out.Link = "<" + apiV1 + "/jobs?" + q.Encode() + `>; rel="next"`
+	}
+	return out, nil
 }
 
 type jobInput struct {
 	ID int64 `path:"id"`
+}
+
+type jobEventsInput struct {
+	ID    int64 `path:"id"`
+	After int   `query:"after" minimum:"0" doc:"Only events with a higher seq"`
 }
 
 func (a *App) apiJob(ctx context.Context, in *jobInput) (*struct{ Body APIJob }, error) {
@@ -540,26 +708,39 @@ type APIJobEvent struct {
 	Record  any       `json:"record,omitempty" doc:"Structured attributes logged with the message"`
 }
 
-func (a *App) apiJobEvents(ctx context.Context, in *jobInput) (*struct{ Body []APIJobEvent }, error) {
+func (a *App) apiJobEvents(ctx context.Context, in *jobEventsInput) (*struct{ Body []APIJobEvent }, error) {
 	if _, err := a.jobs.Job(ctx, in.ID); err != nil {
 		return nil, a.apiError(ctx, err)
 	}
-	es, err := a.jobs.Events(ctx, in.ID)
+	out, err := a.jobEventsAfter(ctx, in.ID, in.After)
 	if err != nil {
 		return nil, a.apiError(ctx, err)
-	}
-	out := make([]APIJobEvent, len(es))
-	for i, e := range es {
-		out[i] = APIJobEvent{Seq: e.Seq, At: e.At, Level: e.Level.String(), Message: e.Message}
-		if len(e.Record) > 0 {
-			out[i].Record = e.Record
-		}
 	}
 	return &struct{ Body []APIJobEvent }{out}, nil
 }
 
+func (a *App) jobEventsAfter(ctx context.Context, id int64, after int) ([]APIJobEvent, error) {
+	es, err := a.jobs.Events(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	out := []APIJobEvent{}
+	for _, e := range es {
+		if e.Seq <= after {
+			continue
+		}
+		ev := APIJobEvent{Seq: e.Seq, At: e.At, Level: e.Level.String(), Message: e.Message}
+		if len(e.Record) > 0 {
+			ev.Record = e.Record
+		}
+		out = append(out, ev)
+	}
+	return out, nil
+}
+
 type mediaInput struct {
-	Key string `path:"key" doc:"A collage path from a listing's collages, without the /api/v1/media/ prefix"`
+	Key  string `path:"key" doc:"A collage path from a listing's collages, without the /api/v1/media/ prefix"`
+	Size int    `query:"size" enum:"320,640,1280" doc:"Scale the image down so its longest side is at most this many pixels"`
 }
 
 type mediaOutput struct {
@@ -587,5 +768,63 @@ func (a *App) apiMedia(ctx context.Context, in *mediaInput) (*mediaOutput, error
 	if !strings.HasPrefix(ctype, "image/") {
 		return nil, huma.Error404NotFound("no such media")
 	}
+	if in.Size > 0 {
+		if small, err := a.resized(p, b, in.Size); err != nil {
+			a.log.WarnContext(ctx, "resize media", "key", in.Key, "size", in.Size, "err", err)
+		} else if small != nil {
+			b, ctype = small, "image/jpeg"
+		}
+	}
 	return &mediaOutput{ContentType: ctype, CacheControl: "private, max-age=31536000, immutable", Body: b}, nil
+}
+
+func (a *App) resized(p string, original []byte, size int) ([]byte, error) {
+	cached := p + ".s" + strconv.Itoa(size) + ".jpg"
+	if b, err := os.ReadFile(cached); err == nil {
+		return b, nil
+	}
+	b, err := media.Shrink(original, size)
+	if err != nil || bytes.Equal(b, original) {
+		return nil, err
+	}
+	if err := renameio.WriteFile(cached, b, 0o644); err != nil {
+		a.log.Warn("cache resized media", "path", cached, "err", err)
+	}
+	return b, nil
+}
+
+type APIMeta struct {
+	Version      string               `json:"version"`
+	Modes        []profile.Mode       `json:"modes"`
+	Sources      []listing.Source     `json:"sources" doc:"Listing sources this server can search"`
+	Amenities    []listing.Amenity    `json:"amenities"`
+	Importances  []profile.Importance `json:"importances"`
+	ProfileKinds []profile.Kind       `json:"profile_kinds"`
+	Defaults     APIDefaults          `json:"defaults"`
+}
+
+type APIDefaults struct {
+	AssessModel         string  `json:"assess_model"`
+	DraftModel          string  `json:"draft_model"`
+	CollectionBudgetUSD float64 `json:"collection_budget_usd"`
+	LookupMaxChargeUSD  float64 `json:"lookup_max_charge_usd"`
+	NotifyMinScore      float64 `json:"notify_min_score"`
+}
+
+func (a *App) apiMeta(_ context.Context, _ *struct{}) (*struct{ Body APIMeta }, error) {
+	return &struct{ Body APIMeta }{APIMeta{
+		Version:      a.Version,
+		Modes:        []profile.Mode{profile.ModeRent, profile.ModeBuy},
+		Sources:      service.SupportedSources(),
+		Amenities:    listing.Amenities,
+		Importances:  profile.Importances,
+		ProfileKinds: []profile.Kind{profile.KindWant, profile.KindAvoid},
+		Defaults: APIDefaults{
+			AssessModel:         profile.DefaultAssessModel,
+			DraftModel:          profile.DefaultDraftModel,
+			CollectionBudgetUSD: service.DefaultCollectionBudgetUSD,
+			LookupMaxChargeUSD:  service.DefaultLookupMaxChargeUSD,
+			NotifyMinScore:      collection.DefaultNotifyMinScore,
+		},
+	}}, nil
 }

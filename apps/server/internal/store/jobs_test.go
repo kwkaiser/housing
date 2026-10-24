@@ -78,6 +78,10 @@ func TestJobLifecycle(t *testing.T) {
 	if one, _ := s.Jobs(ctx, JobFilter{CollectionID: "somerville", Limit: 1}); len(one) != 1 {
 		t.Errorf("limit = %d", len(one))
 	}
+	all, _ := s.Jobs(ctx, JobFilter{})
+	if older, _ := s.Jobs(ctx, JobFilter{BeforeID: all[0].ID}); len(older) != 2 || older[0].ID != all[1].ID {
+		t.Errorf("before %d = %+v", all[0].ID, older)
+	}
 	if latest, ok, _ := s.LatestJob(ctx, "run_collection", "somerville"); !ok || latest.Status != JobQueued {
 		t.Errorf("latest = %+v", latest)
 	}

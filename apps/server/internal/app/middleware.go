@@ -1,6 +1,11 @@
 package app
 
 import (
+	"bytes"
+	"cmp"
+	"crypto/sha256"
+	"encoding/hex"
+	"maps"
 	"net/http"
 	"net/url"
 	"runtime/debug"
@@ -95,4 +100,63 @@ func sameOriginRequest(r *http.Request) bool {
 	}
 	u, err := url.Parse(source)
 	return err == nil && u.Host != "" && strings.EqualFold(u.Host, r.Host)
+}
+
+type bufferedResponse struct {
+	header http.Header
+	status int
+	body   bytes.Buffer
+}
+
+func (b *bufferedResponse) Header() http.Header { return b.header }
+
+func (b *bufferedResponse) WriteHeader(status int) {
+	if b.status == 0 {
+		b.status = status
+	}
+}
+
+func (b *bufferedResponse) Write(p []byte) (int, error) {
+	if b.status == 0 {
+		b.status = http.StatusOK
+	}
+	return b.body.Write(p)
+}
+
+func (a *App) etags(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || !strings.HasPrefix(r.URL.Path, apiV1+"/") || strings.HasSuffix(r.URL.Path, "/stream") {
+			next.ServeHTTP(w, r)
+			return
+		}
+		buf := &bufferedResponse{header: http.Header{}}
+		next.ServeHTTP(buf, r)
+		status := cmp.Or(buf.status, http.StatusOK)
+		if status == http.StatusOK && strings.HasPrefix(buf.header.Get("Content-Type"), "application/json") {
+			sum := sha256.Sum256(buf.body.Bytes())
+			tag := `"` + hex.EncodeToString(sum[:8]) + `"`
+			buf.header.Set("ETag", tag)
+			if buf.header.Get("Cache-Control") == "" {
+				buf.header.Set("Cache-Control", "private, no-cache")
+			}
+			if etagMatch(r.Header.Get("If-None-Match"), tag) {
+				status = http.StatusNotModified
+				buf.body.Reset()
+				buf.header.Del("Content-Length")
+			}
+		}
+		maps.Copy(w.Header(), buf.header)
+		w.WriteHeader(status)
+		w.Write(buf.body.Bytes())
+	})
+}
+
+func etagMatch(header, tag string) bool {
+	for t := range strings.SplitSeq(header, ",") {
+		t = strings.TrimPrefix(strings.TrimSpace(t), "W/")
+		if t == tag || t == "*" {
+			return true
+		}
+	}
+	return false
 }

@@ -43,18 +43,27 @@ const (
 	wire32     = 5
 )
 
+func Inflate(data []byte) ([]byte, error) {
+	if len(data) < 2 || data[0] != 0x1f || data[1] != 0x8b {
+		return data, nil
+	}
+	r, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrMalformed, err)
+	}
+	if data, err = io.ReadAll(r); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrMalformed, err)
+	}
+	return data, nil
+}
+
 func Decode(data []byte, z, x, y int, only ...string) ([]Layer, error) {
-	if len(data) >= 2 && data[0] == 0x1f && data[1] == 0x8b {
-		r, err := gzip.NewReader(bytes.NewReader(data))
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrMalformed, err)
-		}
-		if data, err = io.ReadAll(r); err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrMalformed, err)
-		}
+	data, err := Inflate(data)
+	if err != nil {
+		return nil, err
 	}
 	var layers []Layer
-	err := fields(data, func(num int, wire int, v uint64, b []byte) error {
+	err = fields(data, func(num int, wire int, v uint64, b []byte) error {
 		if num != 3 || wire != wireBytes {
 			return nil
 		}

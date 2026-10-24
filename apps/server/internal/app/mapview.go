@@ -10,6 +10,7 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/app/view"
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
 	"git.kwkaiser.io/kwkaiser/housing/internal/geo"
+	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/report"
 )
 
@@ -40,6 +41,9 @@ type mapPin struct {
 	LastSeen     string              `json:"lastSeen"`
 	Preview      string              `json:"preview,omitempty"`
 	Collections  []string            `json:"collections"`
+
+	listing listing.Listing
+	grades  map[string]APIPinGrade
 }
 
 type rangeLink struct {
@@ -161,6 +165,8 @@ func (a *App) mapData(ctx context.Context, cs []collection.Collection, from, to 
 					Ungraded:  row.Ungraded,
 					FirstSeen: row.FirstSeen,
 					LastSeen:  row.Day,
+					listing:   row.Listing,
+					grades:    map[string]APIPinGrade{},
 				})
 				if len(row.Listing.Collages) > 0 {
 					pins[j].Preview = "/media/" + row.Listing.Collages[0]
@@ -176,6 +182,7 @@ func (a *App) mapData(ctx context.Context, cs []collection.Collection, from, to 
 				p.Ungraded = false
 				p.Matches[c.ID] = view.Match(row.Match, row.Calibrated, row.Stale)
 				p.Scores[c.ID] = row.Match
+				p.grades[c.ID] = APIPinGrade{Match: row.Match, Calibrated: row.Calibrated, Stale: row.Stale, Dealbreakers: row.Dealbreakers}
 			}
 			if len(row.Dealbreakers) > 0 {
 				if p.Dealbreakers == nil {

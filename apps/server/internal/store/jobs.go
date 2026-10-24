@@ -59,6 +59,7 @@ type JobFilter struct {
 	ProfileID    string
 	Status       JobStatus
 	Limit        int
+	BeforeID     int64
 }
 
 type EnqueueRule struct {
@@ -179,9 +180,9 @@ func (s *Store) Jobs(ctx context.Context, f JobFilter) ([]Job, error) {
 	}
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT `+jobColumns+` FROM jobs
-		WHERE (?1 = '' OR kind = ?1) AND (?2 = '' OR collection_id = ?2) AND (?3 = '' OR profile_id = ?3) AND (?5 = '' OR status = ?5)
+		WHERE (?1 = '' OR kind = ?1) AND (?2 = '' OR collection_id = ?2) AND (?3 = '' OR profile_id = ?3) AND (?5 = '' OR status = ?5) AND (?6 = 0 OR id < ?6)
 		ORDER BY id DESC LIMIT ?4`,
-		f.Kind, f.CollectionID, f.ProfileID, limit, f.Status)
+		f.Kind, f.CollectionID, f.ProfileID, limit, f.Status, f.BeforeID)
 	if err != nil {
 		return nil, err
 	}

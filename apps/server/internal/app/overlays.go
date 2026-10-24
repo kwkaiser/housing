@@ -1,8 +1,11 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"path"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/mvt"
 	"git.kwkaiser.io/kwkaiser/housing/internal/overlays"
@@ -55,32 +58,51 @@ func (a *App) mapConfig() mapConfig {
 }
 
 func (a *App) overlayTile(w http.ResponseWriter, r *http.Request) {
-	ov, ok := a.overlay(r.PathValue("name"))
-	t, err := tiles.Parse(r.PathValue("z"), r.PathValue("x"), r.PathValue("file"), ".json")
-	if !ok || err != nil || t.Z < ov.minZoom || t.Z > ov.source.MaxZoom {
+	body, _, err := a.overlayData(r.Context(), r.PathValue("name"), r.PathValue("z"), r.PathValue("x"), r.PathValue("file"), false)
+	if errors.Is(err, errNoTile) {
 		a.notFound(w, r)
 		return
 	}
-	b, err := ov.source.Get(r.Context(), t)
 	if err != nil {
-		a.log.Warn("overlay tile", "overlay", ov.name, "z", t.Z, "x", t.X, "y", t.Y, "err", err)
 		http.Error(w, "overlay unavailable", http.StatusBadGateway)
-		return
-	}
-	layers, err := mvt.Decode(b, t.Z, t.X, t.Y, ov.kind.Layer)
-	if err != nil {
-		a.log.Warn("overlay decode", "overlay", ov.name, "z", t.Z, "x", t.X, "y", t.Y, "err", err)
-		http.Error(w, "overlay unavailable", http.StatusBadGateway)
-		return
-	}
-	body, err := json.Marshal(struct {
-		Features []overlays.Feature `json:"features"`
-	}{ov.kind.Collect(layers)})
-	if err != nil {
-		a.fail(w, r, err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "public, max-age=86400")
 	w.Write(body)
 }
+
+func (a *App) overlayData(ctx context.Context, name, z, x, file string, allowRaw bool) ([]byte, string, error) {
+	ov, ok := a.overlay(name)
+	ext := path.Ext(file)
+	if ext != ".json" && (!allowRaw || ext != ".pbf") {
+		return nil, "", errNoTile
+	}
+	t, err := tiles.Parse(z, x, file, ext)
+	if !ok || err != nil || t.Z < ov.minZoom || t.Z > ov.source.MaxZoom {
+		return nil, "", errNoTile
+	}
+	b, err := ov.source.Get(ctx, t)
+	if err != nil {
+		a.log.Warn("overlay tile", "overlay", ov.name, "z", t.Z, "x", t.X, "y", t.Y, "err", err)
+		return nil, "", err
+	}
+	if ext == ".pbf" {
+		raw, err := mvt.Inflate(b)
+		if err != nil {
+			a.log.Warn("overlay inflate", "overlay", ov.name, "z", t.Z, "x", t.X, "y", t.Y, "err", err)
+		}
+		return raw, mvtContentType, err
+	}
+	layers, err := mvt.Decode(b, t.Z, t.X, t.Y, ov.kind.Layer)
+	if err != nil {
+		a.log.Warn("overlay decode", "overlay", ov.name, "z", t.Z, "x", t.X, "y", t.Y, "err", err)
+		return nil, "", err
+	}
+	body, err := json.Marshal(struct {
+		Features []overlays.Feature `json:"features"`
+	}{ov.kind.Collect(layers)})
+	return body, "application/json", err
+}
+
+const mvtContentType = "application/vnd.mapbox-vector-tile"
