@@ -29,7 +29,7 @@
           "./nix/vendor-hash.sh"
         ],
         "fileFilters": [
-          "nix/package.nix"
+          "nix/server.nix"
         ],
         "executionMode": "branch"
       }

@@ -22,16 +22,20 @@
           let value = builtins.getEnv name; in if value == "" then fallback else value;
 
         version = envOr "IMAGE_TAG" (self.shortRev or self.dirtyShortRev or "dev");
+
+        serverSrc = ./apps/server;
       in
       {
-        packages.default = pkgs.callPackage ./nix/package.nix {
-          src = self;
+        packages.server = pkgs.callPackage ./nix/server.nix {
+          src = serverSrc;
           inherit version;
         };
 
-        packages.image = linuxPkgs.callPackage ./nix/image.nix {
-          housing = linuxPkgs.callPackage ./nix/package.nix {
-            src = self;
+        packages.default = self.packages.${system}.server;
+
+        packages.server-image = linuxPkgs.callPackage ./nix/server-image.nix {
+          housing = linuxPkgs.callPackage ./nix/server.nix {
+            src = serverSrc;
             inherit version;
           };
           name = envOr "IMAGE_NAME" "housing";

@@ -12,12 +12,14 @@ jobs:
 
       - uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
+          go-version-file: apps/server/go.mod
 
       - name: Vet
+        working-directory: apps/server
         run: go vet ./...
 
       - name: Test
+        working-directory: apps/server
         run: go test ./...
 
   nix-build:
@@ -28,4 +30,4 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
 
       - name: Build
-        run: nix build --no-link .#default
+        run: nix build --no-link .#server

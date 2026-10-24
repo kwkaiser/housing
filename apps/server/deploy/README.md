@@ -5,8 +5,8 @@ The web app (`housing server`) is a single binary that serves HTML on a loopback
 ## Build
 
 ```sh
-task build
-GOOS=linux GOARCH=amd64 go build -o bin/housing-linux-amd64 ./cmd/housing
+task server:build
+(cd apps/server && GOOS=linux GOARCH=amd64 go build -o bin/housing-linux-amd64 ./cmd/housing)
 ```
 
 Templates and static assets are embedded, so the binary is all you need to copy. Install it as `/usr/local/bin/housing`.
@@ -74,7 +74,7 @@ API keys are separate from the reverse proxy's login, so let `/api/` through the
 ## systemd
 
 ```sh
-sudo cp deploy/housing.service /etc/systemd/system/housing.service
+sudo cp apps/server/deploy/housing.service /etc/systemd/system/housing.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now housing
 journalctl -u housing -f

@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-if out=$(nix build --no-link .#default.goModules 2>&1); then
+if out=$(nix build --no-link .#server.goModules 2>&1); then
   echo "vendorHash is up to date"
   exit 0
 fi
@@ -10,7 +10,7 @@ if [ -z "$got" ]; then
   printf '%s\n' "$out" >&2
   exit 1
 fi
-sed -i.bak "s|vendorHash = \".*\";|vendorHash = \"$got\";|" nix/package.nix
-rm nix/package.nix.bak
-nix build --no-link .#default.goModules
+sed -i.bak "s|vendorHash = \".*\";|vendorHash = \"$got\";|" nix/server.nix
+rm nix/server.nix.bak
+nix build --no-link .#server.goModules
 echo "vendorHash updated to $got"
