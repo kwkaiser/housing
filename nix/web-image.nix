@@ -52,7 +52,7 @@ dockerTools.streamLayeredImage {
       "HOME=/tmp"
       "XDG_DATA_HOME=/tmp"
       "XDG_CONFIG_HOME=/tmp"
-      "HOUSING_WEB_PORT=8080"
+      "HOUSING_WEB_LISTEN_PORT=8080"
       "HOUSING_API_URL=http://housing:8080"
     ];
   };
