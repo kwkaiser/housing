@@ -1,6 +1,6 @@
 # Deploying housing
 
-The web app (`housing server`) is a single binary that serves HTML on a loopback port. It has no login of its own, so run it behind a reverse proxy that handles TLS and authentication.
+The server (`housing server`) is a single binary that serves the JSON API on a loopback port. The UI is the separate web app described below. Neither has a login of its own, so run them behind a reverse proxy that handles TLS and authentication.
 
 ## Build
 
@@ -9,7 +9,7 @@ task server:build
 (cd apps/server && GOOS=linux GOARCH=amd64 go build -o bin/housing-linux-amd64 ./cmd/housing)
 ```
 
-Templates and static assets are embedded, so the binary is all you need to copy. Install it as `/usr/local/bin/housing`.
+The binary is all you need to copy. Install it as `/usr/local/bin/housing`.
 
 ## Service user and data
 
@@ -25,7 +25,7 @@ Only the app writes the SQLite database. To move existing data over, stop the se
 
 Everything day to day happens in the web UI: profiles, collections, runs and jobs. The binary also has a small admin CLI. Run it as the `housing` user with `--data-dir /var/lib/housing/data`:
 
-- `housing server`: the web app, also running queued jobs and the daily scheduled runs.
+- `housing server`: the API server, also running queued jobs and the daily scheduled runs.
 - `housing migrate`: apply pending database migrations and print the schema version. The server migrates on start too; run this before a deploy to check the new binary against the database.
 - `housing import [--profiles-dir profiles] [--collections-dir collections]`: copy profiles and collections from the old files into the database. Safe to re-run.
 - `housing jobs`, `housing jobs show <id>`, `housing jobs run <collection>`: list jobs, show one with its progress log, or queue a collection run for the server to pick up.
@@ -55,7 +55,7 @@ TRANSITLAND_API_KEY=...
 
 ## API
 
-The server also serves a JSON API under `/api/v1` for scripts and agents. Each client authenticates with its own API key, sent as a bearer token. Create and delete keys on the API keys page (`/keys`) or with `housing apikeys`. A key is shown once when it is created; the database keeps only its hash.
+The server also serves a JSON API under `/api/v1` for scripts and agents. Each client authenticates with its own API key, sent as a bearer token. Create and delete keys on the web app's API keys page (`/keys`) or with `housing apikeys`. A key is shown once when it is created; the database keeps only its hash.
 
 ```sh
 curl -s -H "Authorization: Bearer hk_..." http://127.0.0.1:8080/api/v1/collections

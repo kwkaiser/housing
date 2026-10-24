@@ -1,4 +1,4 @@
-import { GeolocateControl, Map, NavigationControl, setWorkerUrl, type LngLatLike } from 'maplibre-gl';
+import { GeolocateControl, Map, NavigationControl, prewarm, setWorkerUrl, type LngLatLike } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import type { MapConfig } from '#lib/api/client.ts';
@@ -11,7 +11,10 @@ export type HousingMap = {
 	setLayers(next: Layers): void;
 };
 
+export { LngLatBounds, Popup } from 'maplibre-gl';
+
 setWorkerUrl(workerUrl);
+prewarm();
 
 export function createMap(container: HTMLElement, config: MapConfig, view: { center?: LngLatLike; zoom?: number } = {}): HousingMap {
 	const layers = savedLayers(config);

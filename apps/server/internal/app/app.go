@@ -2,15 +2,11 @@ package app
 
 import (
 	"context"
-	"embed"
 	"errors"
 	"fmt"
-	"html/template"
-	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -19,9 +15,6 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
 	"git.kwkaiser.io/kwkaiser/housing/internal/tiles"
 )
-
-//go:embed templates static
-var assets embed.FS
 
 const DefaultShutdownTimeout = 10 * time.Second
 
@@ -43,9 +36,6 @@ type App struct {
 	jobs     Jobs
 	now      func() time.Time
 	log      *slog.Logger
-	static   fs.FS
-	hashes   map[string]string
-	pages    map[string]*template.Template
 	positron *tiles.Cache
 	overlays []overlay
 	handler  http.Handler
@@ -57,25 +47,11 @@ func New(svc *service.Service, q Jobs, log *slog.Logger) (*App, error) {
 	if log == nil {
 		log = slog.New(slog.DiscardHandler)
 	}
-	templates, err := fs.Sub(assets, "templates")
-	if err != nil {
-		return nil, err
-	}
-	static, err := fs.Sub(assets, "static")
-	if err != nil {
-		return nil, err
-	}
-	a := &App{ShutdownTimeout: DefaultShutdownTimeout, Version: "dev", svc: svc, jobs: q, now: time.Now, log: log, static: static, streamPoll: defaultStreamPoll}
+	a := &App{ShutdownTimeout: DefaultShutdownTimeout, Version: "dev", svc: svc, jobs: q, now: time.Now, log: log, streamPoll: defaultStreamPoll}
 	tileDir := filepath.Join(svc.DataDir(), "tiles")
 	a.positron = tiles.NewPositron(filepath.Join(tileDir, "positron"), svc.CartoAPIKey())
 	a.overlays = newOverlays(tiles.NewTransitland(filepath.Join(tileDir, "transitland"), svc.TransitlandKey()), tiles.NewOpenFreeMap(filepath.Join(tileDir, "openfreemap")))
-	if a.hashes, err = fingerprint(static); err != nil {
-		return nil, fmt.Errorf("static assets: %w", err)
-	}
-	if a.pages, err = parsePages(templates, a.funcs()); err != nil {
-		return nil, fmt.Errorf("templates: %w", err)
-	}
-	web := a.sameOrigin(a.routes())
+	web := a.routes()
 	api := a.etags(a.apiHandler())
 	a.handler = a.logRequests(a.recoverPanics(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, apiPrefix+"/") {
@@ -93,45 +69,11 @@ func (a *App) Handler() http.Handler {
 
 func (a *App) routes() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", a.home)
 	mux.HandleFunc("GET /healthz", a.healthz)
 	mux.HandleFunc("GET /health", a.healthz)
 	mux.HandleFunc("GET /version", a.version)
-	mux.HandleFunc("GET /static/{path...}", a.serveStatic)
-	mux.HandleFunc("GET /c/{collection}", a.collectionPage)
-	mux.HandleFunc("GET /map", a.mapPage)
-	mux.HandleFunc("GET /tiles/positron/{z}/{x}/{file}", a.positronTile)
-	mux.HandleFunc("GET /overlays/{name}/{z}/{x}/{file}", a.overlayTile)
-	mux.HandleFunc("GET /listing/{source}/{id}", a.listingPage)
-	mux.HandleFunc("POST /listing/{source}/{id}/favorite", a.setFavorite)
-	mux.HandleFunc("GET /favorites", a.favoritesPage)
-	mux.HandleFunc("GET /media/{key...}", a.media)
-	mux.HandleFunc("GET /collections", a.collectionsPage)
-	mux.HandleFunc("GET /collections/new", a.newCollectionPage)
-	mux.HandleFunc("GET /collections/{id}/edit", a.editCollectionPage)
-	mux.HandleFunc("POST /collections", a.createCollection)
-	mux.HandleFunc("POST /collections/{id}", a.updateCollection)
-	mux.HandleFunc("GET /profiles", a.profilesPage)
-	mux.HandleFunc("GET /profiles/new", a.newProfilePage)
-	mux.HandleFunc("GET /profiles/{id}", a.profilePage)
-	mux.HandleFunc("GET /profiles/{id}/edit", a.editProfilePage)
-	mux.HandleFunc("POST /profiles", a.createProfile)
-	mux.HandleFunc("POST /profiles/{id}", a.updateProfile)
-	mux.HandleFunc("POST /profiles/{id}/draft", a.draftProfile)
-	mux.HandleFunc("GET /jobs", a.jobsPage)
-	mux.HandleFunc("GET /jobs/{id}", a.jobPage)
-	mux.HandleFunc("POST /jobs/run", a.runCollection)
-	mux.HandleFunc("GET /keys", a.apiKeysPage)
-	mux.HandleFunc("POST /keys", a.createAPIKey)
-	mux.HandleFunc("POST /keys/{id}/delete", a.deleteAPIKey)
 	mux.HandleFunc("/", a.notFound)
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/media/") && path.Clean(r.URL.Path) != r.URL.Path {
-			a.notFound(w, r)
-			return
-		}
-		mux.ServeHTTP(w, r)
-	})
+	return mux
 }
 
 func (a *App) healthz(w http.ResponseWriter, r *http.Request) {
@@ -152,8 +94,8 @@ func (a *App) version(w http.ResponseWriter, _ *http.Request) {
 	fmt.Fprint(w, a.Version)
 }
 
-func (a *App) notFound(w http.ResponseWriter, r *http.Request) {
-	a.renderError(w, r, http.StatusNotFound)
+func (a *App) notFound(w http.ResponseWriter, _ *http.Request) {
+	http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 }
 
 func (a *App) Run(ctx context.Context, addr string) error {

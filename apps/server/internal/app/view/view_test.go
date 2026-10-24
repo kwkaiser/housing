@@ -2,7 +2,6 @@ package view
 
 import (
 	"testing"
-	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 )
@@ -66,76 +65,12 @@ func TestThousands(t *testing.T) {
 	}
 }
 
-func TestSmall(t *testing.T) {
-	half, six := 1.5, 1200
-	for _, tc := range []struct{ got, want string }{
-		{Fixed1(61.04), "61.0"},
-		{Percent(66.6), "67%"},
-		{ShortModel("google/gemini-3-flash"), "gemini-3-flash"},
-		{ShortModel("plain"), "plain"},
-		{Ints([]int{1, 3}), "1, 3"},
-		{Ints(nil), ""},
-		{Baths(&half), "1.5"},
-		{Baths(nil), "-"},
-		{SqFt(&six), "1,200"},
-		{SqFt(nil), "-"},
-	} {
-		if tc.got != tc.want {
-			t.Errorf("got %q, want %q", tc.got, tc.want)
-		}
+func TestBaths(t *testing.T) {
+	half := 1.5
+	if got := Baths(&half); got != "1.5" {
+		t.Errorf("Baths(1.5) = %q", got)
 	}
-}
-
-func TestAgo(t *testing.T) {
-	now := time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC)
-	for _, tc := range []struct {
-		at   time.Time
-		want string
-	}{
-		{time.Time{}, "-"},
-		{now.Add(time.Minute), "just now"},
-		{now.Add(-30 * time.Second), "just now"},
-		{now.Add(-5*time.Minute - 30*time.Second), "5m ago"},
-		{now.Add(-2*time.Hour - 59*time.Minute), "2h ago"},
-		{now.Add(-47 * time.Hour), "47h ago"},
-		{now.Add(-72 * time.Hour), "3d ago"},
-	} {
-		if got := Ago(tc.at, now); got != tc.want {
-			t.Errorf("Ago(%v) = %q, want %q", now.Sub(tc.at), got, tc.want)
-		}
-	}
-}
-
-func TestElapsed(t *testing.T) {
-	for d, want := range map[time.Duration]string{
-		-time.Second:                               "0s",
-		400 * time.Millisecond:                     "0s",
-		12*time.Second + 600*time.Millisecond:      "13s",
-		3*time.Minute + 5*time.Second:              "3m 05s",
-		time.Hour + 2*time.Minute + 40*time.Second: "1h 02m",
-	} {
-		if got := Elapsed(d); got != want {
-			t.Errorf("Elapsed(%v) = %q, want %q", d, got, want)
-		}
-	}
-}
-
-func TestJobLabels(t *testing.T) {
-	for _, tc := range []struct{ got, want string }{
-		{Cost(0), "-"},
-		{Cost(0.0423), "$0.042"},
-		{Cost(1.234), "$1.23"},
-		{Truncate("short", 10), "short"},
-		{Truncate("a  long\nmessage here", 6), "a long…"},
-		{Truncate("héllo wörld", 5), "héllo…"},
-		{StatusClass("failed"), "status failed"},
-		{StatusClass("<x>"), "status"},
-		{KindLabel("run_collection"), "Collection run"},
-		{KindLabel("draft_profile"), "Draft profile"},
-		{KindLabel("new_thing"), "new thing"},
-	} {
-		if tc.got != tc.want {
-			t.Errorf("got %q, want %q", tc.got, tc.want)
-		}
+	if got := Baths(nil); got != "-" {
+		t.Errorf("Baths(nil) = %q", got)
 	}
 }

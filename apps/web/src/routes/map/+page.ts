@@ -10,7 +10,8 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	const client = api(fetch);
 	const [config, pins] = await Promise.all([
 		need(client.GET('/api/v1/map/config')),
-		need(client.GET('/api/v1/map/pins', { params: { query: { from: from || undefined, to: to || undefined } } }))
+		need(client.GET('/api/v1/map/pins', { params: { query: { from: from || undefined, to: to || undefined } } })),
+		import('#lib/map/create.ts')
 	]);
 	return { config, pins, from, to };
 };

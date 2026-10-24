@@ -99,7 +99,7 @@ func (s *Store) Observe(ctx context.Context, day, collection string, ls []listin
 
 func (s *Store) Load(ctx context.Context) ([]listing.Listing, error) {
 	return s.load(ctx, `
-		SELECT l.price_cents, l.currency, l.observed_at, l.url, l.offer, v.data, v.raw, v.collages
+		SELECT l.price_cents, l.currency, l.observed_at, l.url, l.offer, v.data, v.collages
 		FROM listings l JOIN versions v ON v.id = l.current_version
 		WHERE EXISTS (SELECT 1 FROM observations o WHERE o.source = l.source AND o.source_id = l.source_id)
 		ORDER BY l.source, l.source_id`)
@@ -107,7 +107,7 @@ func (s *Store) Load(ctx context.Context) ([]listing.Listing, error) {
 
 func (s *Store) LoadDay(ctx context.Context, day, collection string) ([]listing.Listing, error) {
 	return s.load(ctx, `
-		SELECT o.price_cents, o.currency, o.observed_at, l.url, l.offer, v.data, v.raw, v.collages
+		SELECT o.price_cents, o.currency, o.observed_at, l.url, l.offer, v.data, v.collages
 		FROM observations o
 		JOIN listings l ON l.source = o.source AND l.source_id = o.source_id
 		JOIN versions v ON v.id = o.version_id
@@ -144,10 +144,9 @@ func (s *Store) load(ctx context.Context, query string, args ...any) ([]listing.
 			observedAt string
 			url, offer string
 			data       string
-			raw        sql.NullString
 			collages   sql.NullString
 		)
-		if err := rows.Scan(&l.Price.Cents, &l.Price.Currency, &observedAt, &url, &offer, &data, &raw, &collages); err != nil {
+		if err := rows.Scan(&l.Price.Cents, &l.Price.Currency, &observedAt, &url, &offer, &data, &collages); err != nil {
 			return nil, err
 		}
 		price := l.Price
@@ -157,9 +156,6 @@ func (s *Store) load(ctx context.Context, query string, args ...any) ([]listing.
 		l.Price, l.URL, l.Offer = price, url, listing.OfferType(offer)
 		if l.ObservedAt, err = time.Parse(time.RFC3339Nano, observedAt); err != nil {
 			return nil, err
-		}
-		if raw.Valid {
-			l.Raw = json.RawMessage(raw.String)
 		}
 		if collages.Valid {
 			if err := json.Unmarshal([]byte(collages.String), &l.Collages); err != nil {
@@ -179,8 +175,21 @@ func (s *Store) load(ctx context.Context, query string, args ...any) ([]listing.
 }
 
 func (s *Store) loadAssessments(ctx context.Context, ls []listing.Listing, index map[string]int) error {
+	if len(ls) == 0 {
+		return nil
+	}
+	keys := make([][2]string, len(ls))
+	for i, l := range ls {
+		keys[i] = [2]string{string(l.Source), l.SourceID}
+	}
+	b, err := json.Marshal(keys)
+	if err != nil {
+		return err
+	}
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT source, source_id, profile_id, data FROM assessments ORDER BY assessed_at, id`)
+		SELECT source, source_id, profile_id, data FROM assessments
+		WHERE (source, source_id) IN (SELECT value ->> 0, value ->> 1 FROM json_each(?))
+		ORDER BY assessed_at, id`, string(b))
 	if err != nil {
 		return err
 	}
@@ -402,8 +411,7 @@ func (s *Store) History(ctx context.Context, collection string) (map[string][]Si
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT o.source, o.source_id, o.day, o.price_cents, coalesce(v.input_hash, '') FROM observations o
 		JOIN versions v ON v.id = o.version_id
-		WHERE EXISTS (SELECT 1 FROM collection_observations c
-			WHERE c.collection = ? AND c.source = o.source AND c.source_id = o.source_id)
+		WHERE (o.source, o.source_id) IN (SELECT source, source_id FROM collection_observations WHERE collection = ?)
 		ORDER BY o.day`, collection)
 	if err != nil {
 		return nil, err

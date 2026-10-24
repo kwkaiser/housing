@@ -375,12 +375,12 @@ func (a *App) apiCollection(ctx context.Context, in *collectionInput) (*struct{ 
 }
 
 func (a *App) apiCollectionDays(ctx context.Context, in *collectionInput) (*struct{ Body []APIDay }, error) {
-	v, err := a.svc.CollectionDay(ctx, in.ID, service.DayOptions{})
+	days, err := a.svc.CollectionDays(ctx, in.ID)
 	if err != nil {
 		return nil, a.apiError(ctx, err)
 	}
-	out := make([]APIDay, len(v.Days))
-	for i, d := range v.Days {
+	out := make([]APIDay, len(days))
+	for i, d := range days {
 		out[i] = APIDay{Day: d.Day, Listings: d.Listings}
 	}
 	return &struct{ Body []APIDay }{out}, nil
@@ -869,4 +869,30 @@ func (a *App) apiMeta(_ context.Context, _ *struct{}) (*struct{ Body APIMeta }, 
 			NotifyMinScore:      collection.DefaultNotifyMinScore,
 		},
 	}}, nil
+}
+
+func collectErrors(err error, fields map[string]string, general *[]string) {
+	if err == nil {
+		return
+	}
+	if fe, ok := err.(profile.FieldError); ok {
+		if prev, dup := fields[fe.Field]; dup {
+			fields[fe.Field] = prev + "; " + fe.Error()
+		} else {
+			fields[fe.Field] = fe.Error()
+		}
+		return
+	}
+	if multi, ok := err.(interface{ Unwrap() []error }); ok {
+		for _, e := range multi.Unwrap() {
+			collectErrors(e, fields, general)
+		}
+		return
+	}
+	var fe profile.FieldError
+	if errors.As(err, &fe) {
+		collectErrors(errors.Unwrap(err), fields, general)
+		return
+	}
+	*general = append(*general, err.Error())
 }

@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -19,7 +20,9 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
 	"git.kwkaiser.io/kwkaiser/housing/internal/jobs"
+	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/store"
 )
 
@@ -510,5 +513,30 @@ func TestAPIListingsRange(t *testing.T) {
 	}
 	if day := apiGet[APICollectionListings](t, h, key, "/api/v1/collections/somerville/listings"); day.Rows[0].Day != day2 {
 		t.Errorf("day rows should carry their day, got %q", day.Rows[0].Day)
+	}
+}
+
+func TestSearchArea(t *testing.T) {
+	area := searchArea(collection.Collection{Search: profile.Search{Location: " 02144 ", RadiusMiles: 1}})
+	if area == nil || area.South >= 42.4001 || area.North <= 42.4001 || area.West >= -71.1231 || area.East <= -71.1231 {
+		t.Errorf("searchArea(02144) = %+v", area)
+	}
+	wide := searchArea(collection.Collection{Search: profile.Search{Location: "02144"}})
+	if wide.North-wide.South <= area.North-area.South {
+		t.Errorf("default radius area %+v should be wider than 1 mile area %+v", wide, area)
+	}
+	if area := searchArea(collection.Collection{Search: profile.Search{Location: "Somerville, MA"}}); area != nil {
+		t.Error("searchArea should not resolve a non-zip location")
+	}
+}
+
+func TestAPICollectionDays(t *testing.T) {
+	_, h, key := apiApp(t)
+	got := apiGet[[]APIDay](t, h, key, apiV1+"/collections/somerville/days")
+	if want := []APIDay{{Day: day1, Listings: 3}, {Day: day2, Listings: 5}}; !reflect.DeepEqual(got, want) {
+		t.Errorf("days = %+v, want %+v", got, want)
+	}
+	if res, _ := apiDo(t, h, http.MethodGet, apiV1+"/collections/nope/days", key); res.StatusCode != http.StatusNotFound {
+		t.Errorf("missing collection = %d, want 404", res.StatusCode)
 	}
 }

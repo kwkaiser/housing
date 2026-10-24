@@ -4,12 +4,19 @@ import (
 	"cmp"
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
+	"git.kwkaiser.io/kwkaiser/housing/internal/geo"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/report"
 )
+
+var mapColors = []string{"#2563eb", "#dc2626", "#16a34a", "#9333ea", "#ea580c", "#0891b2", "#db2777", "#65a30d"}
+
+const defaultAreaMiles = 2
 
 type mapPinsInput struct {
 	From string `query:"from" format:"date" doc:"Only runs on or after this day; empty for no lower bound"`
@@ -76,31 +83,79 @@ func (a *App) apiMapPins(ctx context.Context, in *mapPinsInput) (*struct{ Body A
 	if from != "" && to != "" && from > to {
 		from, to = to, from
 	}
-	d, err := a.mapData(ctx, cs, from, to)
+	out, err := a.mapPins(ctx, cs, from, to)
 	if err != nil {
 		return nil, a.apiError(ctx, err)
 	}
-	out := APIMapPins{From: from, To: to, FirstDay: d.RunFirst, LastDay: d.RunLast, Collections: []APIMapCollection{}, Pins: []APIMapPin{}, Unplaced: d.Unplaced}
-	for _, c := range d.Collections {
-		mc := APIMapCollection{ID: c.ID, Color: c.Color, LatestDay: c.Day, Graded: c.Count}
-		if e, ok := d.Extent[c.ID]; ok {
-			mc.Area = &APIBounds{South: e[0][0], West: e[0][1], North: e[1][0], East: e[1][1]}
+	return &struct{ Body APIMapPins }{out}, nil
+}
+
+func (a *App) mapPins(ctx context.Context, cs []collection.Collection, from, to string) (APIMapPins, error) {
+	out := APIMapPins{From: from, To: to, Collections: []APIMapCollection{}, Pins: []APIMapPin{}}
+	seen := map[string]int{}
+	for i, c := range cs {
+		v, err := a.svc.CollectionRange(ctx, c.ID, from, to)
+		if err != nil {
+			return out, err
+		}
+		mc := APIMapCollection{ID: c.ID, Color: mapColors[i%len(mapColors)]}
+		if n := len(v.Days); n > 0 {
+			mc.LatestDay = v.Days[n-1].Day
+			if out.FirstDay == "" || v.Days[0].Day < out.FirstDay {
+				out.FirstDay = v.Days[0].Day
+			}
+			out.LastDay = max(out.LastDay, mc.LatestDay)
+		}
+		mc.Area = searchArea(c)
+		for _, row := range v.Rows {
+			l := row.Listing
+			key := string(l.Source) + "/" + l.SourceID
+			j, ok := seen[key]
+			if !ok {
+				loc, approx, placed := geo.Locate(l)
+				if !placed {
+					seen[key] = -1
+					out.Unplaced++
+					continue
+				}
+				j = len(out.Pins)
+				seen[key] = j
+				pin := APIMapPin{
+					Source: l.Source, SourceID: l.SourceID, Href: apiListingPath(l.Source, l.SourceID), Lat: loc.Lat, Lng: loc.Lng, Approx: approx,
+					Address: cmp.Or(report.AddressLine(l), l.SourceID), Offer: l.Offer, PriceCents: l.Price.Cents, Beds: l.Beds,
+					FirstSeen: row.FirstSeen, LastSeen: row.Day, Grades: map[string]APIPinGrade{}, Ungraded: row.Ungraded,
+				}
+				if len(l.Collages) > 0 {
+					pin.Preview = apiV1 + "/media/" + l.Collages[0]
+				}
+				out.Pins = append(out.Pins, pin)
+			} else if j < 0 {
+				continue
+			}
+			p := &out.Pins[j]
+			p.Collections = append(p.Collections, c.ID)
+			p.FirstSeen = min(p.FirstSeen, row.FirstSeen)
+			p.LastSeen = max(p.LastSeen, row.Day)
+			if !row.Ungraded {
+				p.Ungraded = false
+				p.Grades[c.ID] = APIPinGrade{Match: row.Match, Calibrated: row.Calibrated, Stale: row.Stale, Dealbreakers: row.Dealbreakers}
+				if len(row.Dealbreakers) == 0 {
+					mc.Graded++
+				}
+			}
 		}
 		out.Collections = append(out.Collections, mc)
 	}
-	for _, p := range d.Pins {
-		l := p.listing
-		pin := APIMapPin{
-			Source: l.Source, SourceID: l.SourceID, Href: apiListingPath(l.Source, l.SourceID), Lat: p.Lat, Lng: p.Lng, Approx: p.Approx,
-			Address: cmp.Or(report.AddressLine(l), l.SourceID), Offer: l.Offer, PriceCents: l.Price.Cents, Beds: l.Beds,
-			FirstSeen: p.FirstSeen, LastSeen: p.LastSeen, Collections: p.Collections, Grades: p.grades, Ungraded: p.Ungraded,
-		}
-		if len(l.Collages) > 0 {
-			pin.Preview = apiV1 + "/media/" + l.Collages[0]
-		}
-		out.Pins = append(out.Pins, pin)
+	return out, nil
+}
+
+func searchArea(c collection.Collection) *APIBounds {
+	center, ok := geo.ZipCentroid(strings.TrimSpace(c.Search.Location))
+	if !ok {
+		return nil
 	}
-	return &struct{ Body APIMapPins }{out}, nil
+	b := geo.BoundsAround(center, cmp.Or(c.Search.RadiusMiles, defaultAreaMiles))
+	return &APIBounds{South: b.South, West: b.West, North: b.North, East: b.East}
 }
 
 type APIMapConfig struct {
@@ -162,7 +217,7 @@ func (a *App) apiPositronTile(ctx context.Context, in *tileInput) (*tileOutput, 
 }
 
 func (a *App) apiOverlayTile(ctx context.Context, in *overlayInput) (*tileOutput, error) {
-	b, ctype, err := a.overlayData(ctx, in.Name, in.Z, in.X, in.File, true)
+	b, ctype, err := a.overlayData(ctx, in.Name, in.Z, in.X, in.File)
 	if err != nil {
 		return nil, tileError(err)
 	}
