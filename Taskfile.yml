@@ -2,96 +2,33 @@ version: '3'
 
 dotenv: ['.env']
 
+includes:
+  server:
+    taskfile: ./apps/server/Taskfile.yml
+    dir: ./apps/server
+  web:
+    taskfile: ./apps/web/Taskfile.yml
+    dir: ./apps/web
+
 vars:
-  BINARY: housing
   VERSION:
     sh: git describe --tags --always --dirty 2>/dev/null || echo dev
-  LDFLAGS: -X git.kwkaiser.io/kwkaiser/housing/internal/cli.version={{.VERSION}}
 
 tasks:
-  build:
-    sources:
-      - "**/*.go"
-      - "**/*.tmpl"
-      - "**/*.css"
-      - "**/*.js"
-      - "**/*.sql"
-      - "**/*.tsv"
-      - go.mod
-      - go.sum
-    generates:
-      - bin/{{.BINARY}}
-    cmds:
-      - go build -ldflags "{{.LDFLAGS}}" -o bin/{{.BINARY}} ./cmd/{{.BINARY}}
+  dev:
+    desc: Run the server without API auth and the web dev server, which proxies /api to it.
+    deps: [server:dev, web:dev]
 
-  test:
+  hashes:
+    desc: Regenerate the dependency hashes in nix/server.nix and nix/web.nix.
     cmds:
-      - go test ./...
-
-  test:integration:
-    env:
-      HOUSING_DATA_DIR: '{{.ROOT_DIR}}/data'
-    cmds:
-      - go test -tags integration -count=1 -v ./...
-
-  lint:
-    cmds:
-      - go vet ./...
-
-  zips:
-    desc: Regenerate internal/geo/zips.tsv from the Census ZCTA gazetteer, cut to the NYC area.
-    vars:
-      YEAR: '{{.YEAR | default "2024"}}'
-    cmds:
-      - |
-        set -eu
-        tmp=$(mktemp -d)
-        trap 'rm -rf "$tmp"' EXIT
-        curl -fsSL -o "$tmp/zcta.zip" "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/{{.YEAR}}_Gazetteer/{{.YEAR}}_Gaz_zcta_national.zip"
-        unzip -q -d "$tmp" "$tmp/zcta.zip"
-        awk -F'\t' 'NR > 1 && $6 >= 40.49 && $6 <= 40.92 && $7 >= -74.27 && $7 <= -73.68 && $4 > 0.05 {
-          printf "%s\t%.5f\t%.5f\t%.2f\n", $1, $6, $7, sqrt($4 / 3.14159265)
-        }' "$tmp"/*.txt > internal/geo/zips.tsv
-
-  centroids:
-    desc: Regenerate internal/geo/centroids.tsv, the national zip code centroids used to place listings without coordinates.
-    vars:
-      YEAR: '{{.YEAR | default "2024"}}'
-    cmds:
-      - |
-        set -eu
-        tmp=$(mktemp -d)
-        trap 'rm -rf "$tmp"' EXIT
-        curl -fsSL -o "$tmp/zcta.zip" "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/{{.YEAR}}_Gazetteer/{{.YEAR}}_Gaz_zcta_national.zip"
-        unzip -q -d "$tmp" "$tmp/zcta.zip"
-        awk -F'\t' 'NR > 1 { printf "%s\t%.4f\t%.4f\n", $1, $6, $7 }' "$tmp"/*.txt > internal/geo/centroids.tsv
-
-  update:
-    desc: Update Go dependencies and regenerate vendorHash.
-    cmds:
-      - go get -u ./...
-      - go mod tidy
-      - task: vendor-hash
-
-  vendor-hash:
-    desc: Regenerate vendorHash in nix/package.nix from go.mod/go.sum.
-    cmds:
-      - ./nix/vendor-hash.sh
-
-  run:
-    deps: [build]
-    cmds:
-      - ./bin/{{.BINARY}} {{.CLI_ARGS}}
-
-  server:
-    deps: [build]
-    cmds:
-      - ./bin/{{.BINARY}} server {{.CLI_ARGS}}
+      - ./nix/update-hashes.sh
 
   build-image:
-    desc: Build the container image into .task/image.tar for SYSTEM (default x86_64-linux).
+    desc: Build the TARGET (server or web) container image into .task/TARGET.tar for SYSTEM (default x86_64-linux).
     vars:
-      IMAGE_NAME: '{{.IMAGE_NAME | default "git.kwkaiser.io/kwkaiser/housing"}}'
+      TARGET: '{{.TARGET | default "server"}}'
+      IMAGE_NAME: '{{.IMAGE_NAME | default (eq .TARGET "web" | ternary "git.kwkaiser.io/kwkaiser/housing-web" "git.kwkaiser.io/kwkaiser/housing")}}'
       IMAGE_TAG: '{{.IMAGE_TAG | default .VERSION}}'
       SYSTEM: '{{.SYSTEM | default "x86_64-linux"}}'
     cmds:
@@ -100,18 +37,19 @@ tasks:
         set -eu
         export IMAGE_NAME="{{.IMAGE_NAME}}"
         export IMAGE_TAG="{{.IMAGE_TAG}}"
-        stream=$(nix build --impure --no-link --print-out-paths .#packages.{{.SYSTEM}}.image)
-        "$stream" > .task/image.tar
+        stream=$(nix build --impure --no-link --print-out-paths .#packages.{{.SYSTEM}}.{{.TARGET}}-image)
+        "$stream" > .task/{{.TARGET}}.tar
 
   push-image:
-    desc: Push .task/image.tar to the container registry. Needs REGISTRY_USER and REGISTRY_TOKEN.
+    desc: Push .task/TARGET.tar to the container registry. Needs REGISTRY_USER and REGISTRY_TOKEN.
     vars:
-      IMAGE_NAME: '{{.IMAGE_NAME | default "git.kwkaiser.io/kwkaiser/housing"}}'
+      TARGET: '{{.TARGET | default "server"}}'
+      IMAGE_NAME: '{{.IMAGE_NAME | default (eq .TARGET "web" | ternary "git.kwkaiser.io/kwkaiser/housing-web" "git.kwkaiser.io/kwkaiser/housing")}}'
       IMAGE_TAGS: '{{.IMAGE_TAGS | default .VERSION}}'
       TLS_VERIFY: '{{.TLS_VERIFY | default "true"}}'
     preconditions:
-      - sh: test -f .task/image.tar
-        msg: '.task/image.tar not found - run `task build-image` first'
+      - sh: test -f .task/{{.TARGET}}.tar
+        msg: '.task/{{.TARGET}}.tar not found - run `task build-image TARGET={{.TARGET}}` first'
     cmds:
       - |
         set -eu
@@ -122,10 +60,6 @@ tasks:
           skopeo --insecure-policy copy \
             --dest-tls-verify={{.TLS_VERIFY}} \
             --dest-creds "$REGISTRY_USER:$REGISTRY_TOKEN" \
-            docker-archive:.task/image.tar \
+            docker-archive:.task/{{.TARGET}}.tar \
             "docker://{{.IMAGE_NAME}}:$tag"
         done
-
-  clean:
-    cmds:
-      - rm -rf bin

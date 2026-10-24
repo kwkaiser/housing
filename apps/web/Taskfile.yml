@@ -1,0 +1,38 @@
+version: '3'
+
+tasks:
+  install:
+    sources:
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+    generates:
+      - node_modules/.modules.yaml
+    cmds:
+      - pnpm install --frozen-lockfile
+
+  dev:
+    deps: [install]
+    cmds:
+      - pnpm dev {{.CLI_ARGS}}
+
+  build:
+    deps: [install]
+    cmds:
+      - pnpm build
+
+  check:
+    deps: [install]
+    cmds:
+      - pnpm check
+
+  gen:
+    desc: Regenerate the API spec and TypeScript types from the server.
+    deps: [install]
+    cmds:
+      - go -C ../server run ./cmd/housing openapi > src/lib/api/openapi.json
+      - pnpm gen
+
+  clean:
+    cmds:
+      - rm -rf build .svelte-kit

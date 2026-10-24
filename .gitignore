@@ -3,9 +3,14 @@ bin/
 *.out
 .task/
 .env
-data/
-profiles/
-collections/
+/data/
+/profiles/
+/collections/
 result
 .direnv
 .claude
+node_modules/
+/apps/web/build/
+/apps/web/.svelte-kit/
+vite.config.*.timestamp-*
+*.tsbuildinfo

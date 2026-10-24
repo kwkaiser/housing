@@ -13,6 +13,7 @@ on:
 env:
   REGISTRY: git.kwkaiser.io
   IMAGE: git.kwkaiser.io/kwkaiser/housing
+  WEB_IMAGE: git.kwkaiser.io/kwkaiser/housing-web
 
 jobs:
   test:
@@ -22,12 +23,14 @@ jobs:
 
       - uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
+          go-version-file: apps/server/go.mod
 
       - name: Vet
+        working-directory: apps/server
         run: go vet ./...
 
       - name: Test
+        working-directory: apps/server
         run: go test ./...
 
   publish:
@@ -72,21 +75,27 @@ jobs:
             extra-substituters = ssh-ng://nixbuilder@kwkaiser.io?trusted=true
             max-jobs = 0
 
-      - name: Build image
+      - name: Build images
         env:
           IMAGE: ${{ env.IMAGE }}
+          WEB_IMAGE: ${{ env.WEB_IMAGE }}
           VERSION: ${{ steps.meta.outputs.version }}
         run: |
           nix develop --accept-flake-config --command \
-            task build-image IMAGE_NAME="$IMAGE" IMAGE_TAG="$VERSION" SYSTEM=x86_64-linux
+            task build-image TARGET=server IMAGE_NAME="$IMAGE" IMAGE_TAG="$VERSION" SYSTEM=x86_64-linux
+          nix develop --accept-flake-config --command \
+            task build-image TARGET=web IMAGE_NAME="$WEB_IMAGE" IMAGE_TAG="$VERSION" SYSTEM=x86_64-linux
 
-      - name: Push image
+      - name: Push images
         env:
           IMAGE: ${{ env.IMAGE }}
+          WEB_IMAGE: ${{ env.WEB_IMAGE }}
           VERSION: ${{ steps.meta.outputs.version }}
           SHA: ${{ steps.meta.outputs.sha }}
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_TOKEN: ${{ secrets.K8S_GITEA_REGISTRY_PACKAGE_TOKEN }}
         run: |
           nix develop --accept-flake-config --command \
-            task push-image IMAGE_NAME="$IMAGE" IMAGE_TAGS="$VERSION $SHA latest"
+            task push-image TARGET=server IMAGE_NAME="$IMAGE" IMAGE_TAGS="$VERSION $SHA latest"
+          nix develop --accept-flake-config --command \
+            task push-image TARGET=web IMAGE_NAME="$WEB_IMAGE" IMAGE_TAGS="$VERSION $SHA latest"

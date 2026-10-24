@@ -1,0 +1,95 @@
+version: '3'
+
+vars:
+  BINARY: housing
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
+  LDFLAGS: -X git.kwkaiser.io/kwkaiser/housing/internal/cli.version={{.VERSION}}
+
+tasks:
+  build:
+    sources:
+      - "**/*.go"
+      - "**/*.tmpl"
+      - "**/*.css"
+      - "**/*.js"
+      - "**/*.sql"
+      - "**/*.tsv"
+      - go.mod
+      - go.sum
+    generates:
+      - bin/{{.BINARY}}
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o bin/{{.BINARY}} ./cmd/{{.BINARY}}
+
+  test:
+    cmds:
+      - go test ./...
+
+  test:integration:
+    env:
+      HOUSING_DATA_DIR: '{{.ROOT_DIR}}/data'
+    cmds:
+      - go test -tags integration -count=1 -v ./...
+
+  lint:
+    cmds:
+      - go vet ./...
+
+  zips:
+    desc: Regenerate internal/geo/zips.tsv from the Census ZCTA gazetteer, cut to the NYC area.
+    vars:
+      YEAR: '{{.YEAR | default "2024"}}'
+    cmds:
+      - |
+        set -eu
+        tmp=$(mktemp -d)
+        trap 'rm -rf "$tmp"' EXIT
+        curl -fsSL -o "$tmp/zcta.zip" "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/{{.YEAR}}_Gazetteer/{{.YEAR}}_Gaz_zcta_national.zip"
+        unzip -q -d "$tmp" "$tmp/zcta.zip"
+        awk -F'\t' 'NR > 1 && $6 >= 40.49 && $6 <= 40.92 && $7 >= -74.27 && $7 <= -73.68 && $4 > 0.05 {
+          printf "%s\t%.5f\t%.5f\t%.2f\n", $1, $6, $7, sqrt($4 / 3.14159265)
+        }' "$tmp"/*.txt > internal/geo/zips.tsv
+
+  centroids:
+    desc: Regenerate internal/geo/centroids.tsv, the national zip code centroids used to place listings without coordinates.
+    vars:
+      YEAR: '{{.YEAR | default "2024"}}'
+    cmds:
+      - |
+        set -eu
+        tmp=$(mktemp -d)
+        trap 'rm -rf "$tmp"' EXIT
+        curl -fsSL -o "$tmp/zcta.zip" "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/{{.YEAR}}_Gazetteer/{{.YEAR}}_Gaz_zcta_national.zip"
+        unzip -q -d "$tmp" "$tmp/zcta.zip"
+        awk -F'\t' 'NR > 1 { printf "%s\t%.4f\t%.4f\n", $1, $6, $7 }' "$tmp"/*.txt > internal/geo/centroids.tsv
+
+  update:
+    desc: Update Go dependencies and regenerate vendorHash.
+    cmds:
+      - go get -u ./...
+      - go mod tidy
+      - task: :hashes
+
+  dev:
+    desc: Run the server without API auth, for local development.
+    deps: [build]
+    dir: '{{.ROOT_DIR}}'
+    cmds:
+      - '{{.TASKFILE_DIR}}/bin/{{.BINARY}} server --no-api-auth {{.CLI_ARGS}}'
+
+  run:
+    deps: [build]
+    dir: '{{.ROOT_DIR}}'
+    cmds:
+      - '{{.TASKFILE_DIR}}/bin/{{.BINARY}} {{.CLI_ARGS}}'
+
+  server:
+    deps: [build]
+    dir: '{{.ROOT_DIR}}'
+    cmds:
+      - '{{.TASKFILE_DIR}}/bin/{{.BINARY}} server {{.CLI_ARGS}}'
+
+  clean:
+    cmds:
+      - rm -rf bin
