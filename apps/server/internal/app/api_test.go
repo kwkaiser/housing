@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -248,6 +249,34 @@ func TestAPIMedia(t *testing.T) {
 	for _, m := range []string{"photos/ab/page.html", "collages/missing", "etc/passwd"} {
 		if res, _ := apiDo(t, h, http.MethodGet, "/api/v1/media/"+m, key); res.StatusCode != http.StatusNotFound {
 			t.Errorf("GET media %s = %d, want 404", m, res.StatusCode)
+		}
+	}
+}
+
+func TestOpenAPIExport(t *testing.T) {
+	_, served := apiDo(t, seededApp(t).Handler(), http.MethodGet, "/api/openapi.json", "")
+	exported, err := OpenAPI()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var a, b any
+	if err := json.Unmarshal(served, &a); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(exported, &b); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(a, b) {
+		t.Error("exported spec differs from the served one")
+	}
+}
+
+func TestAPINoAuth(t *testing.T) {
+	a, h, _ := apiApp(t)
+	a.NoAuth = true
+	for _, target := range []string{"/api/v1/collections", "/api/v1/media/" + collageKey} {
+		if res, b := apiDo(t, h, http.MethodGet, target, ""); res.StatusCode != http.StatusOK {
+			t.Errorf("GET %s without a key = %d\n%s", target, res.StatusCode, b)
 		}
 	}
 }

@@ -1,0 +1,48 @@
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import type { MapConfig, Schemas } from '#lib/api/client.ts';
+	import { createMap, type HousingMap } from '#lib/map/create.ts';
+	import LayerPanel from './LayerPanel.svelte';
+
+	let { config, location, title }: { config: MapConfig; location: Schemas['APILocation']; title: string } = $props();
+
+	let el: HTMLDivElement;
+	let hm = $state<HousingMap>();
+
+	function circle(lng: number, lat: number, meters: number): [number, number][] {
+		const pts: [number, number][] = [];
+		for (let i = 0; i <= 64; i++) {
+			const a = (i / 64) * 2 * Math.PI;
+			const dLat = (meters / 111_320) * Math.sin(a);
+			const dLng = (meters / (111_320 * Math.cos((lat * Math.PI) / 180))) * Math.cos(a);
+			pts.push([lng + dLng, lat + dLat]);
+		}
+		return pts;
+	}
+
+	onMount(() => {
+		const { lat, lng, approx } = location;
+		hm = createMap(el, config, { center: [lng, lat], zoom: approx ? 13.5 : 15.5 });
+		const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2563eb';
+		hm.map.on('load', () => {
+			const map = hm!.map;
+			if (approx) {
+				map.addSource('area', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [circle(lng, lat, 400)] } } });
+				map.addLayer({ id: 'area', type: 'fill', source: 'area', paint: { 'fill-color': accent, 'fill-opacity': 0.1, 'fill-outline-color': accent } });
+			}
+			map.addSource('pin', { type: 'geojson', data: { type: 'Feature', properties: { title }, geometry: { type: 'Point', coordinates: [lng, lat] } } });
+			map.addLayer({
+				id: 'pin',
+				type: 'circle',
+				source: 'pin',
+				paint: { 'circle-radius': 8, 'circle-color': accent, 'circle-opacity': approx ? 0.3 : 0.6, 'circle-stroke-color': accent, 'circle-stroke-width': 3 }
+			});
+		});
+		return () => hm?.map.remove();
+	});
+</script>
+
+<div class="map-frame listing-map">
+	<div class="map" bind:this={el}></div>
+	{#if hm}<LayerPanel map={hm} {config} />{/if}
+</div>

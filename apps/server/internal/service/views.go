@@ -1,6 +1,7 @@
 package service
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"maps"
@@ -32,6 +33,7 @@ const (
 
 type ListingRow struct {
 	report.Row
+	Day                string
 	FirstSeen          string
 	Status             Status
 	PreviousPriceCents *int64
@@ -150,7 +152,7 @@ func (s *Service) CollectionDay(ctx context.Context, collectionID string, o DayO
 			v.Hidden++
 			continue
 		}
-		lr := ListingRow{Row: row, Favorite: favorites[store.Key(row.Listing)]}
+		lr := ListingRow{Row: row, Day: v.Day, Favorite: favorites[store.Key(row.Listing)]}
 		lr.FirstSeen, lr.Status, lr.PreviousPriceCents = sightings(v.Day, history[store.Key(row.Listing)])
 		lr.Rank = len(v.Rows) + 1
 		v.Stale = v.Stale || row.Stale
@@ -489,8 +491,65 @@ func reportOptions(c collection.Collection) report.Options {
 
 type RangeRow struct {
 	ListingRow
-	Day      string
 	Ungraded bool
+}
+
+type SpanOptions struct {
+	From         string
+	To           string
+	Dealbreakers bool
+}
+
+func (s *Service) CollectionSpan(ctx context.Context, collectionID string, o SpanOptions) (CollectionDayView, error) {
+	r, err := s.CollectionRange(ctx, collectionID, o.From, o.To)
+	if err != nil {
+		return CollectionDayView{}, err
+	}
+	db, err := s.catalog(ctx)
+	if err != nil {
+		return CollectionDayView{}, err
+	}
+	v := CollectionDayView{Collection: r.Collection, Days: r.Days, Listings: len(r.Rows)}
+	if v.Collections, err = db.Collections(ctx); err != nil {
+		return v, err
+	}
+	templates, err := s.templates(ctx, db, v.Collection.Profiles)
+	if err != nil {
+		return v, err
+	}
+	favorites, err := db.FavoriteKeys(ctx)
+	if err != nil {
+		return v, err
+	}
+	var rows []ListingRow
+	for _, rr := range r.Rows {
+		if !rr.Ungraded {
+			rows = append(rows, rr.ListingRow)
+		}
+	}
+	slices.SortStableFunc(rows, func(a, b ListingRow) int {
+		return cmp.Or(cmp.Compare(min(len(a.Dealbreakers), 1), min(len(b.Dealbreakers), 1)), cmp.Compare(b.Match, a.Match))
+	})
+	v.Graded = len(rows)
+	for _, row := range rows {
+		if len(row.Dealbreakers) > 0 && !o.Dealbreakers {
+			v.Hidden++
+			continue
+		}
+		row.Favorite = favorites[store.Key(row.Listing)]
+		if o.From != "" && row.FirstSeen >= o.From {
+			row.Status = StatusNew
+		}
+		row.Rank = len(v.Rows) + 1
+		v.Stale = v.Stale || row.Stale
+		for _, g := range row.Grades {
+			v.Stale = v.Stale || g.Stale
+		}
+		v.Rows = append(v.Rows, row)
+	}
+	v.Models = modelsFor(v.Collection, nil)
+	v.Profiles = profileViews(templates, v.Models)
+	return v, nil
 }
 
 type CollectionRangeView struct {
@@ -544,13 +603,13 @@ func (s *Service) CollectionRange(ctx context.Context, collectionID, from, to st
 			for _, also := range row.AlsoListed {
 				graded[string(also.Source)+"/"+also.SourceID] = true
 			}
-			add(RangeRow{ListingRow: ListingRow{Row: row}, Day: d.Day})
+			add(RangeRow{ListingRow: ListingRow{Row: row, Day: d.Day}})
 		}
 		for _, g := range dedupe.Groups(listings) {
 			if g.Primary.Offer != v.Collection.Mode.Offer() || slices.ContainsFunc(g.Members(), func(l listing.Listing) bool { return graded[store.Key(l)] }) {
 				continue
 			}
-			add(RangeRow{ListingRow: ListingRow{Row: report.Row{Listing: g.Primary}}, Day: d.Day, Ungraded: true})
+			add(RangeRow{ListingRow: ListingRow{Row: report.Row{Listing: g.Primary}, Day: d.Day}, Ungraded: true})
 		}
 	}
 	return v, nil

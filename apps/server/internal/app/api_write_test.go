@@ -483,3 +483,32 @@ func TestAPIMeta(t *testing.T) {
 		t.Errorf("meta = %+v", m)
 	}
 }
+
+func TestAPIListingsRange(t *testing.T) {
+	_, h, key := apiApp(t)
+	summary := func(v APICollectionListings) string {
+		var out []string
+		for _, r := range v.Rows {
+			out = append(out, r.Listing.SourceID+"@"+r.Day+":"+string(r.Status))
+		}
+		return strings.Join(out, ",")
+	}
+
+	all := apiGet[APICollectionListings](t, h, key, "/api/v1/collections/somerville/listings?from="+day1)
+	if all.Day != "" || all.From != day1 || all.Rows[0].Rank != 1 || all.Rows[1].Rank != 2 {
+		t.Errorf("range = %+v", all)
+	}
+	if got, want := summary(all), "z1@"+day2+":new,z4@"+day2+":new,z2@"+day2+":new"; got != want {
+		t.Errorf("from %s = %s, want %s", day1, got, want)
+	}
+	if got, want := summary(apiGet[APICollectionListings](t, h, key, "/api/v1/collections/somerville/listings?to="+day1)), "z1@"+day1+":new,z2@"+day1+":new"; got != want {
+		t.Errorf("to %s = %s, want %s", day1, got, want)
+	}
+	late := apiGet[APICollectionListings](t, h, key, "/api/v1/collections/somerville/listings?from="+day2+"&dealbreakers=true")
+	if got, want := summary(late), "z1@"+day2+":changed,z4@"+day2+":new,z2@"+day2+":repeat,z3@"+day2+":repeat"; got != want {
+		t.Errorf("from %s with dealbreakers = %s, want %s", day2, got, want)
+	}
+	if day := apiGet[APICollectionListings](t, h, key, "/api/v1/collections/somerville/listings"); day.Rows[0].Day != day2 {
+		t.Errorf("day rows should carry their day, got %q", day.Rows[0].Day)
+	}
+}

@@ -22,6 +22,21 @@ jobs:
         working-directory: apps/server
         run: go test ./...
 
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - name: API types match the server
+        run: |
+          nix develop --command task web:gen
+          git diff --exit-code apps/web/src/lib/api
+
+      - name: Check
+        run: nix develop --command task web:check
+
   nix-build:
     runs-on: ubuntu-latest
     steps:
@@ -30,4 +45,4 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
 
       - name: Build
-        run: nix build --no-link .#server
+        run: nix build --no-link .#server .#web

@@ -1,0 +1,3667 @@
+{
+  "components": {
+    "schemas": {
+      "APIBounds": {
+        "additionalProperties": false,
+        "properties": {
+          "east": {
+            "format": "double",
+            "type": "number"
+          },
+          "north": {
+            "format": "double",
+            "type": "number"
+          },
+          "south": {
+            "format": "double",
+            "type": "number"
+          },
+          "west": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "south",
+          "west",
+          "north",
+          "east"
+        ],
+        "type": "object"
+      },
+      "APICollection": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "last_run": {
+            "$ref": "#/components/schemas/APIJob",
+            "description": "The active run, or else the most recent one"
+          },
+          "max_run_cost_usd": {
+            "description": "Spending cap per run; absent means the default",
+            "format": "double",
+            "type": "number"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "notify_min_score": {
+            "description": "Minimum match to notify about; absent means the default",
+            "format": "double",
+            "type": "number"
+          },
+          "notify_url": {
+            "type": "string"
+          },
+          "profiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "schedule": {
+            "description": "Daily run time, HH:MM in server-local time",
+            "type": "string"
+          },
+          "search": {
+            "$ref": "#/components/schemas/Search"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "mode",
+          "sources",
+          "profiles",
+          "search"
+        ],
+        "type": "object"
+      },
+      "APICollectionListings": {
+        "additionalProperties": false,
+        "properties": {
+          "collection": {
+            "$ref": "#/components/schemas/APICollection"
+          },
+          "day": {
+            "description": "The run shown; empty when the collection has never run or a range was asked for",
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "graded": {
+            "description": "Distinct listings with a grade",
+            "format": "int64",
+            "type": "integer"
+          },
+          "hidden": {
+            "description": "Graded listings left out for hitting a dealbreaker",
+            "format": "int64",
+            "type": "integer"
+          },
+          "listings": {
+            "description": "Listings observed that day, or across the range",
+            "format": "int64",
+            "type": "integer"
+          },
+          "matched": {
+            "description": "Rows that pass the filters, before offset and limit",
+            "format": "int64",
+            "type": "integer"
+          },
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "next_day": {
+            "type": "string"
+          },
+          "previous_day": {
+            "type": "string"
+          },
+          "profiles": {
+            "items": {
+              "$ref": "#/components/schemas/APIProfileSummary"
+            },
+            "type": "array"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/APIListingRow"
+            },
+            "type": "array"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "collection",
+          "listings",
+          "graded",
+          "hidden",
+          "matched",
+          "stale",
+          "models",
+          "profiles",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "APICreateCollection": {
+        "additionalProperties": false,
+        "properties": {
+          "amenities": {
+            "description": "Required amenities; an empty list clears them",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Lowercase letters, digits and dashes",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Maximum listings fetched per source; 0 means the default",
+            "format": "int64",
+            "type": "integer"
+          },
+          "location": {
+            "description": "Search area, e.g. a ZIP code or city",
+            "type": "string"
+          },
+          "max_age_days": {
+            "description": "Only listings posted within this many days; 0 means no limit",
+            "format": "int64",
+            "type": "integer"
+          },
+          "max_beds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "max_price": {
+            "description": "Whole dollars",
+            "format": "int64",
+            "type": "integer"
+          },
+          "max_run_cost_usd": {
+            "description": "Spending cap per run; 0 means the default",
+            "format": "double",
+            "type": "number"
+          },
+          "min_beds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "min_price": {
+            "description": "Whole dollars",
+            "format": "int64",
+            "type": "integer"
+          },
+          "mode": {
+            "description": "rent or buy",
+            "enum": [
+              "rent",
+              "buy"
+            ],
+            "type": "string"
+          },
+          "model": {
+            "description": "Grading model; empty means the default",
+            "type": "string"
+          },
+          "notify_min_score": {
+            "description": "Minimum match to notify about; 0 means the default",
+            "format": "double",
+            "type": "number"
+          },
+          "notify_url": {
+            "description": "ntfy topic URL for notifications; empty to turn them off",
+            "type": "string"
+          },
+          "profiles": {
+            "description": "Want profile ids, in priority order",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "radius_miles": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "schedule": {
+            "description": "Daily run time, HH:MM server-local; empty to unschedule",
+            "type": "string"
+          },
+          "sources": {
+            "description": "Listing sources to search",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "APICreateKey": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "What the key is for, such as a device",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "APICreateProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "force": {
+            "description": "Replace an existing profile with the same id",
+            "type": "boolean"
+          },
+          "id": {
+            "description": "Lowercase letters, digits and dashes",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Defaults to want",
+            "enum": [
+              "want",
+              "avoid"
+            ],
+            "type": "string"
+          },
+          "max_charge_usd": {
+            "description": "Scraping spend cap for the lookup; 0 means the default",
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "model": {
+            "description": "Drafting model; empty means the default",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "no_draft": {
+            "description": "Save the reference without drafting criteria",
+            "type": "boolean"
+          },
+          "notes": {
+            "description": "Guidance for drafting criteria, one note per entry",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "url": {
+            "description": "A listing URL to use as the profile's reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "id"
+        ],
+        "type": "object"
+      },
+      "APICreatedKey": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/APIKey"
+          },
+          "token": {
+            "description": "The bearer token; it is shown only once",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "token"
+        ],
+        "type": "object"
+      },
+      "APICriterionResult": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "type": "string"
+          },
+          "dealbreaker": {
+            "type": "boolean"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "importance": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "photos": {
+            "description": "Indexes into the listing's photos",
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "verdict": {
+            "enum": [
+              "present",
+              "partial",
+              "absent",
+              "unknown"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "importance",
+          "verdict",
+          "confidence",
+          "evidence",
+          "photos"
+        ],
+        "type": "object"
+      },
+      "APIDay": {
+        "additionalProperties": false,
+        "properties": {
+          "day": {
+            "type": "string"
+          },
+          "listings": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day",
+          "listings"
+        ],
+        "type": "object"
+      },
+      "APIDefaults": {
+        "additionalProperties": false,
+        "properties": {
+          "assess_model": {
+            "type": "string"
+          },
+          "collection_budget_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "draft_model": {
+            "type": "string"
+          },
+          "lookup_max_charge_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "notify_min_score": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "assess_model",
+          "draft_model",
+          "collection_budget_usd",
+          "lookup_max_charge_usd",
+          "notify_min_score"
+        ],
+        "type": "object"
+      },
+      "APIFavorite": {
+        "additionalProperties": false,
+        "properties": {
+          "added_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "best": {
+            "$ref": "#/components/schemas/APIGrade",
+            "description": "The best grade across the profiles that graded the listing"
+          },
+          "last_seen": {
+            "description": "The last day any collection saw the listing",
+            "type": "string"
+          },
+          "listing": {
+            "$ref": "#/components/schemas/APIListing"
+          }
+        },
+        "required": [
+          "listing",
+          "added_at"
+        ],
+        "type": "object"
+      },
+      "APIGrade": {
+        "additionalProperties": false,
+        "properties": {
+          "avoids_hit": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "calibrated": {
+            "type": "boolean"
+          },
+          "coverage": {
+            "format": "double",
+            "type": "number"
+          },
+          "dealbreakers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "match": {
+            "description": "Score relative to the profile's reference listings when calibrated, otherwise the raw score",
+            "format": "double",
+            "type": "number"
+          },
+          "missing_essentials": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "score": {
+            "format": "double",
+            "type": "number"
+          },
+          "stale": {
+            "description": "The assessment predates a change to the profile or listing",
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile",
+          "match",
+          "calibrated",
+          "score",
+          "coverage",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "APIInheritedCriterion": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "importance": {
+            "type": "string"
+          },
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "label": {
+            "type": "string"
+          },
+          "look_for": {
+            "type": "string"
+          },
+          "not_this": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "profile_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile",
+          "profile_name",
+          "id",
+          "label",
+          "look_for",
+          "importance",
+          "evidence"
+        ],
+        "type": "object"
+      },
+      "APIJob": {
+        "additionalProperties": false,
+        "properties": {
+          "collection_id": {
+            "type": "string"
+          },
+          "cost_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "finished_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "params": {},
+          "profile_id": {
+            "type": "string"
+          },
+          "result": {},
+          "started_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "degraded",
+              "failed",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "trigger": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "trigger",
+          "status",
+          "created_at",
+          "cost_usd"
+        ],
+        "type": "object"
+      },
+      "APIJobEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "record": {
+            "description": "Structured attributes logged with the message"
+          },
+          "seq": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seq",
+          "at",
+          "level",
+          "message"
+        ],
+        "type": "object"
+      },
+      "APIKey": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "hint": {
+            "description": "The token's first characters",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "last_used_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "hint",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "APIListing": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "amenities": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object"
+          },
+          "baths": {
+            "format": "double",
+            "type": "number"
+          },
+          "beds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "collages": {
+            "description": "API paths of the photo collages the listing was graded from",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "coordinates": {
+            "$ref": "#/components/schemas/Coordinates"
+          },
+          "description": {
+            "type": "string"
+          },
+          "href": {
+            "description": "This listing's API path",
+            "type": "string"
+          },
+          "listed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "offer": {
+            "type": "string"
+          },
+          "photos": {
+            "description": "Photo URLs on the source site",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "price": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "source": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "sqft": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "description": "The listing on its source site",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "source_id",
+          "url",
+          "href",
+          "offer",
+          "price",
+          "address",
+          "photos",
+          "observed_at"
+        ],
+        "type": "object"
+      },
+      "APIListingDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "also_listed": {
+            "items": {
+              "$ref": "#/components/schemas/APIListing"
+            },
+            "type": "array"
+          },
+          "collection": {
+            "type": "string"
+          },
+          "day": {
+            "type": "string"
+          },
+          "favorite": {
+            "type": "boolean"
+          },
+          "grades": {
+            "items": {
+              "$ref": "#/components/schemas/APIListingGrade"
+            },
+            "type": "array"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/APIPriceSighting"
+            },
+            "type": "array"
+          },
+          "listing": {
+            "$ref": "#/components/schemas/APIListing"
+          },
+          "location": {
+            "$ref": "#/components/schemas/APILocation",
+            "description": "Where to place the listing on a map"
+          }
+        },
+        "required": [
+          "listing",
+          "also_listed",
+          "history",
+          "grades",
+          "favorite"
+        ],
+        "type": "object"
+      },
+      "APIListingGrade": {
+        "additionalProperties": false,
+        "properties": {
+          "avoids_hit": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "calibrated": {
+            "type": "boolean"
+          },
+          "coverage": {
+            "format": "double",
+            "type": "number"
+          },
+          "dealbreakers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "match": {
+            "description": "Score relative to the profile's reference listings when calibrated, otherwise the raw score",
+            "format": "double",
+            "type": "number"
+          },
+          "missing_essentials": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/APIModelResult"
+            },
+            "type": "array"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "profile_name": {
+            "type": "string"
+          },
+          "score": {
+            "format": "double",
+            "type": "number"
+          },
+          "stale": {
+            "description": "The assessment predates a change to the profile or listing",
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile_name",
+          "models",
+          "profile",
+          "match",
+          "calibrated",
+          "score",
+          "coverage",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "APIListingRow": {
+        "additionalProperties": false,
+        "properties": {
+          "also_listed": {
+            "items": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "type": "array"
+          },
+          "best": {
+            "$ref": "#/components/schemas/APIGrade",
+            "description": "The best grade across the collection's profiles"
+          },
+          "day": {
+            "description": "The run this row is from",
+            "type": "string"
+          },
+          "favorite": {
+            "type": "boolean"
+          },
+          "first_seen": {
+            "type": "string"
+          },
+          "grades": {
+            "items": {
+              "$ref": "#/components/schemas/APIGrade"
+            },
+            "type": "array"
+          },
+          "listing": {
+            "$ref": "#/components/schemas/APIListing"
+          },
+          "new": {
+            "type": "boolean"
+          },
+          "previous_price_cents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rank": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "description": "new: first seen this day; changed: price, description or photos differ from the previous sighting; repeat: unchanged since the previous sighting, so its grade carries over",
+            "enum": [
+              "new",
+              "changed",
+              "repeat"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "rank",
+          "listing",
+          "best",
+          "grades",
+          "first_seen",
+          "new",
+          "status",
+          "favorite",
+          "day"
+        ],
+        "type": "object"
+      },
+      "APILocation": {
+        "additionalProperties": false,
+        "properties": {
+          "approx": {
+            "description": "Placed at the zip code's center because the listing has no coordinates",
+            "type": "boolean"
+          },
+          "lat": {
+            "format": "double",
+            "type": "number"
+          },
+          "lng": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lng"
+        ],
+        "type": "object"
+      },
+      "APIMapCollection": {
+        "additionalProperties": false,
+        "properties": {
+          "area": {
+            "$ref": "#/components/schemas/APIBounds",
+            "description": "The collection's search area, when its location is a known zip code"
+          },
+          "color": {
+            "description": "A suggested color for the collection's pins",
+            "type": "string"
+          },
+          "graded": {
+            "description": "Pins graded by this collection without hitting a dealbreaker",
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "latest_day": {
+            "description": "The collection's latest run in range",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "color",
+          "graded"
+        ],
+        "type": "object"
+      },
+      "APIMapConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "overlays": {
+            "items": {
+              "$ref": "#/components/schemas/APIOverlay"
+            },
+            "type": "array"
+          },
+          "positron": {
+            "$ref": "#/components/schemas/APITileLayer",
+            "description": "A cached CARTO Positron base layer, when the server has a CARTO key"
+          }
+        },
+        "required": [
+          "overlays"
+        ],
+        "type": "object"
+      },
+      "APIMapPin": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "approx": {
+            "description": "Placed at the zip code's center",
+            "type": "boolean"
+          },
+          "beds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "collections": {
+            "description": "Collections that saw the listing, in collection order",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "first_seen": {
+            "type": "string"
+          },
+          "grades": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/APIPinGrade"
+            },
+            "description": "The listing's best grade in each collection that graded it",
+            "type": "object"
+          },
+          "href": {
+            "description": "This listing's API path",
+            "type": "string"
+          },
+          "last_seen": {
+            "type": "string"
+          },
+          "lat": {
+            "format": "double",
+            "type": "number"
+          },
+          "lng": {
+            "format": "double",
+            "type": "number"
+          },
+          "offer": {
+            "type": "string"
+          },
+          "preview": {
+            "description": "API path of the listing's first collage",
+            "type": "string"
+          },
+          "price_cents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "ungraded": {
+            "description": "No collection has graded the listing yet",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "source",
+          "source_id",
+          "href",
+          "lat",
+          "lng",
+          "address",
+          "offer",
+          "price_cents",
+          "first_seen",
+          "last_seen",
+          "collections",
+          "grades"
+        ],
+        "type": "object"
+      },
+      "APIMapPins": {
+        "additionalProperties": false,
+        "properties": {
+          "collections": {
+            "items": {
+              "$ref": "#/components/schemas/APIMapCollection"
+            },
+            "type": "array"
+          },
+          "first_day": {
+            "description": "The earliest run in range across all collections",
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "last_day": {
+            "description": "The latest run in range across all collections",
+            "type": "string"
+          },
+          "pins": {
+            "description": "One pin per distinct listing; listings without a location are left out",
+            "items": {
+              "$ref": "#/components/schemas/APIMapPin"
+            },
+            "type": "array"
+          },
+          "to": {
+            "type": "string"
+          },
+          "unplaced": {
+            "description": "Listings left out for having no location",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "collections",
+          "pins",
+          "unplaced"
+        ],
+        "type": "object"
+      },
+      "APIMeta": {
+        "additionalProperties": false,
+        "properties": {
+          "amenities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "defaults": {
+            "$ref": "#/components/schemas/APIDefaults"
+          },
+          "importances": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "modes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "profile_kinds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sources": {
+            "description": "Listing sources this server can search",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "modes",
+          "sources",
+          "amenities",
+          "importances",
+          "profile_kinds",
+          "defaults"
+        ],
+        "type": "object"
+      },
+      "APIModelResult": {
+        "additionalProperties": false,
+        "properties": {
+          "assessed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "avoids": {
+            "items": {
+              "$ref": "#/components/schemas/APICriterionResult"
+            },
+            "type": "array"
+          },
+          "coverage": {
+            "format": "double",
+            "type": "number"
+          },
+          "model": {
+            "type": "string"
+          },
+          "score": {
+            "format": "double",
+            "type": "number"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "wants": {
+            "items": {
+              "$ref": "#/components/schemas/APICriterionResult"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "model",
+          "stale",
+          "score",
+          "coverage",
+          "summary",
+          "assessed_at",
+          "wants",
+          "avoids"
+        ],
+        "type": "object"
+      },
+      "APIOverlay": {
+        "additionalProperties": false,
+        "properties": {
+          "max_zoom": {
+            "description": "Tiles stop here; clients overzoom beyond it",
+            "format": "int64",
+            "type": "integer"
+          },
+          "min_zoom": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "enum": [
+              "bike",
+              "rail",
+              "bus"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "description": "Template for tiles of simplified line features as JSON",
+            "type": "string"
+          },
+          "vector_url": {
+            "description": "Template for the source's raw Mapbox vector tiles",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "min_zoom",
+          "max_zoom",
+          "url",
+          "vector_url"
+        ],
+        "type": "object"
+      },
+      "APIPinGrade": {
+        "additionalProperties": false,
+        "properties": {
+          "calibrated": {
+            "type": "boolean"
+          },
+          "dealbreakers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "match": {
+            "format": "double",
+            "type": "number"
+          },
+          "stale": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "match",
+          "calibrated"
+        ],
+        "type": "object"
+      },
+      "APIPriceSighting": {
+        "additionalProperties": false,
+        "properties": {
+          "day": {
+            "type": "string"
+          },
+          "price_cents": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day",
+          "price_cents"
+        ],
+        "type": "object"
+      },
+      "APIProfileDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "collections": {
+            "description": "Collections that use this profile",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "inherited_avoids": {
+            "description": "Avoid criteria applied from avoid profiles",
+            "items": {
+              "$ref": "#/components/schemas/APIInheritedCriterion"
+            },
+            "type": "array"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/Profile"
+          },
+          "references": {
+            "description": "The listings the profile's criteria were drafted from",
+            "items": {
+              "$ref": "#/components/schemas/APIReference"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "profile",
+          "inherited_avoids",
+          "collections",
+          "references"
+        ],
+        "type": "object"
+      },
+      "APIProfileListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "avoids": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "collections": {
+            "description": "Collections that use this profile",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "drafted": {
+            "$ref": "#/components/schemas/Drafted"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "references": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "wants": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "wants",
+          "avoids",
+          "references",
+          "collections",
+          "id",
+          "kind",
+          "name",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "APIProfileSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "APIRedraftProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "model": {
+            "description": "Drafting model; empty means the default",
+            "type": "string"
+          },
+          "notes": {
+            "description": "Replacement drafting notes; the profile's current notes are used when omitted",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "APIReference": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "collages": {
+            "description": "API paths of the reference's photo collages",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "scores": {
+            "additionalProperties": {
+              "format": "double",
+              "type": "number"
+            },
+            "description": "The reference's own score under each grading model",
+            "type": "object"
+          },
+          "source": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "source_id",
+          "url",
+          "address",
+          "collages",
+          "scores"
+        ],
+        "type": "object"
+      },
+      "APITileLayer": {
+        "additionalProperties": false,
+        "properties": {
+          "max_zoom": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "description": "Tile URL template; {r} is empty or @2x for retina tiles",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "max_zoom"
+        ],
+        "type": "object"
+      },
+      "APIUpdateCollection": {
+        "additionalProperties": false,
+        "properties": {
+          "amenities": {
+            "description": "Required amenities; an empty list clears them",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "clear": {
+            "description": "Price and bed bounds to remove",
+            "items": {
+              "enum": [
+                "min_price",
+                "max_price",
+                "min_beds",
+                "max_beds"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "limit": {
+            "description": "Maximum listings fetched per source; 0 means the default",
+            "format": "int64",
+            "type": "integer"
+          },
+          "location": {
+            "description": "Search area, e.g. a ZIP code or city",
+            "type": "string"
+          },
+          "max_age_days": {
+            "description": "Only listings posted within this many days; 0 means no limit",
+            "format": "int64",
+            "type": "integer"
+          },
+          "max_beds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "max_price": {
+            "description": "Whole dollars",
+            "format": "int64",
+            "type": "integer"
+          },
+          "max_run_cost_usd": {
+            "description": "Spending cap per run; 0 means the default",
+            "format": "double",
+            "type": "number"
+          },
+          "min_beds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "min_price": {
+            "description": "Whole dollars",
+            "format": "int64",
+            "type": "integer"
+          },
+          "mode": {
+            "description": "rent or buy",
+            "enum": [
+              "rent",
+              "buy"
+            ],
+            "type": "string"
+          },
+          "model": {
+            "description": "Grading model; empty means the default",
+            "type": "string"
+          },
+          "notify_min_score": {
+            "description": "Minimum match to notify about; 0 means the default",
+            "format": "double",
+            "type": "number"
+          },
+          "notify_url": {
+            "description": "ntfy topic URL for notifications; empty to turn them off",
+            "type": "string"
+          },
+          "profiles": {
+            "description": "Want profile ids, in priority order",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "radius_miles": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "schedule": {
+            "description": "Daily run time, HH:MM server-local; empty to unschedule",
+            "type": "string"
+          },
+          "sources": {
+            "description": "Listing sources to search",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "Address": {
+        "additionalProperties": false,
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "formatted": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "street": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "formatted"
+        ],
+        "type": "object"
+      },
+      "Coordinates": {
+        "additionalProperties": false,
+        "properties": {
+          "lat": {
+            "format": "double",
+            "type": "number"
+          },
+          "lng": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lng"
+        ],
+        "type": "object"
+      },
+      "Criterion": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "importance": {
+            "type": "string"
+          },
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "label": {
+            "type": "string"
+          },
+          "look_for": {
+            "type": "string"
+          },
+          "not_this": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "look_for",
+          "importance",
+          "evidence"
+        ],
+        "type": "object"
+      },
+      "CriterionPatch": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "importance": {
+            "description": "Unchanged when empty",
+            "enum": [
+              "essential",
+              "high",
+              "medium",
+              "low"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "description": "New label; unchanged when empty",
+            "type": "string"
+          },
+          "remove": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "Drafted": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "cost_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "model": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "model",
+          "at",
+          "cost_usd"
+        ],
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "description": "Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'",
+            "type": "string"
+          },
+          "message": {
+            "description": "Error message text",
+            "type": "string"
+          },
+          "value": {
+            "description": "The value at the given location"
+          }
+        },
+        "type": "object"
+      },
+      "ErrorModel": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "description": "A human-readable explanation specific to this occurrence of the problem.",
+            "examples": [
+              "Property foo is required but is missing."
+            ],
+            "type": "string"
+          },
+          "errors": {
+            "description": "Optional list of individual error details",
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetail"
+            },
+            "type": "array"
+          },
+          "instance": {
+            "description": "A URI reference that identifies the specific occurrence of the problem.",
+            "examples": [
+              "https://example.com/error-log/abc123"
+            ],
+            "format": "uri",
+            "type": "string"
+          },
+          "status": {
+            "description": "HTTP status code",
+            "examples": [
+              400
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type. This value should not change between occurrences of the error.",
+            "examples": [
+              "Bad Request"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "description": "A URI reference to human-readable documentation for the error.",
+            "examples": [
+              "https://example.com/errors/example"
+            ],
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Link": {
+        "additionalProperties": false,
+        "properties": {
+          "price": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "source": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "source_id",
+          "url",
+          "price"
+        ],
+        "type": "object"
+      },
+      "Money": {
+        "additionalProperties": false,
+        "properties": {
+          "cents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cents",
+          "currency"
+        ],
+        "type": "object"
+      },
+      "Profile": {
+        "additionalProperties": false,
+        "properties": {
+          "avoid": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array"
+          },
+          "drafted": {
+            "$ref": "#/components/schemas/Drafted"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ignore": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "references": {
+            "items": {
+              "$ref": "#/components/schemas/Reference"
+            },
+            "type": "array"
+          },
+          "searches": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Search"
+            },
+            "type": "object"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "want": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "summary",
+          "want",
+          "ignore",
+          "references"
+        ],
+        "type": "object"
+      },
+      "ProfilePatch": {
+        "additionalProperties": false,
+        "properties": {
+          "criteria": {
+            "description": "Edits to the profile's own want and avoid criteria, by id",
+            "items": {
+              "$ref": "#/components/schemas/CriterionPatch"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "description": "Guidance for drafting criteria, one note per entry; an empty list clears them",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Reference": {
+        "additionalProperties": false,
+        "properties": {
+          "avoid": {
+            "type": "boolean"
+          },
+          "collages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "source_id",
+          "url",
+          "collages"
+        ],
+        "type": "object"
+      },
+      "Search": {
+        "additionalProperties": false,
+        "properties": {
+          "amenities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "limit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "location": {
+            "type": "string"
+          },
+          "max_age_days": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "max_beds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "max_price": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "min_beds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "min_price": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "radius_miles": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "description": "An API key created on the server's API keys page or with `housing apikeys create`.",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Manage collections, profiles, favorites and API keys, read ranked listings and map pins, and queue and follow jobs.",
+    "title": "housing",
+    "version": "1.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/collections": {
+      "get": {
+        "operationId": "listCollections",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/APICollection"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List collections",
+        "tags": [
+          "collections"
+        ]
+      },
+      "post": {
+        "description": "Does not run it; queue a run for that.",
+        "operationId": "createCollection",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/APICreateCollection"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APICollection"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create a collection",
+        "tags": [
+          "collections"
+        ]
+      }
+    },
+    "/api/v1/collections/{id}": {
+      "get": {
+        "operationId": "getCollection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APICollection"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a collection",
+        "tags": [
+          "collections"
+        ]
+      },
+      "patch": {
+        "operationId": "updateCollection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/APIUpdateCollection"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APICollection"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Change a collection's settings; only the fields given change",
+        "tags": [
+          "collections"
+        ]
+      }
+    },
+    "/api/v1/collections/{id}/days": {
+      "get": {
+        "operationId": "listCollectionDays",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/APIDay"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List the days a collection was run",
+        "tags": [
+          "collections"
+        ]
+      }
+    },
+    "/api/v1/collections/{id}/listings": {
+      "get": {
+        "operationId": "listCollectionListings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "YYYY-MM-DD; the latest run on or before this day. Defaults to the latest run.",
+            "explode": false,
+            "in": "query",
+            "name": "day",
+            "schema": {
+              "description": "YYYY-MM-DD; the latest run on or before this day. Defaults to the latest run.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "With from or to, list each listing's latest graded sighting across the runs in this range instead of one run",
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "description": "With from or to, list each listing's latest graded sighting across the runs in this range instead of one run",
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Include listings that hit a dealbreaker",
+            "explode": false,
+            "in": "query",
+            "name": "dealbreakers",
+            "schema": {
+              "description": "Include listings that hit a dealbreaker",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Only listings whose best match is at least this",
+            "explode": false,
+            "in": "query",
+            "name": "min_match",
+            "schema": {
+              "description": "Only listings whose best match is at least this",
+              "format": "double",
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Only listings first seen on this day",
+            "explode": false,
+            "in": "query",
+            "name": "new_only",
+            "schema": {
+              "description": "Only listings first seen on this day",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Leave out listings unchanged since their previous sighting",
+            "explode": false,
+            "in": "query",
+            "name": "hide_repeats",
+            "schema": {
+              "description": "Leave out listings unchanged since their previous sighting",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Maximum rows to return; 0 for all",
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "description": "Maximum rows to return; 0 for all",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Rows to skip after filtering",
+            "explode": false,
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "description": "Rows to skip after filtering",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APICollectionListings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List a collection's ranked listings for one day",
+        "tags": [
+          "listings"
+        ]
+      }
+    },
+    "/api/v1/collections/{id}/runs": {
+      "post": {
+        "operationId": "runCollection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIJob"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Queue a run of a collection",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/v1/favorites": {
+      "get": {
+        "operationId": "listFavorites",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/APIFavorite"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List favorite listings, newest first",
+        "tags": [
+          "favorites"
+        ]
+      }
+    },
+    "/api/v1/jobs": {
+      "get": {
+        "operationId": "listJobs",
+        "parameters": [
+          {
+            "description": "Only this collection's jobs",
+            "explode": false,
+            "in": "query",
+            "name": "collection",
+            "schema": {
+              "description": "Only this collection's jobs",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only jobs that create or draft this profile",
+            "explode": false,
+            "in": "query",
+            "name": "profile",
+            "schema": {
+              "description": "Only jobs that create or draft this profile",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "enum": [
+                "run_collection",
+                "create_profile",
+                "draft_profile"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "queued",
+                "running",
+                "succeeded",
+                "degraded",
+                "failed",
+                "cancelled"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum jobs to return; 0 for all",
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "description": "Maximum jobs to return; 0 for all",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Only jobs older than this job id; pass the last id of the previous page",
+            "explode": false,
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "description": "Only jobs older than this job id; pass the last id of the previous page",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/APIJob"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Link": {
+                "schema": {
+                  "description": "The next page, as rel=\"next\", when there may be more jobs",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List jobs, newest first",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/v1/jobs/{id}": {
+      "get": {
+        "operationId": "getJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIJob"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/v1/jobs/{id}/events": {
+      "get": {
+        "operationId": "listJobEvents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Only events with a higher seq",
+            "explode": false,
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "description": "Only events with a higher seq",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/APIJobEvent"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List a job's progress log",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/v1/jobs/{id}/stream": {
+      "get": {
+        "description": "Sends each progress event as `event`, with the event's seq as the message id, and the job itself as `job` whenever its status changes. The stream ends once the job has finished.",
+        "operationId": "streamJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Only events with a higher seq",
+            "explode": false,
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "description": "Only events with a higher seq",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Set by EventSource on reconnect; resumes after this seq",
+            "in": "header",
+            "name": "Last-Event-ID",
+            "schema": {
+              "description": "Set by EventSource on reconnect; resumes after this seq",
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "description": "Each oneOf object in the array represents one possible Server Sent Events (SSE) message, serialized as UTF-8 text according to the SSE specification.",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/APIJobEvent"
+                          },
+                          "event": {
+                            "const": "event",
+                            "description": "The event name.",
+                            "type": "string"
+                          },
+                          "id": {
+                            "description": "The event ID.",
+                            "type": "integer"
+                          },
+                          "retry": {
+                            "description": "The retry time in milliseconds.",
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "data",
+                          "event"
+                        ],
+                        "title": "Event event",
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/APIJob"
+                          },
+                          "event": {
+                            "const": "job",
+                            "description": "The event name.",
+                            "type": "string"
+                          },
+                          "id": {
+                            "description": "The event ID.",
+                            "type": "integer"
+                          },
+                          "retry": {
+                            "description": "The retry time in milliseconds.",
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "data",
+                          "event"
+                        ],
+                        "title": "Event job",
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "title": "Server Sent Events",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Stream a job's progress",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/v1/keys": {
+      "get": {
+        "operationId": "listKeys",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/APIKey"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List API keys",
+        "tags": [
+          "keys"
+        ]
+      },
+      "post": {
+        "description": "The token is returned only in this response.",
+        "operationId": "createKey",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/APICreateKey"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APICreatedKey"
+                }
+              }
+            },
+            "description": "Created",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create an API key",
+        "tags": [
+          "keys"
+        ]
+      }
+    },
+    "/api/v1/keys/{id}": {
+      "delete": {
+        "operationId": "deleteKey",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Delete an API key",
+        "tags": [
+          "keys"
+        ]
+      }
+    },
+    "/api/v1/listings/{source}/{source_id}": {
+      "get": {
+        "operationId": "getListing",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Grade against this collection's profiles and show the listing as of one of its runs",
+            "explode": false,
+            "in": "query",
+            "name": "collection",
+            "schema": {
+              "description": "Grade against this collection's profiles and show the listing as of one of its runs",
+              "type": "string"
+            }
+          },
+          {
+            "description": "YYYY-MM-DD; with collection, the run on or before this day",
+            "explode": false,
+            "in": "query",
+            "name": "day",
+            "schema": {
+              "description": "YYYY-MM-DD; with collection, the run on or before this day",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIListingDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a listing with its grades",
+        "tags": [
+          "listings"
+        ]
+      }
+    },
+    "/api/v1/listings/{source}/{source_id}/favorite": {
+      "delete": {
+        "operationId": "removeFavorite",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Unmark a favorite listing",
+        "tags": [
+          "favorites"
+        ]
+      },
+      "put": {
+        "operationId": "addFavorite",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Mark a listing as a favorite",
+        "tags": [
+          "favorites"
+        ]
+      }
+    },
+    "/api/v1/map/config": {
+      "get": {
+        "operationId": "getMapConfig",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIMapConfig"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get the tile layers and overlays the server can serve",
+        "tags": [
+          "map"
+        ]
+      }
+    },
+    "/api/v1/map/pins": {
+      "get": {
+        "operationId": "listMapPins",
+        "parameters": [
+          {
+            "description": "Only runs on or after this day; empty for no lower bound",
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "description": "Only runs on or after this day; empty for no lower bound",
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only runs on or before this day; empty for no upper bound",
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "description": "Only runs on or before this day; empty for no upper bound",
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIMapPins"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List map pins for every collection's listings over a range of runs",
+        "tags": [
+          "map"
+        ]
+      }
+    },
+    "/api/v1/media/{key}": {
+      "get": {
+        "operationId": "getMedia",
+        "parameters": [
+          {
+            "description": "A collage path from a listing's collages, without the /api/v1/media/ prefix",
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "description": "A collage path from a listing's collages, without the /api/v1/media/ prefix",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Scale the image down so its longest side is at most this many pixels",
+            "explode": false,
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "description": "Scale the image down so its longest side is at most this many pixels",
+              "enum": [
+                320,
+                640,
+                1280
+              ],
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a stored image such as a listing collage",
+        "tags": [
+          "media"
+        ]
+      }
+    },
+    "/api/v1/meta": {
+      "get": {
+        "operationId": "getMeta",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIMeta"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get the server version, choices and defaults for building forms",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
+    "/api/v1/overlays/{name}/{z}/{x}/{file}": {
+      "get": {
+        "operationId": "getOverlayTile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "enum": [
+                "bike",
+                "rail",
+                "bus"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "z",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "x",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "{y}.json for simplified line features, or {y}.pbf for the raw vector tile",
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "description": "{y}.json for simplified line features, or {y}.pbf for the raw vector tile",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a transit or bike lane overlay tile",
+        "tags": [
+          "map"
+        ]
+      }
+    },
+    "/api/v1/profiles": {
+      "get": {
+        "operationId": "listProfiles",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/APIProfileListItem"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List profiles",
+        "tags": [
+          "profiles"
+        ]
+      },
+      "post": {
+        "description": "Looking up the listing spends money on scraping, and drafting criteria spends money on a model call. Follow the returned job for progress.",
+        "operationId": "createProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/APICreateProfile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIJob"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Queue creation of a profile from a reference listing",
+        "tags": [
+          "profiles"
+        ]
+      }
+    },
+    "/api/v1/profiles/{id}": {
+      "get": {
+        "operationId": "getProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIProfileDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a profile",
+        "tags": [
+          "profiles"
+        ]
+      },
+      "patch": {
+        "operationId": "updateProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfilePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIProfileDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Change a profile's name, summary, notes or own criteria; only the fields given change",
+        "tags": [
+          "profiles"
+        ]
+      }
+    },
+    "/api/v1/profiles/{id}/drafts": {
+      "post": {
+        "description": "Replaces the profile's criteria and spends money on a model call. Follow the returned job for progress.",
+        "operationId": "redraftProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/APIRedraftProfile"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIJob"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Queue a re-draft of a profile's criteria from its reference listings",
+        "tags": [
+          "profiles"
+        ]
+      }
+    },
+    "/api/v1/tiles/positron/{z}/{x}/{file}": {
+      "get": {
+        "operationId": "getPositronTile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "z",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "x",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "{y}.png, or {y}@2x.png for retina",
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "description": "{y}.png, or {y}@2x.png for retina",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a cached CARTO Positron base map tile",
+        "tags": [
+          "map"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "bearer": []
+    }
+  ]
+}

@@ -8,7 +8,7 @@ buildGoModule {
   pname = "housing";
   inherit version src;
 
-  vendorHash = "sha256-XgCMebKYJ2Paw3mZJ7EeSbYPZIlvn4Kbjf7/4TheQZM=";
+  vendorHash = "sha256-6Clp6flWtoHPIqYaSvLr0cv6c+MCHaWZsQG0LMkCkk4=";
 
   subPackages = [ "cmd/housing" ];
   tags = [ "timetzdata" ];

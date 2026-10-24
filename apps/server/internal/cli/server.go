@@ -13,13 +13,17 @@ import (
 )
 
 func newServerCmd(dataDir *string) *cobra.Command {
-	var addr string
+	var (
+		addr   string
+		noAuth bool
+	)
 	cmd := &cobra.Command{
 		Use:   "server",
 		Short: "Run the housing web app",
 		Long: "Run the long-lived web app on --addr until interrupted. It has no login of its own and is meant to\n" +
 			"sit behind a reverse proxy that handles authentication. It also serves a JSON API under /api/v1 that\n" +
-			"takes a key from `housing apikeys create` as a bearer token, with its OpenAPI spec at /api/openapi.json.\n\n" +
+			"takes a key from `housing apikeys create` as a bearer token, unless --no-api-auth is given, with its\n" +
+			"OpenAPI spec at /api/openapi.json.\n\n" +
 			"The server also runs queued jobs one at a time and enqueues a run of each collection with a\n" +
 			"--schedule once a day after its scheduled time. It holds the data directory's lock while up, so\n" +
 			"`housing run` cannot write to the same data directory at the same time.",
@@ -37,7 +41,7 @@ func newServerCmd(dataDir *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			a.Version = version
+			a.Version, a.NoAuth = version, noAuth
 			runner := &jobs.Runner{Queue: queue, Exec: svc, Log: log.With("component", "jobs")}
 			scheduler := &jobs.Scheduler{Queue: queue, Log: log.With("component", "scheduler")}
 
@@ -49,5 +53,6 @@ func newServerCmd(dataDir *string) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&addr, "addr", "127.0.0.1:8080", "address to listen on")
+	cmd.Flags().BoolVar(&noAuth, "no-api-auth", false, "serve /api without requiring an API key")
 	return cmd
 }

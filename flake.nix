@@ -24,6 +24,7 @@
         version = envOr "IMAGE_TAG" (self.shortRev or self.dirtyShortRev or "dev");
 
         serverSrc = ./apps/server;
+        webSrc = ./apps/web;
       in
       {
         packages.server = pkgs.callPackage ./nix/server.nix {
@@ -42,12 +43,28 @@
           tag = version;
         };
 
+        packages.web = pkgs.callPackage ./nix/web.nix {
+          src = webSrc;
+          inherit version;
+        };
+
+        packages.web-image = linuxPkgs.callPackage ./nix/web-image.nix {
+          web = linuxPkgs.callPackage ./nix/web.nix {
+            src = webSrc;
+            inherit version;
+          };
+          name = envOr "IMAGE_NAME" "housing-web";
+          tag = version;
+        };
+
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             go
             go-task
             git
             skopeo
+            nodejs
+            pnpm
           ];
         };
       });

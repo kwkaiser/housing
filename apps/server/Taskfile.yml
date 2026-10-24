@@ -69,7 +69,14 @@ tasks:
     cmds:
       - go get -u ./...
       - go mod tidy
-      - task: :vendor-hash
+      - task: :hashes
+
+  dev:
+    desc: Run the server without API auth, for local development.
+    deps: [build]
+    dir: '{{.ROOT_DIR}}'
+    cmds:
+      - '{{.TASKFILE_DIR}}/bin/{{.BINARY}} server --no-api-auth {{.CLI_ARGS}}'
 
   run:
     deps: [build]

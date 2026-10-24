@@ -21,6 +21,7 @@ func newRootCmd() *cobra.Command {
 	dataDir := cmd.PersistentFlags().String("data-dir", "data", "directory for the database and media")
 	cmd.AddCommand(
 		newVersionCmd(),
+		newOpenAPICmd(),
 		newServerCmd(dataDir),
 		newMigrateCmd(dataDir),
 		newImportCmd(dataDir),

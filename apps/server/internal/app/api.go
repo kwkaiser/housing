@@ -3,7 +3,9 @@ package app
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"log/slog"
 	"maps"
 	"mime"
 	"net/http"
@@ -37,7 +39,19 @@ const (
 	apiSpecVersion = "1.1.0"
 )
 
+func OpenAPI() ([]byte, error) {
+	a := &App{log: slog.New(slog.DiscardHandler)}
+	_, api := a.newAPI()
+	return json.MarshalIndent(api.OpenAPI(), "", "  ")
+}
+
 func (a *App) apiHandler() http.Handler {
+	mux, _ := a.newAPI()
+	return mux
+}
+
+func (a *App) newAPI() (*http.ServeMux, huma.API) {
+	huma.DefaultArrayNullable = false
 	mux := http.NewServeMux()
 	cfg := huma.DefaultConfig("housing", apiSpecVersion)
 	cfg.CreateHooks = nil
@@ -145,7 +159,7 @@ func (a *App) apiHandler() http.Handler {
 	paths := api.OpenAPI().Paths
 	paths[apiV1+"/media/{key}"] = paths[apiV1+"/media/{key...}"]
 	delete(paths, apiV1+"/media/{key...}")
-	return mux
+	return mux, api
 }
 
 func op(id, summary, tag string) func(*huma.Operation) {
@@ -174,6 +188,9 @@ func (a *App) apiAuth(api huma.API) func(huma.Context, func(huma.Context)) {
 }
 
 func (a *App) authenticate(ctx context.Context, header string) (bool, error) {
+	if a.NoAuth {
+		return true, nil
+	}
 	token, ok := strings.CutPrefix(header, "Bearer ")
 	if !ok {
 		return false, nil
@@ -224,9 +241,16 @@ type APICollection struct {
 
 func apiCollection(c collection.Collection) APICollection {
 	return APICollection{
-		ID: c.ID, Mode: c.Mode, Sources: c.Sources, Profiles: c.Profiles, Search: c.Search, Model: c.Model, Schedule: c.Schedule,
+		ID: c.ID, Mode: c.Mode, Sources: nonNil(c.Sources), Profiles: nonNil(c.Profiles), Search: c.Search, Model: c.Model, Schedule: c.Schedule,
 		MaxRunCostUSD: c.MaxRunCostUSD, NotifyURL: c.Notify.URL, NotifyMinScore: c.Notify.MinScore,
 	}
+}
+
+func nonNil[T any](s []T) []T {
+	if s == nil {
+		return []T{}
+	}
+	return s
 }
 
 type APIListing struct {
@@ -312,6 +336,7 @@ type APIListingRow struct {
 	Status             service.Status `json:"status" enum:"new,changed,repeat" doc:"new: first seen this day; changed: price, description or photos differ from the previous sighting; repeat: unchanged since the previous sighting, so its grade carries over"`
 	PreviousPriceCents *int64         `json:"previous_price_cents,omitempty"`
 	Favorite           bool           `json:"favorite"`
+	Day                string         `json:"day" doc:"The run this row is from"`
 }
 
 type APIDay struct {
@@ -364,6 +389,8 @@ func (a *App) apiCollectionDays(ctx context.Context, in *collectionInput) (*stru
 type collectionListingsInput struct {
 	ID           string  `path:"id"`
 	Day          string  `query:"day" doc:"YYYY-MM-DD; the latest run on or before this day. Defaults to the latest run."`
+	From         string  `query:"from" format:"date" doc:"With from or to, list each listing's latest graded sighting across the runs in this range instead of one run"`
+	To           string  `query:"to" format:"date"`
 	Dealbreakers bool    `query:"dealbreakers" doc:"Include listings that hit a dealbreaker"`
 	MinMatch     float64 `query:"min_match" minimum:"0" doc:"Only listings whose best match is at least this"`
 	NewOnly      bool    `query:"new_only" doc:"Only listings first seen on this day"`
@@ -374,10 +401,12 @@ type collectionListingsInput struct {
 
 type APICollectionListings struct {
 	Collection  APICollection       `json:"collection"`
-	Day         string              `json:"day,omitempty" doc:"The run shown; empty when the collection has never run"`
+	Day         string              `json:"day,omitempty" doc:"The run shown; empty when the collection has never run or a range was asked for"`
+	From        string              `json:"from,omitempty"`
+	To          string              `json:"to,omitempty"`
 	PreviousDay string              `json:"previous_day,omitempty"`
 	NextDay     string              `json:"next_day,omitempty"`
-	Listings    int                 `json:"listings" doc:"Listings observed that day"`
+	Listings    int                 `json:"listings" doc:"Listings observed that day, or across the range"`
 	Graded      int                 `json:"graded" doc:"Distinct listings with a grade"`
 	Hidden      int                 `json:"hidden" doc:"Graded listings left out for hitting a dealbreaker"`
 	Matched     int                 `json:"matched" doc:"Rows that pass the filters, before offset and limit"`
@@ -388,12 +417,21 @@ type APICollectionListings struct {
 }
 
 func (a *App) apiCollectionListings(ctx context.Context, in *collectionListingsInput) (*struct{ Body APICollectionListings }, error) {
-	v, err := a.svc.CollectionDay(ctx, in.ID, service.DayOptions{Day: in.Day, Dealbreakers: in.Dealbreakers})
+	var v service.CollectionDayView
+	var err error
+	if in.From != "" || in.To != "" {
+		if in.From != "" && in.To != "" && in.From > in.To {
+			in.From, in.To = in.To, in.From
+		}
+		v, err = a.svc.CollectionSpan(ctx, in.ID, service.SpanOptions{From: in.From, To: in.To, Dealbreakers: in.Dealbreakers})
+	} else {
+		v, err = a.svc.CollectionDay(ctx, in.ID, service.DayOptions{Day: in.Day, Dealbreakers: in.Dealbreakers})
+	}
 	if err != nil {
 		return nil, a.apiError(ctx, err)
 	}
 	out := APICollectionListings{
-		Collection: apiCollection(v.Collection), Day: v.Day, PreviousDay: v.Prev, NextDay: v.Next,
+		Collection: apiCollection(v.Collection), Day: v.Day, From: in.From, To: in.To, PreviousDay: v.Prev, NextDay: v.Next,
 		Listings: v.Listings, Graded: v.Graded, Hidden: v.Hidden, Stale: v.Stale,
 		Models: v.Models, Profiles: []APIProfileSummary{}, Rows: []APIListingRow{},
 	}
@@ -413,7 +451,7 @@ func (a *App) apiCollectionListings(ctx context.Context, in *collectionListingsI
 		}
 		r := APIListingRow{
 			Rank: row.Rank, Listing: apiListing(row.Listing), Best: apiGrade(row.Grade), Grades: []APIGrade{}, AlsoListed: row.AlsoListed,
-			FirstSeen: row.FirstSeen, New: row.New(), Status: row.Status, PreviousPriceCents: row.PreviousPriceCents, Favorite: row.Favorite,
+			FirstSeen: row.FirstSeen, New: row.New(), Status: row.Status, PreviousPriceCents: row.PreviousPriceCents, Favorite: row.Favorite, Day: row.Day,
 		}
 		for _, id := range v.Collection.Profiles {
 			if g, ok := row.Grades[id]; ok {
@@ -601,6 +639,10 @@ func (a *App) apiProfile(ctx context.Context, in *profileInput) (*struct{ Body A
 		out.References = append(out.References, ref)
 	}
 	out.Profile.Kind = kindOf(out.Profile)
+	out.Profile.Want, out.Profile.Ignore, out.Profile.References = nonNil(out.Profile.Want), nonNil(out.Profile.Ignore), nonNil(out.Profile.References)
+	for i := range out.Profile.References {
+		out.Profile.References[i].Collages = nonNil(out.Profile.References[i].Collages)
+	}
 	if out.Collections == nil {
 		out.Collections = []string{}
 	}

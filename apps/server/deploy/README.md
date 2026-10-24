@@ -82,3 +82,12 @@ curl -s http://127.0.0.1:8080/healthz
 ```
 
 On stop, the server stops accepting connections and lets in-flight requests finish for up to 10 seconds. `TimeoutStopSec=30` leaves room for that. Restarts happen only on failure.
+
+## Web app
+
+`apps/web` builds into its own image, `git.kwkaiser.io/kwkaiser/housing-web`, which runs Caddy on port 8080. Caddy serves the app and proxies `/api/` to the server. Settings:
+
+- `HOUSING_API_URL`: where the server listens. Defaults to `http://housing:8080`.
+- `HOUSING_API_KEY`: optional. When set, Caddy adds it as the bearer token on every proxied API request. When unset, run the server with `--no-api-auth`.
+
+For local development, `task dev` runs the server with `--no-api-auth` alongside the Vite dev server. The dev server proxies `/api` to `HOUSING_API_URL` (default `http://127.0.0.1:8080`) and sends `HOUSING_API_KEY` if it is set.

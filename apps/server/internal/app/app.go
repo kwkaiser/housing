@@ -37,6 +37,7 @@ type Jobs interface {
 type App struct {
 	ShutdownTimeout time.Duration
 	Version         string
+	NoAuth          bool
 
 	svc      *service.Service
 	jobs     Jobs

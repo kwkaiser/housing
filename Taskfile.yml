@@ -6,21 +6,29 @@ includes:
   server:
     taskfile: ./apps/server/Taskfile.yml
     dir: ./apps/server
+  web:
+    taskfile: ./apps/web/Taskfile.yml
+    dir: ./apps/web
 
 vars:
   VERSION:
     sh: git describe --tags --always --dirty 2>/dev/null || echo dev
 
 tasks:
-  vendor-hash:
-    desc: Regenerate vendorHash in nix/server.nix from apps/server/go.mod and go.sum.
+  dev:
+    desc: Run the server without API auth and the web dev server, which proxies /api to it.
+    deps: [server:dev, web:dev]
+
+  hashes:
+    desc: Regenerate the dependency hashes in nix/server.nix and nix/web.nix.
     cmds:
-      - ./nix/vendor-hash.sh
+      - ./nix/update-hashes.sh
 
   build-image:
-    desc: Build the server container image into .task/image.tar for SYSTEM (default x86_64-linux).
+    desc: Build the TARGET (server or web) container image into .task/TARGET.tar for SYSTEM (default x86_64-linux).
     vars:
-      IMAGE_NAME: '{{.IMAGE_NAME | default "git.kwkaiser.io/kwkaiser/housing"}}'
+      TARGET: '{{.TARGET | default "server"}}'
+      IMAGE_NAME: '{{.IMAGE_NAME | default (eq .TARGET "web" | ternary "git.kwkaiser.io/kwkaiser/housing-web" "git.kwkaiser.io/kwkaiser/housing")}}'
       IMAGE_TAG: '{{.IMAGE_TAG | default .VERSION}}'
       SYSTEM: '{{.SYSTEM | default "x86_64-linux"}}'
     cmds:
@@ -29,18 +37,19 @@ tasks:
         set -eu
         export IMAGE_NAME="{{.IMAGE_NAME}}"
         export IMAGE_TAG="{{.IMAGE_TAG}}"
-        stream=$(nix build --impure --no-link --print-out-paths .#packages.{{.SYSTEM}}.server-image)
-        "$stream" > .task/image.tar
+        stream=$(nix build --impure --no-link --print-out-paths .#packages.{{.SYSTEM}}.{{.TARGET}}-image)
+        "$stream" > .task/{{.TARGET}}.tar
 
   push-image:
-    desc: Push .task/image.tar to the container registry. Needs REGISTRY_USER and REGISTRY_TOKEN.
+    desc: Push .task/TARGET.tar to the container registry. Needs REGISTRY_USER and REGISTRY_TOKEN.
     vars:
-      IMAGE_NAME: '{{.IMAGE_NAME | default "git.kwkaiser.io/kwkaiser/housing"}}'
+      TARGET: '{{.TARGET | default "server"}}'
+      IMAGE_NAME: '{{.IMAGE_NAME | default (eq .TARGET "web" | ternary "git.kwkaiser.io/kwkaiser/housing-web" "git.kwkaiser.io/kwkaiser/housing")}}'
       IMAGE_TAGS: '{{.IMAGE_TAGS | default .VERSION}}'
       TLS_VERIFY: '{{.TLS_VERIFY | default "true"}}'
     preconditions:
-      - sh: test -f .task/image.tar
-        msg: '.task/image.tar not found - run `task build-image` first'
+      - sh: test -f .task/{{.TARGET}}.tar
+        msg: '.task/{{.TARGET}}.tar not found - run `task build-image TARGET={{.TARGET}}` first'
     cmds:
       - |
         set -eu
@@ -51,6 +60,6 @@ tasks:
           skopeo --insecure-policy copy \
             --dest-tls-verify={{.TLS_VERIFY}} \
             --dest-creds "$REGISTRY_USER:$REGISTRY_TOKEN" \
-            docker-archive:.task/image.tar \
+            docker-archive:.task/{{.TARGET}}.tar \
             "docker://{{.IMAGE_NAME}}:$tag"
         done

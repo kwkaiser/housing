@@ -26,10 +26,25 @@
       ],
       "postUpgradeTasks": {
         "commands": [
-          "./nix/vendor-hash.sh"
+          "./nix/update-hashes.sh"
         ],
         "fileFilters": [
           "nix/server.nix"
+        ],
+        "executionMode": "branch"
+      }
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "minimumReleaseAge": "7 days",
+      "postUpgradeTasks": {
+        "commands": [
+          "./nix/update-hashes.sh"
+        ],
+        "fileFilters": [
+          "nix/web.nix"
         ],
         "executionMode": "branch"
       }
@@ -44,6 +59,17 @@
         "digest"
       ],
       "groupName": "go dependencies"
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest"
+      ],
+      "groupName": "web dependencies"
     },
     {
       "matchManagers": [
