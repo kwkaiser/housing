@@ -37,6 +37,7 @@ type App struct {
 	now      func() time.Time
 	log      *slog.Logger
 	positron *tiles.Cache
+	terrain  *tiles.Cache
 	overlays []overlay
 	handler  http.Handler
 
@@ -50,6 +51,7 @@ func New(svc *service.Service, q Jobs, log *slog.Logger) (*App, error) {
 	a := &App{ShutdownTimeout: DefaultShutdownTimeout, Version: "dev", svc: svc, jobs: q, now: time.Now, log: log, streamPoll: defaultStreamPoll}
 	tileDir := filepath.Join(svc.DataDir(), "tiles")
 	a.positron = tiles.NewPositron(filepath.Join(tileDir, "positron"), svc.CartoAPIKey())
+	a.terrain = tiles.NewTerrain(filepath.Join(tileDir, "terrain"))
 	a.overlays = newOverlays(tiles.NewTransitland(filepath.Join(tileDir, "transitland"), svc.TransitlandKey()), tiles.NewOpenFreeMap(filepath.Join(tileDir, "openfreemap")))
 	web := a.routes()
 	api := a.etags(a.apiHandler())

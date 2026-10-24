@@ -404,6 +404,37 @@
         ],
         "type": "object"
       },
+      "APIDEMLayer": {
+        "additionalProperties": false,
+        "properties": {
+          "encoding": {
+            "enum": [
+              "terrarium"
+            ],
+            "type": "string"
+          },
+          "max_zoom": {
+            "description": "Tiles stop here; clients overzoom beyond it",
+            "format": "int64",
+            "type": "integer"
+          },
+          "tile_size": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "description": "Tile URL template",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "max_zoom",
+          "tile_size",
+          "encoding"
+        ],
+        "type": "object"
+      },
       "APIDay": {
         "additionalProperties": false,
         "properties": {
@@ -1035,6 +1066,10 @@
           "positron": {
             "$ref": "#/components/schemas/APITileLayer",
             "description": "A cached CARTO Positron base layer, when the server has a CARTO key"
+          },
+          "terrain": {
+            "$ref": "#/components/schemas/APIDEMLayer",
+            "description": "A cached elevation layer for hillshading"
           }
         },
         "required": [
@@ -3653,6 +3688,78 @@
           }
         },
         "summary": "Get a cached CARTO Positron base map tile",
+        "tags": [
+          "map"
+        ]
+      }
+    },
+    "/api/v1/tiles/terrain/{z}/{x}/{file}": {
+      "get": {
+        "operationId": "getTerrainTile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "z",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "x",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "{y}.webp",
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "description": "{y}.webp",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a cached Mapterhorn terrarium-encoded elevation tile",
         "tags": [
           "map"
         ]

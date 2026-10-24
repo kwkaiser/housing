@@ -3,7 +3,7 @@ import type { MapConfig } from '#lib/api/client.ts';
 import { load, save } from '#lib/storage.ts';
 
 export type Base = 'positron' | 'osm';
-export type OverlayName = 'bike' | 'rail' | 'bus';
+export type OverlayName = 'terrain' | 'bike' | 'rail' | 'bus';
 export type Layers = { base: Base; overlays: OverlayName[] };
 
 export const BIKE = '#009400';
@@ -13,12 +13,13 @@ export const RAIL = '#475569';
 const osm = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 const transitland = '<a href="https://www.transit.land/terms">Transitland</a>';
 
-export const overlayLabels: Record<OverlayName, string> = { bike: 'Bike lanes', rail: 'Rail transit', bus: 'Bus routes' };
+export const overlayLabels: Record<OverlayName, string> = { terrain: 'Terrain', bike: 'Bike lanes', rail: 'Rail transit', bus: 'Bus routes' };
+export const overlayNames: OverlayName[] = ['terrain', 'bike', 'rail', 'bus'];
 
 export function savedLayers(config: MapConfig): Layers {
 	const saved = load<Partial<Layers>>('mapLayers', {});
 	const base: Base = saved.base === 'osm' || !config.positron ? 'osm' : 'positron';
-	const known = new Set<OverlayName>(['bike', 'rail', ...(config.overlays ?? []).map((o) => o.name)]);
+	const known = new Set<OverlayName>(availableOverlays(config));
 	return { base, overlays: (saved.overlays ?? []).filter((o) => known.has(o)) };
 }
 
@@ -28,7 +29,7 @@ export function saveLayers(layers: Layers): void {
 
 export function availableOverlays(config: MapConfig): OverlayName[] {
 	const names = new Set((config.overlays ?? []).map((o) => o.name));
-	return (['bike', 'rail', 'bus'] as const).filter((n) => n !== 'bus' || names.has(n));
+	return overlayNames.filter((n) => (n === 'terrain' ? !!config.terrain : n !== 'bus' || names.has(n)));
 }
 
 export function hasOverlay(config: MapConfig, name: OverlayName): boolean {
@@ -95,6 +96,31 @@ export function style(config: MapConfig, layers: Layers): StyleSpecification {
 		};
 		style.layers.unshift({ id: 'positron', type: 'raster', source: 'positron', layout: vis(layers.base === 'positron') });
 	}
+	if (config.terrain) {
+		style.sources.terrain = {
+			type: 'raster-dem',
+			tiles: [config.terrain.url],
+			tileSize: config.terrain.tile_size,
+			maxzoom: config.terrain.max_zoom,
+			encoding: config.terrain.encoding,
+			attribution: '<a href="https://mapterhorn.com/attribution">&copy; Mapterhorn</a>'
+		};
+		const at = style.layers.findIndex((l) => l.id === 'cyclosm');
+		style.layers.splice(at, 0, {
+			id: 'terrain',
+			type: 'hillshade',
+			source: 'terrain',
+			layout: vis(layers.overlays.includes('terrain')),
+			paint: {
+				'hillshade-method': 'multidirectional',
+				'hillshade-illumination-direction': [270, 315, 0, 45],
+				'hillshade-illumination-altitude': [30, 30, 30, 30],
+				'hillshade-highlight-color': ['#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00'],
+				'hillshade-shadow-color': ['#5a4a3140', '#5a4a3160', '#5a4a3140', '#5a4a3120'],
+				'hillshade-exaggeration': 0.6
+			}
+		});
+	}
 	if (!hasOverlay(config, 'rail')) {
 		style.sources.openrailwaymap = {
 			type: 'raster',
@@ -111,6 +137,8 @@ export function style(config: MapConfig, layers: Layers): StyleSpecification {
 
 export function layerIds(name: OverlayName, config: MapConfig): string[] {
 	switch (name) {
+		case 'terrain':
+			return ['terrain'];
 		case 'bike':
 			return ['cyclosm', 'ov-bike'];
 		case 'rail':

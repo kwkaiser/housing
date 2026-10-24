@@ -50,3 +50,37 @@ func TestPositronTiles(t *testing.T) {
 		t.Error("map config exposes the CARTO key or upstream")
 	}
 }
+
+func TestAPITerrainTiles(t *testing.T) {
+	a, h, key := apiApp(t)
+	var hits int
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		w.Header().Set("Content-Type", "image/webp")
+		w.Write([]byte("webp"))
+	}))
+	defer upstream.Close()
+	a.terrain = tiles.NewTerrain(t.TempDir())
+	a.terrain.Upstream = func(context.Context, tiles.Tile) (string, error) { return upstream.URL + "/tile.webp", nil }
+
+	c := apiGet[APIMapConfig](t, h, key, "/api/v1/map/config")
+	if c.Terrain == nil || c.Terrain.URL != "/api/v1/tiles/terrain/{z}/{x}/{y}.webp" || c.Terrain.MaxZoom != tiles.TerrainMaxZoom || c.Terrain.Encoding != "terrarium" {
+		t.Errorf("terrain config = %+v", c.Terrain)
+	}
+
+	for range 2 {
+		res, body := apiDo(t, h, http.MethodGet, "/api/v1/tiles/terrain/3/1/2.webp", key)
+		if res.StatusCode != http.StatusOK || string(body) != "webp" || res.Header.Get("Content-Type") != "image/webp" {
+			t.Errorf("tile = %d %q %v", res.StatusCode, body, res.Header)
+		}
+	}
+	if hits != 1 {
+		t.Errorf("upstream hits = %d, want 1 after a cached read", hits)
+	}
+
+	for _, target := range []string{"/api/v1/tiles/terrain/13/0/0.webp", "/api/v1/tiles/terrain/1/2/0.webp", "/api/v1/tiles/terrain/1/0/0.png"} {
+		if res, _ := apiDo(t, h, http.MethodGet, target, key); res.StatusCode != http.StatusNotFound {
+			t.Errorf("GET %s = %d, want 404", target, res.StatusCode)
+		}
+	}
+}
