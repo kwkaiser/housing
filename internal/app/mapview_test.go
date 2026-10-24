@@ -48,9 +48,9 @@ func TestMapPage(t *testing.T) {
 			all,
 			`<details class="picker collections" hidden>`,
 			`<input type="checkbox" data-collection="somerville" data-color="#2563eb" checked>`,
-			`<span class="swatch" style="background: #2563eb"></span> somerville <span class="muted">3 · 2026-10-01</span>`,
+			`<span class="swatch" style="background: #2563eb"></span> somerville <span class="muted count">3 · 2026-10-01</span>`,
 			`<input type="checkbox" data-collection="zempty" data-color="#dc2626" checked>`,
-			`zempty <span class="muted">2 · 2026-09-30</span>`,
+			`zempty <span class="muted count">2 · 2026-09-30</span>`,
 			`<span class="muted">Retrieved</span>`,
 			`<input type="date" name="from" value="2026-09-15" min="2026-09-15" max="2026-10-01"`,
 			`<select class="quick" aria-label="Quick">`, `<option value="" disabled>Quick</option>`,
@@ -70,7 +70,7 @@ func TestMapPage(t *testing.T) {
 		{"/map?from=2026-10-01", []string{
 			"1 listings placed · 1 approximate from zip code",
 			`<input type="date" name="from" value="2026-10-01"`, `<option value="/map?from=2026-10-01" selected>Last 2 weeks</option>`,
-			`somerville <span class="muted">1 · 2026-10-01</span>`, `zempty <span class="muted">0 · 2026-09-30</span>`,
+			`somerville <span class="muted count">1 · 2026-10-01</span>`, `zempty <span class="muted count">0 · 2026-09-30</span>`,
 		}, []string{"7 Windom St", "31 Fairmount Ave", "1 Exact Way"}},
 		{"/map?to=2026-09-29", []string{
 			"3 listings placed · 3 approximate from zip code · 1 with dealbreakers",

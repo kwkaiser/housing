@@ -1,11 +1,17 @@
 (() => {
   const range = document.querySelector("form.range");
   if (!range) return;
+  const go = (url) => (window.housingMap?.reload ? housingMap.reload(url) : (location.href = url));
+  range.addEventListener("submit", (e) => {
+    if (!window.housingMap?.reload) return;
+    e.preventDefault();
+    housingMap.reload(`${range.getAttribute("action")}?${new URLSearchParams(new FormData(range))}`);
+  });
   for (const input of range.querySelectorAll("input[type=date]")) {
     input.addEventListener("change", () => { if (!input.value || input.checkValidity()) range.requestSubmit(); });
   }
   const quick = range.querySelector("select.quick");
-  if (quick) quick.addEventListener("change", () => { if (quick.value) location.href = quick.value; });
+  if (quick) quick.addEventListener("change", () => { if (quick.value) go(quick.value); });
 })();
 (() => {
   const el = document.getElementById("map");
@@ -13,8 +19,9 @@
   const { json, store } = housingMap;
 
   const config = json("map-config", { positron: false, overlays: [] });
-  const pins = json("map-pins", []);
-  const extents = json("map-extent", {});
+  let pins = [];
+  let extents = {};
+  let views = [];
 
   const picker = document.querySelector(".picker.collections");
   const boxes = picker ? [...picker.querySelectorAll("input[data-collection]")] : [];
@@ -23,6 +30,8 @@
   const contrastLabel = document.querySelector("label.contrast");
   const contrast = contrastLabel && contrastLabel.querySelector("input");
   const shows = [...document.querySelectorAll("input[data-show]")];
+  const filters = document.querySelector(".picker.filters");
+  const cutoffInput = filters && filters.querySelector("input[data-filter=cutoff]");
 
   const hidden = store.get("mapHidden", []);
   for (const box of boxes) box.checked = !hidden.includes(box.dataset.collection);
@@ -32,9 +41,16 @@
   if (contrast && level !== null) contrast.value = level;
   const shown = store.get("mapShow", {});
   for (const box of shows) box.checked = shown[box.dataset.show] === true;
+  const savedCutoff = store.get("mapCutoff", null);
+  if (cutoffInput && Number.isFinite(savedCutoff) && savedCutoff > 0) cutoffInput.value = savedCutoff;
   const enabled = () => new Set(boxes.filter((b) => b.checked).map((b) => b.dataset.collection));
   const showing = () => Object.fromEntries(shows.map((b) => [b.dataset.show, b.checked]));
-  const visibleIn = (pin, c, show) => (show.ungraded || c in pin.scores) && (show.dealbreakers || !pin.dealbreakers?.[c]);
+  const cutoff = () => {
+    const n = cutoffInput ? Number(cutoffInput.value) : 0;
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  };
+  const visibleIn = (pin, c, show, min) =>
+    (show.ungraded || c in pin.scores) && (show.dealbreakers || !pin.dealbreakers?.[c]) && !(pin.scores[c] < min);
 
   const spreadOverlapping = () => {
     const groups = new Map();
@@ -53,7 +69,6 @@
       });
     }
   };
-  spreadOverlapping();
 
   const newTab = (a) => {
     a.target = "_blank";
@@ -105,7 +120,7 @@
   housingMap.layers(map, config);
 
   const UNGRADED = "#78716c";
-  const views = pins.map((pin) => {
+  const view = (pin) => {
     const v = { pin, lead: null, value: 0 };
     let content, contentLead;
     const width = pin.preview ? { minWidth: 280, maxWidth: 280 } : { minWidth: 200, maxWidth: 320 };
@@ -116,12 +131,22 @@
         return content;
       }, width);
     return v;
-  });
+  };
+
+  const place = (root = document) => {
+    for (const v of views) v.marker.remove();
+    pins = json("map-pins", [], root);
+    extents = json("map-extent", {}, root);
+    spreadOverlapping();
+    views = pins.map(view);
+  };
+  place();
 
   const assignLeads = () => {
     const on = enabled();
     const show = showing();
-    for (const v of views) v.lead = v.pin.collections.find((c) => on.has(c) && visibleIn(v.pin, c, show)) || null;
+    const min = cutoff();
+    for (const v of views) v.lead = v.pin.collections.find((c) => on.has(c) && visibleIn(v.pin, c, show, min)) || null;
   };
 
   const fit = () => {
@@ -183,6 +208,54 @@
   fit();
   apply();
 
+  const swap = (doc) => {
+    for (const name of ["from", "to"]) {
+      const cur = document.querySelector(`form.range input[name=${name}]`);
+      const next = doc.querySelector(`form.range input[name=${name}]`);
+      if (cur && next) Object.assign(cur, { min: next.min, max: next.max, value: next.value });
+    }
+    const quick = document.querySelector("select.quick");
+    const nextQuick = doc.querySelector("select.quick");
+    if (quick && nextQuick) {
+      quick.replaceChildren(...nextQuick.children);
+      quick.value = [...quick.options].find((o) => o.defaultSelected)?.value ?? "";
+    }
+    const summary = document.querySelector(".controls .summary");
+    const nextSummary = doc.querySelector(".controls .summary");
+    if (summary && nextSummary) summary.textContent = nextSummary.textContent;
+    for (const box of boxes) {
+      const count = box.closest("label").querySelector(".count");
+      const next = doc.querySelector(`input[data-collection="${CSS.escape(box.dataset.collection)}"]`);
+      const nextCount = next && next.closest("label").querySelector(".count");
+      if (count && nextCount) count.textContent = nextCount.textContent;
+    }
+  };
+
+  let pending;
+  housingMap.reload = async (url, push = true) => {
+    pending?.abort();
+    const ctl = (pending = new AbortController());
+    let doc;
+    try {
+      const res = await fetch(url, { signal: ctl.signal });
+      if (!res.ok) throw new Error(res.statusText);
+      doc = new DOMParser().parseFromString(await res.text(), "text/html");
+    } catch {
+      if (!ctl.signal.aborted) location.href = url;
+      return;
+    }
+    if (!doc.getElementById("map-pins")) {
+      location.href = url;
+      return;
+    }
+    if (push) history.pushState(null, "", url);
+    swap(doc);
+    place(doc);
+    assignLeads();
+    apply();
+  };
+  addEventListener("popstate", () => housingMap.reload(location.href, false));
+
   for (const box of boxes) {
     box.addEventListener("change", () => {
       store.set("mapHidden", boxes.filter((b) => !b.checked).map((b) => b.dataset.collection));
@@ -213,9 +286,23 @@
     });
     contrastLabel.hidden = false;
   }
-  if (picker) {
-    picker.hidden = false;
-    document.addEventListener("click", (e) => { if (!picker.contains(e.target)) picker.open = false; });
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape") picker.open = false; });
+  if (cutoffInput) {
+    const summary = filters.querySelector("summary");
+    const label = () => {
+      const min = cutoff();
+      summary.textContent = min ? `Filters · ≥${min}%` : "Filters";
+    };
+    cutoffInput.addEventListener("input", () => {
+      store.set("mapCutoff", cutoff());
+      label();
+      assignLeads();
+      apply();
+    });
+    label();
+  }
+  for (const p of [picker, filters].filter(Boolean)) {
+    p.hidden = false;
+    document.addEventListener("click", (e) => { if (!p.contains(e.target)) p.open = false; });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") p.open = false; });
   }
 })();

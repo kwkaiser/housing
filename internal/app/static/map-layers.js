@@ -1,6 +1,6 @@
 window.housingMap = (() => {
-  const json = (id, fallback) => {
-    const node = document.getElementById(id);
+  const json = (id, fallback, root = document) => {
+    const node = root.getElementById(id);
     return (node && JSON.parse(node.textContent)) || fallback;
   };
   const store = {

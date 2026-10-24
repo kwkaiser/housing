@@ -75,6 +75,7 @@ tbody tr:nth-child(even) { background: var(--stripe); }
 .picker .menu label { display: flex; align-items: center; gap: .5rem; padding: .3rem .75rem; cursor: pointer; white-space: nowrap; }
 .picker .menu label:hover { background: var(--stripe); }
 .picker .menu input { margin: 0; }
+.picker .menu input[type=number] { width: 4.5rem; }
 .section { margin: 0 0 1rem; }
 .section > summary { cursor: pointer; user-select: none; font-weight: 600; padding: .25rem 0; }
 .section[open] > summary { margin-bottom: .5rem; }

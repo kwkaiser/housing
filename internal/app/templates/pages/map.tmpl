@@ -5,8 +5,11 @@
 {{if .RunFirst}}
 <div class="controls">
   <details class="picker collections" hidden><summary>Collections</summary><div class="menu">
-    {{range .Collections}}<label><input type="checkbox" data-collection="{{.ID}}" data-color="{{.Color}}" checked> <span class="swatch" style="background: {{.Color}}"></span> {{.ID}} <span class="muted">{{.Count}}{{with .Day}} · {{.}}{{end}}</span></label>
+    {{range .Collections}}<label><input type="checkbox" data-collection="{{.ID}}" data-color="{{.Color}}" checked> <span class="swatch" style="background: {{.Color}}"></span> {{.ID}} <span class="muted count">{{.Count}}{{with .Day}} · {{.}}{{end}}</span></label>
     {{end}}
+  </div></details>
+  <details class="picker filters" hidden><summary>Filters</summary><div class="menu">
+    <label>Match cutoff <input type="number" min="0" step="5" inputmode="numeric" placeholder="0" data-filter="cutoff" aria-label="Match cutoff percent"> %</label>
   </div></details>
   <form method="get" action="/map" class="range">
     <span class="muted">Retrieved</span>
@@ -27,7 +30,7 @@
   <label class="toggle contrast" hidden>Contrast <input type="range" min="0" max="100" value="50" aria-label="Fading contrast"></label>
   <label class="toggle show" hidden><input type="checkbox" data-show="dealbreakers"> Show dealbreakers</label>
   <label class="toggle show" hidden><input type="checkbox" data-show="ungraded"> Show ungraded</label>
-  <span class="muted">{{len .Pins}} listings placed{{if .Approx}} · {{.Approx}} approximate from zip code{{end}}{{if .Dealbreakers}} · {{.Dealbreakers}} with dealbreakers{{end}}{{if .Ungraded}} · {{.Ungraded}} ungraded{{end}}{{if .Unplaced}} · {{.Unplaced}} without a location{{end}}</span>
+  <span class="muted summary">{{len .Pins}} listings placed{{if .Approx}} · {{.Approx}} approximate from zip code{{end}}{{if .Dealbreakers}} · {{.Dealbreakers}} with dealbreakers{{end}}{{if .Ungraded}} · {{.Ungraded}} ungraded{{end}}{{if .Unplaced}} · {{.Unplaced}} without a location{{end}}</span>
 </div>
 <div id="map" class="map"></div>
 <script type="application/json" id="map-config">{{.Config}}</script>
