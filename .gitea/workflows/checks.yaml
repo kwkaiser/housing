@@ -46,3 +46,6 @@ jobs:
 
       - name: Build
         run: nix build --no-link .#server .#web
+
+      - name: Build images
+        run: nix build --no-link .#server-image .#web-image

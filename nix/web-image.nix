@@ -5,6 +5,7 @@
 , web
 , name ? "housing-web"
 , tag ? "dev"
+, revision ? "unknown"
 }:
 
 let
@@ -36,6 +37,13 @@ dockerTools.streamLayeredImage {
   '';
 
   config = {
+    Labels = {
+      "org.opencontainers.image.title" = "housing-web";
+      "org.opencontainers.image.description" = "housing web app served by Caddy";
+      "org.opencontainers.image.source" = "https://git.kwkaiser.io/kwkaiser/housing";
+      "org.opencontainers.image.version" = tag;
+      "org.opencontainers.image.revision" = revision;
+    };
     Entrypoint = [ (lib.getExe entrypoint) ];
     ExposedPorts = { "8080/tcp" = { }; };
     WorkingDir = "/";

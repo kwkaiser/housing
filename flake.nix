@@ -22,6 +22,7 @@
           let value = builtins.getEnv name; in if value == "" then fallback else value;
 
         version = envOr "IMAGE_TAG" (self.shortRev or self.dirtyShortRev or "dev");
+        revision = self.rev or self.dirtyRev or "unknown";
 
         serverSrc = ./apps/server;
         webSrc = ./apps/web;
@@ -40,6 +41,7 @@
             inherit version;
           };
           name = envOr "IMAGE_NAME" "housing";
+          inherit revision;
           tag = version;
         };
 
@@ -54,6 +56,7 @@
             inherit version;
           };
           name = envOr "IMAGE_NAME" "housing-web";
+          inherit revision;
           tag = version;
         };
 

@@ -4,6 +4,7 @@
 , housing
 , name ? "housing"
 , tag ? "dev"
+, revision ? "unknown"
 }:
 
 let
@@ -37,6 +38,13 @@ dockerTools.streamLayeredImage {
   '';
 
   config = {
+    Labels = {
+      "org.opencontainers.image.title" = "housing";
+      "org.opencontainers.image.description" = "housing server: API, job runner and scheduler";
+      "org.opencontainers.image.source" = "https://git.kwkaiser.io/kwkaiser/housing";
+      "org.opencontainers.image.version" = tag;
+      "org.opencontainers.image.revision" = revision;
+    };
     Entrypoint = [ (lib.getExe entrypoint) ];
     ExposedPorts = { "8080/tcp" = { }; };
     Volumes = { "/data" = { }; };
