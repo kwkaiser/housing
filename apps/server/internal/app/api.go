@@ -870,3 +870,29 @@ func (a *App) apiMeta(_ context.Context, _ *struct{}) (*struct{ Body APIMeta }, 
 		},
 	}}, nil
 }
+
+func collectErrors(err error, fields map[string]string, general *[]string) {
+	if err == nil {
+		return
+	}
+	if fe, ok := err.(profile.FieldError); ok {
+		if prev, dup := fields[fe.Field]; dup {
+			fields[fe.Field] = prev + "; " + fe.Error()
+		} else {
+			fields[fe.Field] = fe.Error()
+		}
+		return
+	}
+	if multi, ok := err.(interface{ Unwrap() []error }); ok {
+		for _, e := range multi.Unwrap() {
+			collectErrors(e, fields, general)
+		}
+		return
+	}
+	var fe profile.FieldError
+	if errors.As(err, &fe) {
+		collectErrors(errors.Unwrap(err), fields, general)
+		return
+	}
+	*general = append(*general, err.Error())
+}

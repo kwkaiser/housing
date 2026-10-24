@@ -3,8 +3,6 @@ package app
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"net/http"
 	"path"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/mvt"
@@ -20,14 +18,14 @@ type overlay struct {
 }
 
 type overlayConfig struct {
-	Name    string `json:"name"`
-	MinZoom int    `json:"minZoom"`
-	MaxZoom int    `json:"maxZoom"`
+	Name    string
+	MinZoom int
+	MaxZoom int
 }
 
 type mapConfig struct {
-	Positron bool            `json:"positron"`
-	Overlays []overlayConfig `json:"overlays"`
+	Positron bool
+	Overlays []overlayConfig
 }
 
 func newOverlays(transit, openFreeMap *tiles.Cache) []overlay {
@@ -57,25 +55,10 @@ func (a *App) mapConfig() mapConfig {
 	return c
 }
 
-func (a *App) overlayTile(w http.ResponseWriter, r *http.Request) {
-	body, _, err := a.overlayData(r.Context(), r.PathValue("name"), r.PathValue("z"), r.PathValue("x"), r.PathValue("file"), false)
-	if errors.Is(err, errNoTile) {
-		a.notFound(w, r)
-		return
-	}
-	if err != nil {
-		http.Error(w, "overlay unavailable", http.StatusBadGateway)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", "public, max-age=86400")
-	w.Write(body)
-}
-
-func (a *App) overlayData(ctx context.Context, name, z, x, file string, allowRaw bool) ([]byte, string, error) {
+func (a *App) overlayData(ctx context.Context, name, z, x, file string) ([]byte, string, error) {
 	ov, ok := a.overlay(name)
 	ext := path.Ext(file)
-	if ext != ".json" && (!allowRaw || ext != ".pbf") {
+	if ext != ".json" && ext != ".pbf" {
 		return nil, "", errNoTile
 	}
 	t, err := tiles.Parse(z, x, file, ext)

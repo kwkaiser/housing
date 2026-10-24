@@ -11,18 +11,16 @@ import (
 )
 
 func TestPositronTiles(t *testing.T) {
-	a := seededApp(t)
-	h := a.Handler()
+	a, h, key := apiApp(t)
 
-	res, _ := get(t, h, "/tiles/positron/1/0/0.png")
-	if res.StatusCode != http.StatusNotFound {
+	if res, _ := apiDo(t, h, http.MethodGet, apiV1+"/tiles/positron/1/0/0.png", key); res.StatusCode != http.StatusNotFound {
 		t.Errorf("tile without key = %d, want 404", res.StatusCode)
 	}
-	if _, body := get(t, h, "/map"); !strings.Contains(body, `"positron":false`) {
-		t.Error("map offers Positron without a key")
+	if c := apiGet[APIMapConfig](t, h, key, apiV1+"/map/config"); c.Positron != nil {
+		t.Errorf("map config offers Positron without a key: %+v", c.Positron)
 	}
 
-	const key = "carto-secret-key"
+	const cartoKey = "carto-secret-key"
 	var gotKey string
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotKey = r.URL.Query().Get("key")
@@ -30,29 +28,25 @@ func TestPositronTiles(t *testing.T) {
 		w.Write([]byte("png"))
 	}))
 	defer upstream.Close()
-	a.positron = tiles.NewPositron(t.TempDir(), key)
+	a.positron = tiles.NewPositron(t.TempDir(), cartoKey)
 	a.positron.Upstream = func(context.Context, tiles.Tile) (string, error) { return upstream.URL + "/tile.png", nil }
 
-	res, body := get(t, h, "/tiles/positron/1/0/0@2x.png")
-	if res.StatusCode != http.StatusOK || body != "png" || res.Header.Get("Content-Type") != "image/png" || res.Header.Get("Cache-Control") != "public, max-age=86400" {
+	res, body := apiDo(t, h, http.MethodGet, apiV1+"/tiles/positron/1/0/0@2x.png", key)
+	if res.StatusCode != http.StatusOK || string(body) != "png" || res.Header.Get("Content-Type") != "image/png" || res.Header.Get("Cache-Control") != "private, max-age=86400" {
 		t.Errorf("tile = %d %q %v", res.StatusCode, body, res.Header)
 	}
-	if gotKey != key {
-		t.Errorf("upstream key = %q, want %q", gotKey, key)
+	if gotKey != cartoKey {
+		t.Errorf("upstream key = %q, want %q", gotKey, cartoKey)
 	}
-	if res, _ := get(t, h, "/tiles/positron/1/2/0.png"); res.StatusCode != http.StatusNotFound {
+	if res, _ := apiDo(t, h, http.MethodGet, apiV1+"/tiles/positron/1/2/0.png", key); res.StatusCode != http.StatusNotFound {
 		t.Errorf("out of range tile = %d, want 404", res.StatusCode)
 	}
 
-	_, page := get(t, h, "/map")
-	if !strings.Contains(page, `"positron":true`) {
-		t.Error("map does not offer Positron with a key")
+	_, cfg := apiDo(t, h, http.MethodGet, apiV1+"/map/config", key)
+	if !strings.Contains(string(cfg), `"positron":{"url":"/api/v1/tiles/positron/{z}/{x}/{y}{r}.png"`) {
+		t.Errorf("map config does not offer Positron with a key:\n%s", cfg)
 	}
-	_, js := get(t, h, a.staticURL("map.js"))
-	_, layers := get(t, h, a.staticURL("map-layers.js"))
-	for name, s := range map[string]string{"map page": page, "map.js": js, "map-layers.js": layers} {
-		if strings.Contains(s, key) || strings.Contains(s, "cartocdn") {
-			t.Errorf("%s exposes the CARTO key or upstream", name)
-		}
+	if strings.Contains(string(cfg), cartoKey) || strings.Contains(string(cfg), "cartocdn") {
+		t.Error("map config exposes the CARTO key or upstream")
 	}
 }

@@ -19,11 +19,10 @@ func newServerCmd(dataDir *string) *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "server",
-		Short: "Run the housing web app",
-		Long: "Run the long-lived web app on --addr until interrupted. It has no login of its own and is meant to\n" +
-			"sit behind a reverse proxy that handles authentication. It also serves a JSON API under /api/v1 that\n" +
-			"takes a key from `housing apikeys create` as a bearer token, unless --no-api-auth is given, with its\n" +
-			"OpenAPI spec at /api/openapi.json.\n\n" +
+		Short: "Run the housing API server",
+		Long: "Run the long-lived server on --addr until interrupted. It serves a JSON API under /api/v1 that takes\n" +
+			"a key from `housing apikeys create` as a bearer token, unless --no-api-auth is given, with its\n" +
+			"OpenAPI spec at /api/openapi.json. The UI is the separate housing-web app.\n\n" +
 			"The server also runs queued jobs one at a time and enqueues a run of each collection with a\n" +
 			"--schedule once a day after its scheduled time. It holds the data directory's lock while up, so\n" +
 			"`housing run` cannot write to the same data directory at the same time.",

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { MapConfig, Schemas } from '#lib/api/client.ts';
-	import { createMap, type HousingMap } from '#lib/map/create.ts';
+	import type { HousingMap } from '#lib/map/create.ts';
 	import LayerPanel from './LayerPanel.svelte';
 
 	let { config, location, title }: { config: MapConfig; location: Schemas['APILocation']; title: string } = $props();
@@ -20,7 +20,7 @@
 		return pts;
 	}
 
-	onMount(() => {
+	function mount(createMap: typeof import('#lib/map/create.ts').createMap) {
 		const { lat, lng, approx } = location;
 		hm = createMap(el, config, { center: [lng, lat], zoom: approx ? 13.5 : 15.5 });
 		const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2563eb';
@@ -38,7 +38,17 @@
 				paint: { 'circle-radius': 8, 'circle-color': accent, 'circle-opacity': approx ? 0.3 : 0.6, 'circle-stroke-color': accent, 'circle-stroke-width': 3 }
 			});
 		});
-		return () => hm?.map.remove();
+	}
+
+	onMount(() => {
+		let gone = false;
+		import('#lib/map/create.ts').then((m) => {
+			if (!gone) mount(m.createMap);
+		});
+		return () => {
+			gone = true;
+			hm?.map.remove();
+		};
 	});
 </script>
 

@@ -179,3 +179,7 @@ func (a *App) apiEnqueue(ctx context.Context, p jobs.Params) (*struct{ Body APIJ
 	}
 	return &struct{ Body APIJob }{apiJob(j)}, nil
 }
+
+func kindOf(p profile.Profile) profile.Kind {
+	return cmp.Or(p.Kind, profile.KindWant)
+}

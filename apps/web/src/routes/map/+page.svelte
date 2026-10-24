@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { LngLatBounds, Popup, type GeoJSONSource, type MapLayerMouseEvent } from 'maplibre-gl';
+	import type { GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl';
 	import { goto } from '$app/navigation';
 	import type { MapPin } from '#lib/api/client.ts';
 	import LayerPanel from '#lib/components/LayerPanel.svelte';
-	import { createMap, type HousingMap } from '#lib/map/create.ts';
+	import type { HousingMap } from '#lib/map/create.ts';
 	import { beds, match, money, sized } from '#lib/format.ts';
 	import RangeSelect from '#lib/components/RangeSelect.svelte';
 	import { load, save } from '#lib/storage.ts';
@@ -118,11 +118,12 @@
 
 	let el: HTMLDivElement;
 	let hm = $state<HousingMap>();
+	let lib: typeof import('#lib/map/create.ts');
 
 	function fit() {
 		const map = hm?.map;
 		if (!map) return;
-		const bounds = new LngLatBounds();
+		const bounds = new lib.LngLatBounds();
 		for (const p of visible) bounds.extend([p.lng, p.lat]);
 		if (bounds.isEmpty()) {
 			const on = collections.filter((c) => c.id === selected && c.area);
@@ -175,10 +176,10 @@
 		return box;
 	}
 
-	onMount(() => {
-		hm = createMap(el, data.config);
+	function mount() {
+		hm = lib.createMap(el, data.config);
 		const map = hm.map;
-		const tip = new Popup({ closeButton: false, closeOnClick: false, offset: 10 });
+		const tip = new lib.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
 		map.on('load', () => {
 			map.addSource('pins', { type: 'geojson', data: { type: 'FeatureCollection', features: untrack(() => features) } });
 			map.addLayer({
@@ -221,9 +222,21 @@
 			const hit = pinAt(e);
 			if (!hit) return;
 			tip.remove();
-			new Popup({ maxWidth: '280px', className: 'pin-popup' }).setLngLat(e.lngLat).setDOMContent(popup(hit.pin, hit.lead)).addTo(map);
+			new lib.Popup({ maxWidth: '280px', className: 'pin-popup' }).setLngLat(e.lngLat).setDOMContent(popup(hit.pin, hit.lead)).addTo(map);
 		});
-		return () => map.remove();
+	}
+
+	onMount(() => {
+		let gone = false;
+		import('#lib/map/create.ts').then((m) => {
+			if (gone) return;
+			lib = m;
+			mount();
+		});
+		return () => {
+			gone = true;
+			hm?.map.remove();
+		};
 	});
 
 	$effect(() => {
