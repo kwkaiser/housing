@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
 )
 
@@ -122,6 +123,15 @@ func TestAPICollectionListings(t *testing.T) {
 	}
 	if len(z1.Listing.Collages) != 1 || z1.Listing.Collages[0] != "/api/v1/media/"+collageKey || z1.Listing.Href != "/api/v1/listings/zillow/z1" {
 		t.Errorf("z1 links = %+v", z1.Listing)
+	}
+	if z1.Listing.Thumbnail != "/api/v1/media/"+media.PhotoKey(photoURL) {
+		t.Errorf("z1 thumbnail = %q", z1.Listing.Thumbnail)
+	}
+	if res, b := apiDo(t, h, http.MethodGet, z1.Listing.Thumbnail+"?size=320", key); res.StatusCode != http.StatusOK || res.Header.Get("Content-Type") != "image/jpeg" || len(b) == 0 {
+		t.Errorf("thumbnail fetch = %d %q", res.StatusCode, res.Header.Get("Content-Type"))
+	}
+	if thumb := v.Rows[2].Listing.Thumbnail; thumb != "" {
+		t.Errorf("z2 has no collages, thumbnail = %q", thumb)
 	}
 	if len(z1.AlsoListed) != 1 || z1.AlsoListed[0].SourceID != "r1" {
 		t.Errorf("z1 also listed = %+v", z1.AlsoListed)

@@ -24,8 +24,7 @@
 	} = $props();
 
 	let failed = $state(false);
-	let collage = $derived(l.collages?.[0] ? sized(l.collages[0], 320) : '');
-	let src = $derived(!failed && l.photos?.[0] ? l.photos[0] : collage);
+	let src = $derived([failed ? '' : l.thumbnail, l.collages?.[0]].find(Boolean));
 	let specs = $derived(
 		[l.beds === 0 ? 'Studio' : l.beds !== undefined ? `${beds(l.beds)} bd` : '', l.baths !== undefined ? `${baths(l.baths)} ba` : '', l.sqft ? sqft(l.sqft) : '']
 			.filter(Boolean)
@@ -37,7 +36,7 @@
 <article class="card">
 	<div class="thumb">
 		{#if src}
-			<img {src} alt="" loading="lazy" referrerpolicy="no-referrer" onerror={() => (failed = true)} />
+			<img src={sized(src, 320)} class:collage={src !== l.thumbnail} alt="" loading="lazy" onerror={() => (failed = true)} />
 		{/if}
 		{#if grade}
 			<span class="score"><Match value={grade.match} calibrated={grade.calibrated} stale={grade.stale} size="sm" /></span>
@@ -90,6 +89,9 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+	}
+
+	.collage {
 		object-position: top left;
 	}
 

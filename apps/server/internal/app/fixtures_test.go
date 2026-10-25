@@ -15,6 +15,7 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
 	"git.kwkaiser.io/kwkaiser/housing/internal/jobs"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
+	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
 	"git.kwkaiser.io/kwkaiser/housing/internal/store"
@@ -25,6 +26,7 @@ const (
 	day2       = "2026-09-30"
 	model      = "test/model"
 	collageKey = "collages/ab/abcdef"
+	photoURL   = "https://photos.example.com/z1/front.jpg"
 )
 
 func rental(source listing.Source, id, street string, cents int64) listing.Listing {
@@ -106,6 +108,7 @@ func seededApp(t *testing.T) *App {
 
 	a1 := rental(listing.SourceZillow, "z1", "7 Windom St", 300000)
 	a1.Collages = []string{collageKey}
+	a1.Photos = []string{"https://photos.example.com/z1/never-fetched.jpg", photoURL}
 	b := rental(listing.SourceZillow, "z2", "31 Fairmount Ave", 310000)
 	b.Description = "<script>alert(1)</script> sunny"
 	c := rental(listing.SourceZillow, "z3", "9 Carpet Ct", 200000)
@@ -141,7 +144,7 @@ func seededApp(t *testing.T) *App {
 	if err := jpeg.Encode(&buf, img, nil); err != nil {
 		t.Fatal(err)
 	}
-	for key, data := range map[string][]byte{collageKey: buf.Bytes(), "photos/ab/page.html": []byte("<html><script>x</script>")} {
+	for key, data := range map[string][]byte{collageKey: buf.Bytes(), media.PhotoKey(photoURL): buf.Bytes(), "photos/ab/page.html": []byte("<html><script>x</script>")} {
 		p := filepath.Join(dir, filepath.FromSlash(key))
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 			t.Fatal(err)

@@ -249,15 +249,16 @@ type APIListing struct {
 	Description string               `json:"description,omitempty"`
 	Photos      []string             `json:"photos" doc:"Photo URLs on the source site"`
 	Collages    []string             `json:"collages,omitempty" doc:"API paths of the photo collages the listing was graded from"`
+	Thumbnail   string               `json:"thumbnail,omitempty" doc:"API path of the listing's first stored photo, which takes a size like other media"`
 	ListedAt    *time.Time           `json:"listed_at,omitempty"`
 	ObservedAt  time.Time            `json:"observed_at"`
 }
 
-func apiListing(l listing.Listing) APIListing {
+func apiListing(l listing.Listing, thumbnail string) APIListing {
 	out := APIListing{
 		Source: l.Source, SourceID: l.SourceID, URL: l.URL, Href: apiListingPath(l.Source, l.SourceID), Offer: l.Offer, Price: l.Price, Address: l.Address,
 		Coordinates: l.Coordinates, Beds: l.Beds, Baths: l.Baths, SqFt: l.SqFt, Description: l.Description,
-		Photos: l.Photos, ListedAt: l.ListedAt, ObservedAt: l.ObservedAt,
+		Photos: l.Photos, Thumbnail: thumbnail, ListedAt: l.ListedAt, ObservedAt: l.ObservedAt,
 	}
 	if out.Photos == nil {
 		out.Photos = []string{}
@@ -272,6 +273,13 @@ func apiListing(l listing.Listing) APIListing {
 		out.Collages = append(out.Collages, apiV1+"/media/"+key)
 	}
 	return out
+}
+
+func (a *App) thumbnail(ctx context.Context, l listing.Listing) string {
+	if key := a.svc.Thumbnail(ctx, l); key != "" {
+		return apiV1 + "/media/" + key
+	}
+	return ""
 }
 
 func apiListingPath(source listing.Source, id string) string {
@@ -430,7 +438,7 @@ func (a *App) apiCollectionListings(ctx context.Context, in *collectionListingsI
 			continue
 		}
 		r := APIListingRow{
-			Rank: row.Rank, Listing: apiListing(row.Listing), Best: apiGrade(row.Grade), Grades: []APIGrade{}, AlsoListed: row.AlsoListed,
+			Rank: row.Rank, Listing: apiListing(row.Listing, a.thumbnail(ctx, row.Listing)), Best: apiGrade(row.Grade), Grades: []APIGrade{}, AlsoListed: row.AlsoListed,
 			FirstSeen: row.FirstSeen, New: row.New(), Status: row.Status, PreviousPriceCents: row.PreviousPriceCents, Favorite: row.Favorite, Day: row.Day,
 		}
 		for _, id := range v.Collection.Profiles {
@@ -525,14 +533,14 @@ func (a *App) apiListing(ctx context.Context, in *listingInput) (*struct{ Body A
 		return nil, a.apiError(ctx, err)
 	}
 	out := APIListingDetail{
-		Listing: apiListing(v.Listing), Collection: v.Collection, Day: v.Day,
+		Listing: apiListing(v.Listing, a.thumbnail(ctx, v.Listing)), Collection: v.Collection, Day: v.Day,
 		AlsoListed: []APIListing{}, History: []APIPriceSighting{}, Grades: []APIListingGrade{}, Favorite: v.Favorite,
 	}
 	if loc, approx, ok := geo.Locate(v.Listing); ok {
 		out.Location = &APILocation{Lat: loc.Lat, Lng: loc.Lng, Approx: approx}
 	}
 	for _, l := range v.AlsoListed {
-		out.AlsoListed = append(out.AlsoListed, apiListing(l))
+		out.AlsoListed = append(out.AlsoListed, apiListing(l, a.thumbnail(ctx, l)))
 	}
 	for _, s := range v.History {
 		out.History = append(out.History, APIPriceSighting{Day: s.Day, PriceCents: s.PriceCents})
