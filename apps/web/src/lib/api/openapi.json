@@ -1344,6 +1344,68 @@
         ],
         "type": "object"
       },
+      "APIPlace": {
+        "additionalProperties": false,
+        "properties": {
+          "added_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lat": {
+            "format": "double",
+            "type": "number"
+          },
+          "lng": {
+            "format": "double",
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "address",
+          "lat",
+          "lng",
+          "added_at"
+        ],
+        "type": "object"
+      },
+      "APIPlaceMatch": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "lat": {
+            "format": "double",
+            "type": "number"
+          },
+          "lng": {
+            "format": "double",
+            "type": "number"
+          },
+          "name": {
+            "description": "The place's own name, when it is more than a street address",
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "lat",
+          "lng"
+        ],
+        "type": "object"
+      },
       "APIPriceSighting": {
         "additionalProperties": false,
         "properties": {
@@ -1684,6 +1746,39 @@
         "required": [
           "auth",
           "name"
+        ],
+        "type": "object"
+      },
+      "AddPlaceInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "lat": {
+            "format": "double",
+            "maximum": 90,
+            "minimum": -90,
+            "type": "number"
+          },
+          "lng": {
+            "format": "double",
+            "maximum": 180,
+            "minimum": -180,
+            "type": "number"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "address",
+          "lat",
+          "lng"
         ],
         "type": "object"
       },
@@ -2113,7 +2208,7 @@
     }
   },
   "info": {
-    "description": "Manage collections, profiles, and favorites, read ranked listings and map pins, and queue and follow jobs.",
+    "description": "Manage collections, profiles, favorites, and places of interest, read ranked listings and map pins, and queue and follow jobs.",
     "title": "housing",
     "version": "1.1.0"
   },
@@ -3383,6 +3478,187 @@
         "summary": "Get a town boundary, transit or bike lane overlay tile",
         "tags": [
           "map"
+        ]
+      }
+    },
+    "/api/v1/places": {
+      "get": {
+        "operationId": "listPlaces",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/APIPlace"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List saved places of interest",
+        "tags": [
+          "places"
+        ]
+      },
+      "post": {
+        "operationId": "addPlace",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPlaceInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIPlace"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Save a place of interest",
+        "tags": [
+          "places"
+        ]
+      }
+    },
+    "/api/v1/places/search": {
+      "get": {
+        "operationId": "searchPlaces",
+        "parameters": [
+          {
+            "description": "An address or place name",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "An address or place name",
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Prefer results near this latitude; give with lng",
+            "explode": false,
+            "in": "query",
+            "name": "lat",
+            "schema": {
+              "description": "Prefer results near this latitude; give with lng",
+              "format": "double",
+              "maximum": 90,
+              "minimum": -90,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Prefer results near this longitude; give with lat",
+            "explode": false,
+            "in": "query",
+            "name": "lng",
+            "schema": {
+              "description": "Prefer results near this longitude; give with lat",
+              "format": "double",
+              "maximum": 180,
+              "minimum": -180,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/APIPlaceMatch"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Look up addresses and places to save",
+        "tags": [
+          "places"
+        ]
+      }
+    },
+    "/api/v1/places/{id}": {
+      "delete": {
+        "operationId": "removePlace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Remove a saved place of interest",
+        "tags": [
+          "places"
         ]
       }
     },

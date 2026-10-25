@@ -134,6 +134,7 @@ export function overlays(map: Map, config: MapConfig) {
 	};
 	const sources = new globalThis.Map<string, string>();
 	for (const name of all.keys()) sources.set(name === 'towns' ? 'ov-towns-fill' : `ov-${name}`, `ov-${name}`);
+	sources.set('places-hit', 'places');
 	map.on('mousemove', (e: MapMouseEvent) => {
 		const f = map.queryRenderedFeatures(e.point)[0];
 		const source = f && sources.get(f.layer.id);

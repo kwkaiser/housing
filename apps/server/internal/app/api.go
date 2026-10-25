@@ -59,7 +59,7 @@ func (a *App) newAPI() (*http.ServeMux, huma.API) {
 	cfg.OpenAPIPath = apiPrefix + "/openapi"
 	cfg.DocsPath = apiPrefix + "/docs"
 	cfg.SchemasPath = apiPrefix + "/schemas"
-	cfg.Info.Description = "Manage collections, profiles, and favorites, read ranked listings and map pins, and queue and follow jobs."
+	cfg.Info.Description = "Manage collections, profiles, favorites, and places of interest, read ranked listings and map pins, and queue and follow jobs."
 	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
 		apiAuthScheme: {Type: "http", Scheme: "bearer", Description: "An access token from the server's OIDC provider."},
 		sessionScheme: {Type: "apiKey", In: "cookie", Name: "__Host-" + sessionCookie, Description: "The browser session set by signing in at /auth/login."},
@@ -136,6 +136,24 @@ func (a *App) newAPI() (*http.ServeMux, huma.API) {
 	huma.Get(api, apiV1+"/jobs/{id}", a.apiJob, op("getJob", "Get a job", "jobs"))
 	huma.Get(api, apiV1+"/jobs/{id}/events", a.apiJobEvents, op("listJobEvents", "List a job's progress log", "jobs"))
 	a.registerJobStream(api)
+	huma.Get(api, apiV1+"/places", a.apiPlaces, op("listPlaces", "List saved places of interest", "places"))
+	huma.Register(api, huma.Operation{
+		OperationID:   "addPlace",
+		Method:        http.MethodPost,
+		Path:          apiV1 + "/places",
+		Summary:       "Save a place of interest",
+		Tags:          []string{"places"},
+		DefaultStatus: http.StatusCreated,
+	}, a.apiAddPlace)
+	huma.Register(api, huma.Operation{
+		OperationID:   "removePlace",
+		Method:        http.MethodDelete,
+		Path:          apiV1 + "/places/{id}",
+		Summary:       "Remove a saved place of interest",
+		Tags:          []string{"places"},
+		DefaultStatus: http.StatusNoContent,
+	}, a.apiRemovePlace)
+	huma.Get(api, apiV1+"/places/search", a.apiSearchPlaces, op("searchPlaces", "Look up addresses and places to save", "places"))
 	huma.Get(api, apiV1+"/map/pins", a.apiMapPins, op("listMapPins", "List map pins for every collection's listings over a range of runs", "map"))
 	huma.Get(api, apiV1+"/map/config", a.apiMapConfig, op("getMapConfig", "Get the tile layers and overlays the server can serve", "map"))
 	huma.Get(api, apiV1+"/tiles/positron/{z}/{x}/{file}", a.apiPositronTile, op("getPositronTile", "Get a cached CARTO Positron base map tile", "map"))
@@ -183,7 +201,7 @@ func (a *App) apiMe(ctx context.Context, _ *struct{}) (*struct{ Body APIUser }, 
 }
 
 func (a *App) apiError(ctx context.Context, err error) error {
-	if errors.Is(err, collection.ErrNotFound) || errors.Is(err, store.ErrListingNotFound) || errors.Is(err, store.ErrJobNotFound) || errors.Is(err, profile.ErrNotFound) {
+	if errors.Is(err, collection.ErrNotFound) || errors.Is(err, store.ErrListingNotFound) || errors.Is(err, store.ErrJobNotFound) || errors.Is(err, profile.ErrNotFound) || errors.Is(err, store.ErrPlaceNotFound) {
 		return huma.Error404NotFound(err.Error())
 	}
 	a.log.ErrorContext(ctx, "api", "err", err)

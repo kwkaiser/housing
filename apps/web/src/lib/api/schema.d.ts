@@ -336,6 +336,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List saved places of interest */
+        get: operations["listPlaces"];
+        put?: never;
+        /** Save a place of interest */
+        post: operations["addPlace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/places/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Look up addresses and places to save */
+        get: operations["searchPlaces"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/places/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a saved place of interest */
+        delete: operations["removePlace"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/profiles": {
         parameters: {
             query?: never;
@@ -943,6 +995,27 @@ export interface components {
             match: number;
             stale?: boolean;
         };
+        APIPlace: {
+            /** Format: date-time */
+            added_at: string;
+            address: string;
+            /** Format: int64 */
+            id: number;
+            /** Format: double */
+            lat: number;
+            /** Format: double */
+            lng: number;
+            name: string;
+        };
+        APIPlaceMatch: {
+            address: string;
+            /** Format: double */
+            lat: number;
+            /** Format: double */
+            lng: number;
+            /** @description The place's own name, when it is more than a street address */
+            name?: string;
+        };
         APIPriceSighting: {
             day: string;
             /** Format: int64 */
@@ -1070,6 +1143,14 @@ export interface components {
              */
             auth: "none" | "session" | "token";
             email?: string;
+            name: string;
+        };
+        AddPlaceInputBody: {
+            address: string;
+            /** Format: double */
+            lat: number;
+            /** Format: double */
+            lng: number;
             name: string;
         };
         Address: {
@@ -1968,6 +2049,133 @@ export interface operations {
                 content: {
                     "application/json": string;
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    listPlaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIPlace"][];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    addPlace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddPlaceInputBody"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIPlace"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    searchPlaces: {
+        parameters: {
+            query?: {
+                /** @description An address or place name */
+                q?: string;
+                /** @description Prefer results near this latitude; give with lng */
+                lat?: number;
+                /** @description Prefer results near this longitude; give with lat */
+                lng?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIPlaceMatch"][];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    removePlace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
