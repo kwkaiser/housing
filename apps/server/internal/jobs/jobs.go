@@ -22,6 +22,7 @@ const (
 	KindRunCollection Kind = "run_collection"
 	KindCreateProfile Kind = "create_profile"
 	KindDraftProfile  Kind = "draft_profile"
+	KindPruneMedia    Kind = "prune_media"
 )
 
 type Trigger string
@@ -97,6 +98,17 @@ type DraftProfileParams struct {
 
 func (DraftProfileParams) Kind() Kind { return KindDraftProfile }
 
+type PruneMediaParams struct {
+	RetainDays int  `json:"retain_days,omitempty"`
+	DryRun     bool `json:"dry_run,omitempty"`
+}
+
+func (PruneMediaParams) Kind() Kind { return KindPruneMedia }
+
+func (p PruneMediaParams) options() service.PruneOptions {
+	return service.PruneOptions{Retention: time.Duration(p.RetainDays) * 24 * time.Hour, DryRun: p.DryRun}
+}
+
 type RunResult struct {
 	Collection      string                    `json:"collection"`
 	Mode            profile.Mode              `json:"mode"`
@@ -166,10 +178,25 @@ type ProfileResult struct {
 	Avoid     int    `json:"avoid"`
 }
 
+type PruneResult struct {
+	Since   time.Time `json:"since"`
+	DryRun  bool      `json:"dry_run,omitempty"`
+	Scanned int       `json:"scanned"`
+	Kept    int       `json:"kept"`
+	Recent  int       `json:"recent"`
+	Deleted int       `json:"deleted"`
+	Bytes   int64     `json:"bytes"`
+}
+
+func pruneResult(r service.PruneResult) PruneResult {
+	return PruneResult{Since: r.Since, DryRun: r.DryRun, Scanned: r.Scanned, Kept: r.Kept, Recent: r.Recent, Deleted: r.Deleted, Bytes: r.Bytes}
+}
+
 type Executor interface {
 	RunCollection(ctx context.Context, collectionID string, log *slog.Logger) (service.RunResult, error)
 	CreateProfileFromURL(ctx context.Context, o service.CreateProfileOptions, log *slog.Logger) (profile.Profile, error)
 	DraftProfile(ctx context.Context, id string, o service.DraftOptions, log *slog.Logger) (profile.Profile, error)
+	PruneMedia(ctx context.Context, o service.PruneOptions, log *slog.Logger) (service.PruneResult, error)
 }
 
 type Queue struct {
@@ -210,6 +237,11 @@ func (q *Queue) enqueue(ctx context.Context, p Params, trigger Trigger, noneSinc
 			return 0, false, fmt.Errorf("draft_profile: a profile id is required")
 		}
 		j.ProfileID = p.ProfileID
+	case PruneMediaParams:
+		if p.RetainDays < 0 {
+			return 0, false, fmt.Errorf("prune_media: retain days must not be negative")
+		}
+		rule = store.EnqueueRule{UniqueActive: true, NoneSince: noneSince}
 	default:
 		return 0, false, fmt.Errorf("unsupported job kind %q", p.Kind())
 	}

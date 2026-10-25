@@ -13,6 +13,7 @@ type Scheduler struct {
 	Now      func() time.Time
 	Location *time.Location
 	Tick     time.Duration
+	Prune    *PruneMediaParams
 	Log      *slog.Logger
 }
 
@@ -55,6 +56,16 @@ func (s *Scheduler) Check(ctx context.Context) ([]int64, error) {
 		}
 		if created {
 			s.logger().Info("scheduled run enqueued", "collection", c.ID, "job", id, "schedule", c.Schedule)
+			ids = append(ids, id)
+		}
+	}
+	if s.Prune != nil {
+		id, created, err := s.Queue.enqueue(ctx, *s.Prune, TriggerSchedule, today)
+		if err != nil {
+			return ids, err
+		}
+		if created {
+			s.logger().Info("scheduled media prune enqueued", "job", id, "retain_days", s.Prune.RetainDays, "dry_run", s.Prune.DryRun)
 			ids = append(ids, id)
 		}
 	}

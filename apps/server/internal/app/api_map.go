@@ -126,8 +126,10 @@ func (a *App) mapPins(ctx context.Context, cs []collection.Collection, from, to 
 					Address: cmp.Or(report.AddressLine(l), l.SourceID), Offer: l.Offer, PriceCents: l.Price.Cents, Beds: l.Beds,
 					FirstSeen: row.FirstSeen, LastSeen: row.Day, Grades: map[string]APIPinGrade{}, Ungraded: row.Ungraded,
 				}
-				if pin.Preview = a.thumbnail(ctx, l); pin.Preview == "" && len(l.Collages) > 0 {
-					pin.Preview = apiV1 + "/media/" + l.Collages[0]
+				if pin.Preview = a.thumbnail(ctx, l); pin.Preview == "" {
+					if collages := a.svc.StoredCollages(ctx, l.Collages); len(collages) > 0 {
+						pin.Preview = apiV1 + "/media/" + collages[0]
+					}
 				}
 				out.Pins = append(out.Pins, pin)
 			} else if j < 0 {

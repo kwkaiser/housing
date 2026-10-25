@@ -21,7 +21,7 @@ func (a *App) apiFavorites(ctx context.Context, _ *struct{}) (*struct{ Body []AP
 	}
 	out := make([]APIFavorite, len(fs))
 	for i, f := range fs {
-		out[i] = APIFavorite{Listing: apiListing(f.Listing, a.thumbnail(ctx, f.Listing)), AddedAt: f.CreatedAt, LastSeen: f.LastSeen}
+		out[i] = APIFavorite{Listing: a.listing(ctx, f.Listing), AddedAt: f.CreatedAt, LastSeen: f.LastSeen}
 		if f.Graded {
 			g := apiGrade(f.Grade)
 			out[i].Best = &g

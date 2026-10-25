@@ -32,6 +32,7 @@ const (
 	StageProfile Stage = "profile"
 	StageImport  Stage = "import"
 	StageNotify  Stage = "notify"
+	StagePrune   Stage = "prune"
 )
 
 type Clients struct {

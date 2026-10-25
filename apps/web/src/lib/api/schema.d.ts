@@ -1498,7 +1498,7 @@ export interface operations {
                 collection?: string;
                 /** @description Only jobs that create or draft this profile */
                 profile?: string;
-                kind?: "run_collection" | "create_profile" | "draft_profile";
+                kind?: "run_collection" | "create_profile" | "draft_profile" | "prune_media";
                 status?: "queued" | "running" | "succeeded" | "degraded" | "failed" | "cancelled";
                 /** @description Maximum jobs to return; 0 for all */
                 limit?: number;

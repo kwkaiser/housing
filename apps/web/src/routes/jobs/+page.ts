@@ -2,7 +2,7 @@ import { api, call, need, type Job } from '#lib/api/client.ts';
 import type { PageLoad } from './$types';
 
 type Status = Job['status'];
-type Kind = 'run_collection' | 'create_profile' | 'draft_profile';
+type Kind = 'run_collection' | 'create_profile' | 'draft_profile' | 'prune_media';
 
 export const load: PageLoad = async ({ fetch, url }) => {
 	const q = url.searchParams;
