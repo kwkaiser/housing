@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import Back from '#lib/components/Back.svelte';
 	import { api, call } from '#lib/api/client.ts';
 	import CollectionForm from '#lib/components/CollectionForm.svelte';
 	import type { PageProps } from './$types';
@@ -10,7 +11,8 @@
 
 <svelte:head><title>Edit {id} · housing</title></svelte:head>
 
-<h1>Edit {id}</h1>
+<Back href="/c/{encodeURIComponent(id)}" label={id} />
+<div class="page-head"><h1>Edit collection</h1></div>
 {#key id}
 	<CollectionForm
 		meta={data.meta}

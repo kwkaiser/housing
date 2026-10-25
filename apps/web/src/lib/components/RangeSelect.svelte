@@ -53,3 +53,16 @@
 		<input type="date" aria-label="To" value={to} min={from || undefined} onchange={(e) => onrange(from, e.currentTarget.value)} />
 	{/if}
 </span>
+
+<style>
+	.range {
+		display: inline-flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.4rem;
+	}
+
+	input {
+		min-width: 0;
+	}
+</style>

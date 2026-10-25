@@ -52,7 +52,21 @@
 	});
 </script>
 
-<div class="map-frame listing-map">
+<div class="map-frame">
 	<div class="map" bind:this={el}></div>
-	{#if hm}<LayerPanel map={hm} {config} />{/if}
+	{#if hm}<div class="layers"><LayerPanel map={hm} {config} /></div>{/if}
 </div>
+
+<style>
+	.map-frame {
+		height: 22rem;
+		max-height: 60vh;
+	}
+
+	.layers {
+		position: absolute;
+		top: 0.6rem;
+		left: 0.6rem;
+		z-index: 3;
+	}
+</style>

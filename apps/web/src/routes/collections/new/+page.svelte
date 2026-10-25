@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import Back from '#lib/components/Back.svelte';
 	import { api, call } from '#lib/api/client.ts';
 	import CollectionForm from '#lib/components/CollectionForm.svelte';
 	import type { PageProps } from './$types';
@@ -9,7 +10,8 @@
 
 <svelte:head><title>New collection · housing</title></svelte:head>
 
-<h1>New collection</h1>
+<Back href="/collections" label="Collections" />
+<div class="page-head"><h1>New collection</h1></div>
 <CollectionForm
 	meta={data.meta}
 	profiles={data.profiles}

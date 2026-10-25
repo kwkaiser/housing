@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import Back from '#lib/components/Back.svelte';
 	import { api, ApiError, call } from '#lib/api/client.ts';
 	import Errors from '#lib/components/Errors.svelte';
 	import { lines } from '#lib/format.ts';
@@ -41,7 +42,8 @@
 
 <svelte:head><title>New profile · housing</title></svelte:head>
 
-<h1>New profile</h1>
+<Back href="/profiles" label="Profiles" />
+<div class="page-head"><h1>New profile</h1></div>
 <p>A profile is drafted from a reference listing you like (or, for an avoid profile, one you don't). Looking up the listing and drafting its criteria both cost money.</p>
 <Errors {error} />
 <form class="form" {onsubmit}>
@@ -59,8 +61,8 @@
 		</div>
 		<div class="field">
 			<span class="label">Kind</span>
-			<div class="options">
-				{#each data.meta.profile_kinds ?? [] as k (k)}<label class="toggle"><input type="radio" name="kind" value={k} bind:group={kind} /> {k}</label>{/each}
+			<div class="chips">
+				{#each data.meta.profile_kinds ?? [] as k (k)}<label><input type="radio" name="kind" value={k} bind:group={kind} /> {k}</label>{/each}
 			</div>
 		</div>
 		<div class="field"><label for="name">Name</label><input id="name" bind:value={name} /></div>
@@ -72,8 +74,8 @@
 	</fieldset>
 	<fieldset>
 		<legend>Drafting</legend>
-		<label class="toggle"><input type="checkbox" bind:checked={draft} /> Draft criteria now</label>
-		<label class="toggle"><input type="checkbox" bind:checked={force} /> Replace an existing profile with this ID</label>
+		<label class="check"><input type="checkbox" bind:checked={draft} /> Draft criteria now</label>
+		<label class="check"><input type="checkbox" bind:checked={force} /> Replace an existing profile with this ID</label>
 		<div class="grid">
 			<div class="field"><label for="model">Model</label><input id="model" bind:value={model} placeholder={data.meta.defaults.draft_model} disabled={!draft} /></div>
 			<div class="field" class:invalid={fields.max_charge_usd}>
@@ -82,5 +84,7 @@
 			</div>
 		</div>
 	</fieldset>
-	<button class="primary" type="submit" disabled={busy}>Create profile</button>
+	<div class="form-actions">
+		<button class="primary" type="submit" disabled={busy}>Create profile</button>
+	</div>
 </form>

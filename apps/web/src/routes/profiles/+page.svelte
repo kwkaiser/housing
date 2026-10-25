@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PlusIcon from '@lucide/svelte/icons/plus';
 	import { dateTime, shortModel } from '#lib/format.ts';
 	import type { PageProps } from './$types';
 
@@ -7,29 +8,31 @@
 
 <svelte:head><title>Profiles · housing</title></svelte:head>
 
-<h1>Profiles</h1>
-<div class="controls"><a class="button" href="/profiles/new">New profile</a></div>
+<div class="page-head">
+	<h1>Profiles</h1>
+	<div class="actions"><a class="button primary" href="/profiles/new"><PlusIcon size={18} /> New</a></div>
+</div>
 {#if data.profiles.length}
-	<div class="wrap">
-		<table class="profiles-table">
-			<thead><tr><th>Profile</th><th>Kind</th><th class="num">Wants</th><th class="num">Avoids</th><th class="num">References</th><th>Collections</th><th>Drafted</th></tr></thead>
-			<tbody>
-				{#each data.profiles as p (p.id)}
-					<tr>
-						<td><a href="/profiles/{encodeURIComponent(p.id)}">{p.name || p.id}</a> <code class="muted">{p.id}</code></td>
-						<td><span class="kind {p.kind}">{p.kind}</span></td>
-						<td class="num">{p.wants}</td>
-						<td class="num">{p.avoids}</td>
-						<td class="num">{p.references}</td>
-						<td>
-							{#each p.collections ?? [] as c, i (c)}{i ? ', ' : ''}<a href="/c/{encodeURIComponent(c)}">{c}</a>{/each}
-						</td>
-						<td class="muted">{p.drafted ? `${shortModel(p.drafted.model)} · ${dateTime(p.drafted.at)}` : ''}</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	</div>
+	<ul class="cards">
+		{#each data.profiles as p (p.id)}
+			<li class="card item">
+				<div class="head">
+					<a class="stretch name" href="/profiles/{encodeURIComponent(p.id)}">{p.name || p.id}</a>
+					<span class="pill {p.kind === 'avoid' ? 'bad' : 'good'}">{p.kind}</span>
+				</div>
+				<p class="line"><code>{p.id}</code> · {p.wants} wants · {p.avoids} avoids · {p.references} references</p>
+				{#if p.collections?.length}
+					<p class="line">
+						Used by {#each p.collections as c, i (c)}{i ? ', ' : ''}<a href="/c/{encodeURIComponent(c)}">{c}</a>{/each}
+					</p>
+				{/if}
+				{#if p.drafted}<p class="line">Drafted by {shortModel(p.drafted.model)} · {dateTime(p.drafted.at)}</p>{/if}
+			</li>
+		{/each}
+	</ul>
 {:else}
-	<p>No profiles yet.</p>
+	<div class="card empty">
+		<p>No profiles yet.</p>
+		<a class="button primary" href="/profiles/new">Create a profile</a>
+	</div>
 {/if}

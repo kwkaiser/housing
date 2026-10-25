@@ -17,6 +17,9 @@ importers:
       '@capacitor/core':
         specifier: 8.5.3
         version: 8.5.3
+      '@lucide/svelte':
+        specifier: 1.59.0
+        version: 1.59.0(svelte@5.57.2)
       maplibre-gl:
         specifier: 6.14.0
         version: 6.14.0
@@ -87,6 +90,11 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@lucide/svelte@1.59.0':
+    resolution: {integrity: sha512-ga9IrEsFJBkt/34VnRFcQ2HLs8eOpOovXZ62XzwfC7f0zBfo4y116FBIDroZkD0gInYYY2hSSAcsQEm/Vm+AoA==}
+    peerDependencies:
+      svelte: ^5
 
   '@mapbox/jsonlint-lines-primitives@2.0.3':
     resolution: {integrity: sha512-0SElaV0uMxEnxzBhhX9WTuPyUeMsAN/SS0i16tjuba4/mio63MG9khjC1a0JAiPGXAwvwm4UfHJURCN7nyudQg==}
@@ -746,6 +754,10 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  '@lucide/svelte@1.59.0(svelte@5.57.2)':
+    dependencies:
+      svelte: 5.57.2
 
   '@mapbox/jsonlint-lines-primitives@2.0.3': {}
 

@@ -1,6 +1,5 @@
 <script lang="ts">
-	import Star from '#lib/components/Star.svelte';
-	import { address, beds, localDay, match, money } from '#lib/format.ts';
+	import ListingCard from '#lib/components/ListingCard.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -8,28 +7,25 @@
 
 <svelte:head><title>Favorites · housing</title></svelte:head>
 
-<h1>Favorites</h1>
+<div class="page-head"><h1>Favorites</h1></div>
 {#if data.favorites.length}
-	<div class="wrap">
-		<table>
-			<thead><tr><th></th><th class="num">Match</th><th class="num">Price</th><th class="num">Beds</th><th>Address</th><th>Sources</th><th>Last seen</th><th>Added</th></tr></thead>
-			<tbody>
-				{#each data.favorites as f (f.listing.source + '/' + f.listing.source_id)}
-					{@const l = f.listing}
-					<tr>
-						<td><Star source={l.source} id={l.source_id} on={true} /></td>
-						<td class="num score">{f.best ? match(f.best.match, f.best.calibrated, f.best.stale) : '-'}</td>
-						<td class="num">{money(l.price.cents, l.offer)}</td>
-						<td class="num">{beds(l.beds)}</td>
-						<td><a href="/listing/{encodeURIComponent(l.source)}/{encodeURIComponent(l.source_id)}">{address(l.address) || l.source_id}</a></td>
-						<td><a class="ext" href={l.url} target="_blank" rel="noopener">{l.source}</a></td>
-						<td>{f.last_seen ?? '-'}</td>
-						<td>{localDay(new Date(f.added_at))}</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	</div>
+	<ul class="cards">
+		{#each data.favorites as f (f.listing.source + '/' + f.listing.source_id)}
+			{@const l = f.listing}
+			<li>
+				<ListingCard
+					listing={l}
+					href="/listing/{encodeURIComponent(l.source)}/{encodeURIComponent(l.source_id)}"
+					grade={f.best}
+					favorite={true}
+					note={f.last_seen ? `seen ${f.last_seen}` : undefined}
+				/>
+			</li>
+		{/each}
+	</ul>
 {:else}
-	<p>No favorites yet. Star a listing to keep it here.</p>
+	<div class="card empty">
+		<p>No favorites yet. Star a listing to keep it here.</p>
+		<a class="button" href="/">Browse listings</a>
+	</div>
 {/if}

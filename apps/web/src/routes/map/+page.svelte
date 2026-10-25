@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import type { GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl';
+	import SlidersHorizontalIcon from '@lucide/svelte/icons/sliders-horizontal';
 	import { goto } from '$app/navigation';
 	import type { MapPin } from '#lib/api/client.ts';
 	import LayerPanel from '#lib/components/LayerPanel.svelte';
+	import Sheet from '#lib/components/Sheet.svelte';
 	import type { HousingMap } from '#lib/map/create.ts';
 	import { beds, match, money, sized } from '#lib/format.ts';
 	import RangeSelect from '#lib/components/RangeSelect.svelte';
@@ -24,6 +26,7 @@
 	let contrast = $state<number>(Number(load('mapContrast', 50)));
 	let show = $state<{ dealbreakers?: boolean; ungraded?: boolean }>(load('mapShow', {}));
 	let cutoff = $state<number>(Number(load('mapCutoff', 0)) || 0);
+	let filtersOpen = $state(false);
 
 	let placed = $derived.by((): Placed[] => {
 		const out = (data.pins.pins ?? []).map((pin) => ({ pin, lat: pin.lat, lng: pin.lng }));
@@ -133,7 +136,7 @@
 			}
 		}
 		if (bounds.isEmpty()) map.jumpTo({ center: [-98.6, 39.8], zoom: 3 });
-		else map.fitBounds(bounds, { padding: 40, maxZoom: 15, duration: 0 });
+		else map.fitBounds(bounds, { padding: { top: 80, bottom: 40, left: 40, right: 60 }, maxZoom: 15, duration: 0 });
 	}
 
 	function popup(pin: MapPin, leadId: string): HTMLElement {
@@ -254,43 +257,135 @@
 <svelte:head><title>Map · housing</title></svelte:head>
 
 <div class="map-page">
-	<h1>Map</h1>
-	{#if !collections.length}
-		<p>There are no collections yet. <a href="/collections/new">Create one</a>, then run it.</p>
-	{:else}
-		<div class="controls">
-			<details class="picker collections">
-				<summary><span class="swatch" style="background: {colors[selected]}"></span> {selected}</summary>
+	<h1 class="sr-only">Map</h1>
+	<div class="map-frame">
+		<div class="map" bind:this={el}></div>
+	</div>
+	<div class="overlay">
+		{#if collections.length}
+			<details class="picker">
+				<summary><span class="swatch" style:background={colors[selected]}></span> {selected} <span class="muted">{visible.length}</span></summary>
 				<div class="menu">
 					{#each collections as c (c.id)}
 						<label>
 							<input type="radio" name="map-collection" checked={c.id === selected} onchange={() => choose(c.id)} />
-							<span class="swatch" style="background: {c.color}"></span>
-							{c.id} <span class="muted count">{c.graded}{#if c.latest_day} · {c.latest_day}{/if}</span>
+							<span class="swatch" style:background={c.color}></span>
+							{c.id} <span class="muted">{c.graded}{c.latest_day ? ` · ${c.latest_day}` : ''}</span>
 						</label>
 					{/each}
 				</div>
 			</details>
-			<details class="picker filters">
-				<summary>{cutoff ? `Filters · ≥${cutoff}%` : 'Filters'}</summary>
-				<div class="menu">
-					<label>Match cutoff <input type="number" min="0" step="5" inputmode="numeric" placeholder="0" bind:value={cutoff} oninput={() => save('mapCutoff', cutoff || 0)} /> %</label>
-					<label><input type="checkbox" bind:checked={show.dealbreakers} onchange={() => save('mapShow', show)} /> Show dealbreakers</label>
-					<label><input type="checkbox" bind:checked={show.ungraded} onchange={() => save('mapShow', show)} /> Show ungraded</label>
-				</div>
-			</details>
-			<RangeSelect from={data.from} to={data.to} onrange={range} />
-			<select aria-label="Fading" bind:value={fading} onchange={() => save('mapFading', fading)}>
-				<option value="">No fading</option>
-				<option value="age">Fade by age</option>
-				<option value="match">Fade by match</option>
-			</select>
-			<label class="toggle contrast">Contrast <input type="range" min="0" max="100" bind:value={contrast} disabled={!fading} oninput={() => save('mapContrast', contrast)} /></label>
-			<span class="muted summary">{summary}</span>
-		</div>
-	{/if}
-	<div class="map-frame">
-		<div class="map" bind:this={el}></div>
+			<button type="button" onclick={() => (filtersOpen = true)}><SlidersHorizontalIcon size={16} /> {cutoff ? `≥${cutoff}%` : 'Filters'}</button>
+		{/if}
 		{#if hm}<LayerPanel map={hm} config={data.config} />{/if}
 	</div>
+	{#if !collections.length}
+		<div class="card empty">
+			<p>There are no collections yet.</p>
+			<a class="button primary" href="/collections/new">Create a collection</a>
+		</div>
+	{/if}
 </div>
+
+<Sheet bind:open={filtersOpen} title="Map filters" done>
+	<p class="summary-line">{summary}</p>
+	<h3 class="label">Dates</h3>
+	<div class="option-list"><div><RangeSelect from={data.from} to={data.to} onrange={range} /></div></div>
+	<h3 class="label">Listings</h3>
+	<div class="option-list">
+		<label>Match cutoff <span><input type="number" min="0" step="5" inputmode="numeric" placeholder="0" bind:value={cutoff} oninput={() => save('mapCutoff', cutoff || 0)} /> %</span></label>
+		<label>Show dealbreakers <input type="checkbox" bind:checked={show.dealbreakers} onchange={() => save('mapShow', show)} /></label>
+		<label>Show ungraded <input type="checkbox" bind:checked={show.ungraded} onchange={() => save('mapShow', show)} /></label>
+	</div>
+	<h3 class="label">Appearance</h3>
+	<div class="option-list">
+		<label>
+			Fading
+			<select bind:value={fading} onchange={() => save('mapFading', fading)}>
+				<option value="">None</option>
+				<option value="age">By age</option>
+				<option value="match">By match</option>
+			</select>
+		</label>
+		<label>Contrast <input type="range" min="0" max="100" bind:value={contrast} disabled={!fading} oninput={() => save('mapContrast', contrast)} /></label>
+	</div>
+</Sheet>
+
+<style>
+	:global(body:has(.map-page)) {
+		height: 100dvh;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+
+	:global(body:has(.map-page) main) {
+		flex: 1;
+		min-height: 0;
+		width: 100%;
+		max-width: none;
+		padding: 0 0 var(--bottom-chrome);
+	}
+
+	.map-page {
+		position: relative;
+		height: 100%;
+	}
+
+	.map-frame {
+		position: absolute;
+		inset: 0;
+		border: 0;
+		border-radius: 0;
+	}
+
+	.overlay {
+		position: absolute;
+		z-index: 4;
+		top: calc(0.75rem + var(--safe-top));
+		left: calc(0.75rem + var(--safe-left));
+		right: 4rem;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-start;
+		gap: 0.5rem;
+		pointer-events: none;
+	}
+
+	.overlay > :global(*) {
+		pointer-events: auto;
+	}
+
+	.overlay :is(summary, button) {
+		border-color: transparent;
+		box-shadow: var(--shadow-lg);
+	}
+
+	.overlay summary .muted {
+		font-weight: 400;
+	}
+
+	.swatch {
+		display: inline-block;
+		width: 0.7rem;
+		height: 0.7rem;
+		border-radius: 50%;
+		flex: none;
+	}
+
+	.empty {
+		position: absolute;
+		z-index: 4;
+		inset: auto 1rem 2.5rem;
+		max-width: 26rem;
+		margin: 0 auto;
+	}
+
+	.label {
+		margin: 0.5rem 0 0.25rem;
+	}
+
+	.map-page :global(.maplibregl-ctrl-top-right) {
+		top: var(--safe-top);
+	}
+</style>
