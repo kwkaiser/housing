@@ -2571,7 +2571,8 @@
               "enum": [
                 "run_collection",
                 "create_profile",
-                "draft_profile"
+                "draft_profile",
+                "prune_media"
               ],
               "type": "string"
             }

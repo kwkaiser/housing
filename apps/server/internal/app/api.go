@@ -286,6 +286,12 @@ func mediaPaths(keys []string) []string {
 	return out
 }
 
+func (a *App) listing(ctx context.Context, l listing.Listing) APIListing {
+	thumbnail := a.thumbnail(ctx, l)
+	l.Collages = a.svc.StoredCollages(ctx, l.Collages)
+	return apiListing(l, thumbnail)
+}
+
 func (a *App) thumbnail(ctx context.Context, l listing.Listing) string {
 	if key := a.svc.Thumbnail(ctx, l); key != "" {
 		return apiV1 + "/media/" + key
@@ -449,7 +455,7 @@ func (a *App) apiCollectionListings(ctx context.Context, in *collectionListingsI
 			continue
 		}
 		r := APIListingRow{
-			Rank: row.Rank, Listing: apiListing(row.Listing, a.thumbnail(ctx, row.Listing)), Best: apiGrade(row.Grade), Grades: []APIGrade{}, AlsoListed: row.AlsoListed,
+			Rank: row.Rank, Listing: a.listing(ctx, row.Listing), Best: apiGrade(row.Grade), Grades: []APIGrade{}, AlsoListed: row.AlsoListed,
 			FirstSeen: row.FirstSeen, New: row.New(), Status: row.Status, PreviousPriceCents: row.PreviousPriceCents, Favorite: row.Favorite, Day: row.Day,
 		}
 		for _, id := range v.Collection.Profiles {
@@ -545,7 +551,7 @@ func (a *App) apiListing(ctx context.Context, in *listingInput) (*struct{ Body A
 		return nil, a.apiError(ctx, err)
 	}
 	out := APIListingDetail{
-		Listing: apiListing(v.Listing, a.thumbnail(ctx, v.Listing)), Collection: v.Collection, Day: v.Day,
+		Listing: a.listing(ctx, v.Listing), Collection: v.Collection, Day: v.Day,
 		AlsoListed: []APIListing{}, History: []APIPriceSighting{}, Grades: []APIListingGrade{}, Favorite: v.Favorite,
 		Gallery: mediaPaths(a.svc.StoredPhotos(ctx, v.Listing, 0)),
 	}
@@ -553,7 +559,7 @@ func (a *App) apiListing(ctx context.Context, in *listingInput) (*struct{ Body A
 		out.Location = &APILocation{Lat: loc.Lat, Lng: loc.Lng, Approx: approx}
 	}
 	for _, l := range v.AlsoListed {
-		out.AlsoListed = append(out.AlsoListed, apiListing(l, a.thumbnail(ctx, l)))
+		out.AlsoListed = append(out.AlsoListed, a.listing(ctx, l))
 	}
 	for _, s := range v.History {
 		out.History = append(out.History, APIPriceSighting{Day: s.Day, PriceCents: s.PriceCents})
@@ -706,7 +712,7 @@ func apiJob(j jobs.Job) APIJob {
 type jobsInput struct {
 	Collection string      `query:"collection" doc:"Only this collection's jobs"`
 	Profile    string      `query:"profile" doc:"Only jobs that create or draft this profile"`
-	Kind       jobs.Kind   `query:"kind" enum:"run_collection,create_profile,draft_profile"`
+	Kind       jobs.Kind   `query:"kind" enum:"run_collection,create_profile,draft_profile,prune_media"`
 	Status     jobs.Status `query:"status" enum:"queued,running,succeeded,degraded,failed,cancelled"`
 	Limit      int         `query:"limit" minimum:"0" default:"20" doc:"Maximum jobs to return; 0 for all"`
 	Before     int64       `query:"before" minimum:"0" doc:"Only jobs older than this job id; pass the last id of the previous page"`

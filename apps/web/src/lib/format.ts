@@ -83,7 +83,8 @@ export function shiftDay(d: Date, { days = 0, months = 0 }: { days?: number; mon
 const kinds: Record<string, string> = {
 	run_collection: 'Collection run',
 	create_profile: 'Create profile',
-	draft_profile: 'Draft profile'
+	draft_profile: 'Draft profile',
+	prune_media: 'Prune media'
 };
 
 export function kindLabel(kind: string): string {

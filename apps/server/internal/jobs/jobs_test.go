@@ -79,6 +79,13 @@ func (f *fakeExec) DraftProfile(context.Context, string, service.DraftOptions, *
 	return profile.Profile{}, errors.New("no references")
 }
 
+func (f *fakeExec) PruneMedia(_ context.Context, o service.PruneOptions, log *slog.Logger) (service.PruneResult, error) {
+	log.Info("pruned media", "stage", service.StagePrune)
+	res := service.PruneResult{Since: time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC).Add(-o.Retention), DryRun: o.DryRun}
+	res.Scanned, res.Deleted, res.Bytes = 3, 2, 10
+	return res, nil
+}
+
 func openStore(t *testing.T) *store.Store {
 	t.Helper()
 	db, err := store.Open(t.Context(), filepath.Join(t.TempDir(), store.FileName))
@@ -178,6 +185,18 @@ func TestRunnerRecordsJobs(t *testing.T) {
 		}
 		if _, err := q.Enqueue(ctx, CreateProfileParams{ID: "Bad Id"}); err == nil {
 			t.Error("an invalid profile id should be rejected")
+		}
+
+		prid, err := q.Enqueue(ctx, PruneMediaParams{RetainDays: 1, DryRun: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if pr := wait(t, q, prid); pr.Status != StatusSucceeded || pr.CostUSD != 0 ||
+			string(pr.Result) != `{"since":"2026-09-29T00:00:00Z","dry_run":true,"scanned":3,"kept":0,"recent":0,"deleted":2,"bytes":10}` {
+			t.Errorf("prune job = %+v %s", pr, pr.Result)
+		}
+		if _, err := q.Enqueue(ctx, PruneMediaParams{RetainDays: -1}); err == nil {
+			t.Error("a negative retention should be rejected")
 		}
 	})
 }
@@ -294,6 +313,34 @@ func TestRunnerShutdownCancelsJob(t *testing.T) {
 			t.Errorf("events after cancel should still be recorded: %+v", events)
 		}
 	})
+}
+
+func TestSchedulerPrunesDaily(t *testing.T) {
+	ctx := t.Context()
+	db := openStore(t)
+	clk := &clock{now: time.Date(2026, 9, 30, 0, 5, 0, 0, time.Local)}
+	q := New(db, clk.Now)
+	sched := &Scheduler{Queue: q, Now: clk.Now, Prune: &PruneMediaParams{RetainDays: 30}}
+
+	ids, err := sched.Check(ctx)
+	if err != nil || len(ids) != 1 {
+		t.Fatalf("first check enqueued %v %v", ids, err)
+	}
+	if j, _ := q.Job(ctx, ids[0]); j.Kind != string(KindPruneMedia) || j.Trigger != string(TriggerSchedule) || string(j.Params) != `{"retain_days":30}` {
+		t.Errorf("scheduled prune = %+v", j)
+	}
+	claimed, _, _ := db.ClaimJob(ctx, clk.Now())
+	claimed.Status, claimed.FinishedAt = StatusSucceeded, clk.Now()
+	db.FinishJob(ctx, claimed)
+
+	clk.Set(time.Date(2026, 9, 30, 23, 0, 0, 0, time.Local))
+	if ids, _ := sched.Check(ctx); len(ids) != 0 {
+		t.Errorf("a second prune the same day was enqueued: %v", ids)
+	}
+	clk.Set(time.Date(2026, 10, 1, 0, 1, 0, 0, time.Local))
+	if ids, _ := sched.Check(ctx); len(ids) != 1 {
+		t.Errorf("the next day's prune was not enqueued: %v", ids)
+	}
 }
 
 func TestScheduler(t *testing.T) {

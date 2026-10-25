@@ -117,7 +117,31 @@ func newJobsCmd(dataDir *string) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.AddCommand(show, enqueue)
+	var (
+		retainDays int
+		dryRun     bool
+	)
+	prune := &cobra.Command{
+		Use:   "prune-media",
+		Short: "Queue a prune of stored media for listings not seen recently, keeping favorites and profile references",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			q, done, err := queue(cmd)
+			if err != nil {
+				return err
+			}
+			defer done()
+			id, err := q.Enqueue(cmd.Context(), jobs.PruneMediaParams{RetainDays: retainDays, DryRun: dryRun})
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "job %d queued\n", id)
+			return nil
+		},
+	}
+	prune.Flags().IntVar(&retainDays, "retain-days", 30, "keep media of listings seen within this many days")
+	prune.Flags().BoolVar(&dryRun, "dry-run", false, "report what would be deleted without deleting it")
+	cmd.AddCommand(show, enqueue, prune)
 	return cmd
 }
 

@@ -132,6 +132,16 @@ func (r *Runner) execute(ctx context.Context, j Job, log *slog.Logger) (float64,
 		}
 		prof, err := r.Exec.DraftProfile(ctx, p.ProfileID, service.DraftOptions{Model: p.Model, Notes: p.Notes}, log)
 		return draftCost(prof), profileResult(prof), err
+	case KindPruneMedia:
+		var p PruneMediaParams
+		if err := decode(j, &p); err != nil {
+			return 0, nil, err
+		}
+		res, err := r.Exec.PruneMedia(ctx, p.options(), log)
+		if err != nil {
+			return 0, nil, err
+		}
+		return 0, pruneResult(res), nil
 	default:
 		return 0, nil, fmt.Errorf("unsupported job kind %q", j.Kind)
 	}

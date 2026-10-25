@@ -23,8 +23,10 @@ const telemetryShutdownTimeout = 10 * time.Second
 
 func newServerCmd(dataDir *string) *cobra.Command {
 	var (
-		addr   string
-		noAuth bool
+		addr       string
+		noAuth     bool
+		retainDays int
+		pruneDry   bool
 	)
 	cmd := &cobra.Command{
 		Use:   "server",
@@ -36,7 +38,8 @@ func newServerCmd(dataDir *string) *cobra.Command {
 			"API clients send an access token from that provider as a bearer token.\n" +
 			"--no-auth serves everything without signing in, for local development.\n\n" +
 			"The server also runs queued jobs one at a time and enqueues a run of each collection with a\n" +
-			"--schedule once a day after its scheduled time. It holds the data directory's lock while up, so\n" +
+			"--schedule once a day after its scheduled time, and a daily prune of stored photos and collages for\n" +
+			"listings not seen in --media-retain-days that are neither favorited nor profile references. It holds the data directory's lock while up, so\n" +
 			"`housing run` cannot write to the same data directory at the same time.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -76,6 +79,9 @@ func newServerCmd(dataDir *string) *cobra.Command {
 			a.Version, a.NoAuth, a.OIDC = version, noAuth, provider
 			runner := &jobs.Runner{Queue: queue, Exec: svc, Log: log.With("component", "jobs")}
 			scheduler := &jobs.Scheduler{Queue: queue, Log: log.With("component", "scheduler")}
+			if retainDays > 0 {
+				scheduler.Prune = &jobs.PruneMediaParams{RetainDays: retainDays, DryRun: pruneDry}
+			}
 
 			g, ctx := errgroup.WithContext(cmd.Context())
 			g.Go(func() error { return a.Run(ctx, addr) })
@@ -86,5 +92,7 @@ func newServerCmd(dataDir *string) *cobra.Command {
 	}
 	cmd.Flags().StringVar(&addr, "addr", "127.0.0.1:8080", "address to listen on")
 	cmd.Flags().BoolVar(&noAuth, "no-auth", false, "serve everything without signing in, for local development")
+	cmd.Flags().IntVar(&retainDays, "media-retain-days", 30, "delete media of listings not seen in this many days (0 disables the daily prune)")
+	cmd.Flags().BoolVar(&pruneDry, "media-prune-dry-run", false, "log what the daily prune would delete without deleting it")
 	return cmd
 }

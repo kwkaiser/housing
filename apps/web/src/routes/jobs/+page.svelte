@@ -8,7 +8,7 @@
 
 	let { data }: PageProps = $props();
 	const statuses = ['queued', 'running', 'succeeded', 'degraded', 'failed', 'cancelled'];
-	const kinds = ['run_collection', 'create_profile', 'draft_profile'];
+	const kinds = ['run_collection', 'create_profile', 'draft_profile', 'prune_media'];
 
 	function href(changes: Record<string, string | undefined>): string {
 		const q = new URLSearchParams(page.url.search);
