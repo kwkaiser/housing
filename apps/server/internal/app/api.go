@@ -135,6 +135,7 @@ func (a *App) newAPI() (*http.ServeMux, huma.API) {
 	huma.Get(api, apiV1+"/map/pins", a.apiMapPins, op("listMapPins", "List map pins for every collection's listings over a range of runs", "map"))
 	huma.Get(api, apiV1+"/map/config", a.apiMapConfig, op("getMapConfig", "Get the tile layers and overlays the server can serve", "map"))
 	huma.Get(api, apiV1+"/tiles/positron/{z}/{x}/{file}", a.apiPositronTile, op("getPositronTile", "Get a cached CARTO Positron base map tile", "map"))
+	huma.Get(api, apiV1+"/tiles/terrain/{z}/{x}/{file}", a.apiTerrainTile, op("getTerrainTile", "Get a cached Mapterhorn terrarium-encoded elevation tile", "map"))
 	huma.Get(api, apiV1+"/overlays/{name}/{z}/{x}/{file}", a.apiOverlayTile, op("getOverlayTile", "Get a transit or bike lane overlay tile", "map"))
 	huma.Get(api, apiV1+"/keys", a.apiKeys, op("listKeys", "List API keys", "keys"))
 	huma.Register(api, huma.Operation{

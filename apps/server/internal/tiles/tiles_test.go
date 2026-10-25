@@ -214,3 +214,25 @@ func TestOpenFreeMap(t *testing.T) {
 		t.Errorf("tilejson hits = %d, tile hits = %d; want 1 and 2", jsonHits.Load(), tileHits.Load())
 	}
 }
+
+func TestTerrain(t *testing.T) {
+	u := &upstream{status: http.StatusOK, ctype: "image/webp", body: "dem"}
+	c := NewTerrain(t.TempDir())
+	if !c.Enabled() {
+		t.Fatal("terrain should not need a key")
+	}
+	serve(t, c, u)
+	if b, err := c.Get(t.Context(), Tile{Z: 12, X: 1205, Y: 1540}); err != nil || string(b) != "dem" {
+		t.Fatalf("Get = %q, %v", b, err)
+	}
+	if _, err := os.Stat(filepath.Join(c.Dir, "12", "1205", "1540.webp")); err != nil {
+		t.Errorf("tile not cached: %v", err)
+	}
+	if _, err := c.Get(t.Context(), Tile{Z: TerrainMaxZoom + 1}); !errors.Is(err, ErrBadTile) {
+		t.Errorf("past max zoom err = %v, want ErrBadTile", err)
+	}
+	u.ctype = "text/html"
+	if _, err := c.Get(t.Context(), Tile{Z: 12, X: 1, Y: 1}); !errors.Is(err, ErrUpstream) {
+		t.Errorf("html response err = %v, want ErrUpstream", err)
+	}
+}

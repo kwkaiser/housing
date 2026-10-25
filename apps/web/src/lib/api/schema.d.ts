@@ -416,6 +416,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tiles/terrain/{z}/{x}/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a cached Mapterhorn terrarium-encoded elevation tile */
+        get: operations["getTerrainTile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -591,6 +608,19 @@ export interface components {
             photos: number[];
             /** @enum {string} */
             verdict: "present" | "partial" | "absent" | "unknown";
+        };
+        APIDEMLayer: {
+            /** @enum {string} */
+            encoding: "terrarium";
+            /**
+             * Format: int64
+             * @description Tiles stop here; clients overzoom beyond it
+             */
+            max_zoom: number;
+            /** Format: int64 */
+            tile_size: number;
+            /** @description Tile URL template */
+            url: string;
         };
         APIDay: {
             day: string;
@@ -797,6 +827,8 @@ export interface components {
             overlays: components["schemas"]["APIOverlay"][];
             /** @description A cached CARTO Positron base layer, when the server has a CARTO key */
             positron?: components["schemas"]["APITileLayer"];
+            /** @description A cached elevation layer for hillshading */
+            terrain?: components["schemas"]["APIDEMLayer"];
         };
         APIMapPin: {
             address: string;
@@ -2117,6 +2149,42 @@ export interface operations {
                 z: string;
                 x: string;
                 /** @description {y}.png, or {y}@2x.png for retina */
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    getTerrainTile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                z: string;
+                x: string;
+                /** @description {y}.webp */
                 file: string;
             };
             cookie?: never;

@@ -128,6 +128,20 @@ func NewTransitland(dir, key string) *Cache {
 	return c
 }
 
+const TerrainMaxZoom = 12
+
+func NewTerrain(dir string) *Cache {
+	c := newCache(dir, ".webp")
+	c.MaxZoom = TerrainMaxZoom
+	c.Upstream = func(_ context.Context, t Tile) (string, error) {
+		return fmt.Sprintf("https://tiles.mapterhorn.com/%d/%d/%d.webp", t.Z, t.X, t.Y), nil
+	}
+	c.Check = func(res *http.Response) error {
+		return contentType(res, "image/")
+	}
+	return c
+}
+
 const openFreeMapTileJSON = "https://tiles.openfreemap.org/planet"
 
 func NewOpenFreeMap(dir string) *Cache {

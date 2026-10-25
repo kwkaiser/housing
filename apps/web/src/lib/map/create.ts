@@ -3,7 +3,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import type { MapConfig } from '#lib/api/client.ts';
 import { overlays } from './overlays';
-import { layerIds, savedLayers, saveLayers, style, type Layers, type OverlayName } from './style';
+import { layerIds, overlayNames, savedLayers, saveLayers, style, type Layers } from './style';
 
 export type HousingMap = {
 	map: Map;
@@ -40,7 +40,7 @@ export function createMap(container: HTMLElement, config: MapConfig, view: { cen
 			const vis = (id: string, on: boolean) => map.getLayer(id) && map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
 			vis('positron', next.base === 'positron');
 			vis('osm', next.base === 'osm');
-			for (const name of ['bike', 'rail', 'bus'] as OverlayName[]) {
+			for (const name of overlayNames) {
 				const on = next.overlays.includes(name);
 				layerIds(name, config).forEach((id) => vis(id, on));
 				ov.set(name, on);

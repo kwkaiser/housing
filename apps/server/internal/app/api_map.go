@@ -160,12 +160,20 @@ func searchArea(c collection.Collection) *APIBounds {
 
 type APIMapConfig struct {
 	Positron *APITileLayer `json:"positron,omitempty" doc:"A cached CARTO Positron base layer, when the server has a CARTO key"`
+	Terrain  *APIDEMLayer  `json:"terrain,omitempty" doc:"A cached elevation layer for hillshading"`
 	Overlays []APIOverlay  `json:"overlays"`
 }
 
 type APITileLayer struct {
 	URL     string `json:"url" doc:"Tile URL template; {r} is empty or @2x for retina tiles"`
 	MaxZoom int    `json:"max_zoom"`
+}
+
+type APIDEMLayer struct {
+	URL      string `json:"url" doc:"Tile URL template"`
+	MaxZoom  int    `json:"max_zoom" doc:"Tiles stop here; clients overzoom beyond it"`
+	TileSize int    `json:"tile_size"`
+	Encoding string `json:"encoding" enum:"terrarium"`
 }
 
 type APIOverlay struct {
@@ -181,6 +189,9 @@ func (a *App) apiMapConfig(_ context.Context, _ *struct{}) (*struct{ Body APIMap
 	out := APIMapConfig{Overlays: []APIOverlay{}}
 	if c.Positron {
 		out.Positron = &APITileLayer{URL: apiV1 + "/tiles/positron/{z}/{x}/{y}{r}.png", MaxZoom: 20}
+	}
+	if a.terrain.Enabled() {
+		out.Terrain = &APIDEMLayer{URL: apiV1 + "/tiles/terrain/{z}/{x}/{y}.webp", MaxZoom: a.terrain.MaxZoom, TileSize: 512, Encoding: "terrarium"}
 	}
 	for _, o := range c.Overlays {
 		base := apiV1 + "/overlays/" + o.Name + "/{z}/{x}/{y}"
@@ -214,6 +225,20 @@ func (a *App) apiPositronTile(ctx context.Context, in *tileInput) (*tileOutput, 
 		return nil, tileError(err)
 	}
 	return &tileOutput{ContentType: "image/png", CacheControl: "private, max-age=86400", Body: b}, nil
+}
+
+type terrainTileInput struct {
+	Z    string `path:"z"`
+	X    string `path:"x"`
+	File string `path:"file" doc:"{y}.webp"`
+}
+
+func (a *App) apiTerrainTile(ctx context.Context, in *terrainTileInput) (*tileOutput, error) {
+	b, err := a.terrainWebP(ctx, in.Z, in.X, in.File)
+	if err != nil {
+		return nil, tileError(err)
+	}
+	return &tileOutput{ContentType: "image/webp", CacheControl: "private, max-age=86400", Body: b}, nil
 }
 
 func (a *App) apiOverlayTile(ctx context.Context, in *overlayInput) (*tileOutput, error) {
