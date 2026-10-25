@@ -5,6 +5,8 @@ import (
 	"image"
 	"image/color"
 	"image/jpeg"
+	"maps"
+	"slices"
 	"testing"
 )
 
@@ -44,5 +46,21 @@ func TestShrink(t *testing.T) {
 	}
 	if _, err := Shrink([]byte("not an image"), 1024); err == nil {
 		t.Error("garbage should fail to decode")
+	}
+}
+
+func TestShrinkAll(t *testing.T) {
+	out, err := ShrinkAll(jpegOf(t, 1000, 750), Sizes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := out[1280]; ok || len(out) != 2 {
+		t.Fatalf("got sizes %v, want only those smaller than the image", slices.Sorted(maps.Keys(out)))
+	}
+	for size, want := range map[int][2]int{320: {320, 240}, 640: {640, 480}} {
+		cfg, err := jpeg.DecodeConfig(bytes.NewReader(out[size]))
+		if err != nil || cfg.Width != want[0] || cfg.Height != want[1] {
+			t.Errorf("size %d = %dx%d %v, want %v", size, cfg.Width, cfg.Height, err, want)
+		}
 	}
 }

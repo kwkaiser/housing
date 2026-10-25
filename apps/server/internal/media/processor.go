@@ -8,6 +8,7 @@ import (
 	"image"
 	"image/jpeg"
 	_ "image/png"
+	"io"
 	"log/slog"
 	"net/url"
 	"path"
@@ -138,15 +139,56 @@ func (p *Processor) selectPhotos(l listing.Listing) []string {
 func (p *Processor) ensurePhoto(ctx context.Context, u string) error {
 	key := PhotoKey(u)
 	ok, err := p.Store.Has(ctx, key)
-	if err != nil || ok {
-		return err
-	}
-	body, err := p.Fetcher.Fetch(ctx, u)
 	if err != nil {
 		return err
 	}
-	defer body.Close()
-	return p.Store.Put(ctx, key, body)
+	if !ok {
+		body, err := p.Fetcher.Fetch(ctx, u)
+		if err != nil {
+			return err
+		}
+		err = p.Store.Put(ctx, key, body)
+		body.Close()
+		if err != nil {
+			return err
+		}
+	}
+	return p.ensureSizes(ctx, key)
+}
+
+func (p *Processor) ensureSizes(ctx context.Context, key string) error {
+	var missing []int
+	for _, size := range Sizes {
+		ok, err := p.Store.Has(ctx, SizedKey(key, size))
+		if err != nil {
+			return err
+		}
+		if !ok {
+			missing = append(missing, size)
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	r, err := p.Store.Open(ctx, key)
+	if err != nil {
+		return err
+	}
+	b, err := io.ReadAll(r)
+	r.Close()
+	if err != nil {
+		return err
+	}
+	small, err := ShrinkAll(b, missing)
+	if err != nil {
+		return err
+	}
+	for size, s := range small {
+		if err := p.Store.Put(ctx, SizedKey(key, size), bytes.NewReader(s)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (p *Processor) collage(ctx context.Context, setKey string, urls []string) ([]string, error) {

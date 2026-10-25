@@ -9,7 +9,7 @@
 	import { goto } from '$app/navigation';
 	import type { MapPin } from '#lib/api/client.ts';
 	import LayerPanel from '#lib/components/LayerPanel.svelte';
-	import PinPreview from '#lib/components/PinPreview.svelte';
+	import PinPreview, { gallery } from '#lib/components/PinPreview.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
 	import type { HousingMap } from '#lib/map/create.ts';
 	import { match, money } from '#lib/format.ts';
@@ -197,6 +197,7 @@
 		map.on('mousemove', 'pins-hit', (e) => {
 			const hit = pinAt(e);
 			if (!hit) return;
+			gallery(hit.pin);
 			map.getCanvas().style.cursor = 'pointer';
 			const g = hit.pin.grades[hit.lead];
 			tip
