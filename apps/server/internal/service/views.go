@@ -486,6 +486,18 @@ func (s *Service) Thumbnail(ctx context.Context, l listing.Listing) string {
 	return ""
 }
 
+func (s *Service) ListingGallery(ctx context.Context, source listing.Source, sourceID string) ([]string, error) {
+	db, err := s.catalog(ctx)
+	if err != nil {
+		return nil, err
+	}
+	l, err := db.CurrentListing(ctx, source, sourceID)
+	if err != nil {
+		return nil, err
+	}
+	return s.StoredPhotos(ctx, l, 0), nil
+}
+
 func (s *Service) StoredPhotos(ctx context.Context, l listing.Listing, limit int) []string {
 	if len(l.Collages) == 0 {
 		return nil

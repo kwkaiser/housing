@@ -217,6 +217,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/listings/{source}/{source_id}/gallery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a listing's stored photos */
+        get: operations["getListingGallery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/map/config": {
         parameters: {
             query?: never;
@@ -721,6 +738,10 @@ export interface components {
             listing: components["schemas"]["APIListing"];
             /** @description Where to place the listing on a map */
             location?: components["schemas"]["APILocation"];
+        };
+        APIListingGallery: {
+            /** @description API paths of the listing's stored photos in listing order, which take a size like other media */
+            gallery: string[];
         };
         APIListingGrade: {
             avoids_hit?: string[];
@@ -1682,6 +1703,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    getListingGallery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source: string;
+                source_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIListingGallery"];
+                };
             };
             /** @description Error */
             default: {

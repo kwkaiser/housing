@@ -3,15 +3,16 @@
 </script>
 
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
+	import { mount as attach, onMount, unmount, untrack } from 'svelte';
 	import type { GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl';
 	import SlidersHorizontalIcon from '@lucide/svelte/icons/sliders-horizontal';
 	import { goto } from '$app/navigation';
 	import type { MapPin } from '#lib/api/client.ts';
 	import LayerPanel from '#lib/components/LayerPanel.svelte';
+	import PinPreview from '#lib/components/PinPreview.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
 	import type { HousingMap } from '#lib/map/create.ts';
-	import { beds, match, money, sized } from '#lib/format.ts';
+	import { match, money } from '#lib/format.ts';
 	import RangeSelect from '#lib/components/RangeSelect.svelte';
 	import { load, save } from '#lib/storage.ts';
 	import type { PageProps } from './$types';
@@ -102,6 +103,8 @@
 				id: i,
 				properties: {
 					i: pins.pins!.indexOf(p.pin),
+					lng: p.lng,
+					lat: p.lat,
 					lead: p.lead,
 					color: g ? colors[p.lead] : UNGRADED,
 					opacity: s,
@@ -154,46 +157,6 @@
 		else map.fitBounds(bounds, { padding: { top: 80, bottom: 40, left: 40, right: 60 }, maxZoom: 15, duration: 0 });
 	}
 
-	function popup(pin: MapPin, leadId: string): HTMLElement {
-		const box = document.createElement('div');
-		const href = `/listing/${encodeURIComponent(pin.source)}/${encodeURIComponent(pin.source_id)}?collection=${encodeURIComponent(leadId)}&day=${pin.last_seen}`;
-		if (pin.preview) {
-			const a = document.createElement('a');
-			a.href = href;
-			const img = document.createElement('img');
-			img.className = 'preview';
-			img.src = sized(pin.preview, 640);
-			img.alt = '';
-			a.append(img);
-			box.append(a);
-		}
-		const title = document.createElement('a');
-		title.href = href;
-		title.textContent = pin.address;
-		const g = pin.grades[leadId];
-		const meta = document.createElement('div');
-		const bd = pin.beds === undefined ? null : pin.beds === 0 ? 'studio' : `${beds(pin.beds)} bd`;
-		meta.textContent = [g ? match(g.match, g.calibrated, g.stale) : 'Not graded yet', money(pin.price_cents, pin.offer), bd].filter(Boolean).join(' · ');
-		const where = document.createElement('div');
-		where.className = 'muted';
-		const retrieved = pin.last_seen !== pin.first_seen ? ` · last retrieved ${pin.last_seen}` : '';
-		where.textContent = `First seen ${pin.first_seen}${retrieved} · ${(pin.collections ?? []).join(', ')}`;
-		box.append(title, meta, where);
-		if (g?.dealbreakers?.length) {
-			const bad = document.createElement('div');
-			bad.className = 'bad';
-			bad.textContent = `Dealbreakers: ${g.dealbreakers.join(', ')}`;
-			box.append(bad);
-		}
-		if (pin.approx) {
-			const note = document.createElement('div');
-			note.className = 'muted';
-			note.textContent = "Approximate: placed at the zip code's center";
-			box.append(note);
-		}
-		return box;
-	}
-
 	function mount() {
 		hm = lib.createMap(el, data.config, camera ?? {});
 		const map = hm.map;
@@ -214,16 +177,24 @@
 					'circle-stroke-width': 2
 				}
 			});
+			map.addLayer({
+				id: 'pins-hit',
+				type: 'circle',
+				source: 'pins',
+				paint: { 'circle-radius': matchMedia('(pointer: coarse)').matches ? 22 : 12, 'circle-opacity': 0 }
+			});
 			if (!camera) untrack(fit);
 			map.on('moveend', () => (camera = { center: map.getCenter().toArray(), zoom: map.getZoom() }));
 		});
 		const pinAt = (e: MapLayerMouseEvent) => {
-			const f = e.features?.[0];
-			if (!f) return null;
-			const p = f.properties as { i: number; lead: string };
-			return { pin: pins.pins![p.i], lead: p.lead };
+			const hits = (e.features ?? []).map((f) => {
+				const p = f.properties as { i: number; lead: string; lng: number; lat: number };
+				const at: [number, number] = [p.lng, p.lat];
+				return { pin: pins.pins![p.i], lead: p.lead, at, dist: map.project(at).dist(e.point) };
+			});
+			return hits.length ? hits.reduce((a, b) => (b.dist < a.dist ? b : a)) : null;
 		};
-		map.on('mousemove', 'pins', (e) => {
+		map.on('mousemove', 'pins-hit', (e) => {
 			const hit = pinAt(e);
 			if (!hit) return;
 			map.getCanvas().style.cursor = 'pointer';
@@ -233,15 +204,19 @@
 				.setText([money(hit.pin.price_cents, hit.pin.offer), g ? match(g.match, g.calibrated, g.stale) : 'ungraded', g?.dealbreakers?.length ? 'dealbreaker' : null, hit.pin.first_seen].filter(Boolean).join(' · '))
 				.addTo(map);
 		});
-		map.on('mouseleave', 'pins', () => {
+		map.on('mouseleave', 'pins-hit', () => {
 			map.getCanvas().style.cursor = '';
 			tip.remove();
 		});
-		map.on('click', 'pins', (e) => {
+		map.on('click', 'pins-hit', (e) => {
 			const hit = pinAt(e);
 			if (!hit) return;
 			tip.remove();
-			new lib.Popup({ maxWidth: '280px', className: 'pin-popup' }).setLngLat(e.lngLat).setDOMContent(popup(hit.pin, hit.lead)).addTo(map);
+			const box = document.createElement('div');
+			const preview = attach(PinPreview, { target: box, props: { pin: hit.pin, lead: hit.lead } });
+			const pop = new lib.Popup({ maxWidth: '280px', className: 'pin-popup' }).setLngLat(hit.at).setDOMContent(box);
+			pop.on('close', () => unmount(preview));
+			pop.addTo(map);
 		});
 	}
 
