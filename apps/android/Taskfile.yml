@@ -19,9 +19,20 @@ tasks:
     cmds:
       - pnpm exec cap add android
 
+  deeplink:
+    desc: Register the io.kwkaiser.housing:// sign-in link on the main activity.
+    deps: [platform]
+    vars:
+      MANIFEST: android/app/src/main/AndroidManifest.xml
+    status:
+      - grep -q 'android:scheme="io.kwkaiser.housing"' {{.MANIFEST}}
+    cmds:
+      - awk 'FNR == NR { filter = filter $0 "\n"; next } { print } !done && /<\/intent-filter>/ { printf "\n%s", filter; done = 1 }' intent-filter.xml {{.MANIFEST}} > {{.MANIFEST}}.new
+      - mv {{.MANIFEST}}.new {{.MANIFEST}}
+
   sync:
     desc: Copy capacitor config and web assets into the Android project.
-    deps: [platform]
+    deps: [deeplink]
     cmds:
       - pnpm sync
 

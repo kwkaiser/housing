@@ -21,7 +21,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs) pname version src;
     fetcherVersion = 4;
-    hash = "sha256-rNFUUeJ4/tFWIZQeC3g7p9fG3swhnP88uVV7IM9oDWo=";
+    hash = "sha256-8lDzXU/lvQmjtwGVTmjjrMYMTbGmKyfqXcLOVs4el+0=";
     postInstall = ''
       rm -rf "$storePath"/v11/links
     '';

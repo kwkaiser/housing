@@ -6,15 +6,19 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"html"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/go-jose/go-jose/v4"
+	"golang.org/x/oauth2"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/auth"
 	"git.kwkaiser.io/kwkaiser/housing/internal/config"
@@ -324,5 +328,58 @@ func TestSafeReturn(t *testing.T) {
 		if got := safeReturn(in); got != want {
 			t.Errorf("safeReturn(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+func TestAppSignIn(t *testing.T) {
+	a, idp := oidcApp(t)
+	h := a.Handler()
+	verifier := oauth2.GenerateVerifier()
+	challenge := oauth2.S256ChallengeFromVerifier(verifier)
+
+	if res := authDo(t, h, authReq{method: http.MethodGet, target: "/auth/login?app=short"}); res.StatusCode != http.StatusBadRequest {
+		t.Errorf("login with bad challenge = %d", res.StatusCode)
+	}
+
+	res := authDo(t, h, authReq{method: http.MethodGet, target: "/auth/login?rd=%2Ffavorites&app=" + challenge})
+	login := cookieNamed(t, res, "__Host-"+loginCookie)
+	code, state := idp.authorize(t, res.Header.Get("Location"))
+	res = authDo(t, h, authReq{method: http.MethodGet, target: "/auth/callback?code=" + code + "&state=" + state, cookies: []*http.Cookie{login}})
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("callback = %d", res.StatusCode)
+	}
+	for _, c := range res.Cookies() {
+		if c.Name == "__Host-"+sessionCookie {
+			t.Errorf("app callback set a browser session cookie")
+		}
+	}
+	body, _ := io.ReadAll(res.Body)
+	m := regexp.MustCompile(`href="(io\.kwkaiser\.housing://auth\?[^"]+)"`).FindSubmatch(body)
+	if m == nil {
+		t.Fatalf("handoff page has no app link:\n%s", body)
+	}
+	target, err := url.Parse(html.UnescapeString(string(m[1])))
+	if err != nil || target.Query().Get("rd") != "/favorites" || target.Query().Get("code") == "" {
+		t.Fatalf("app link = %q", m[1])
+	}
+	handoff := func(code, verifier string, header map[string]string) *http.Response {
+		b, _ := json.Marshal(handoffRequest{Code: code, Verifier: verifier})
+		return authDo(t, h, authReq{method: http.MethodPost, target: "/auth/handoff", body: string(b), header: header})
+	}
+	sameOrigin := map[string]string{"Sec-Fetch-Site": "same-origin"}
+
+	if res := handoff(target.Query().Get("code"), verifier, map[string]string{"Sec-Fetch-Site": "cross-site"}); res.StatusCode != http.StatusForbidden {
+		t.Errorf("cross-site handoff = %d", res.StatusCode)
+	}
+	res = handoff(target.Query().Get("code"), verifier, sameOrigin)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("handoff = %d", res.StatusCode)
+	}
+	session := cookieNamed(t, res, "__Host-"+sessionCookie)
+	if u, status := me(t, h, authReq{cookies: []*http.Cookie{session}}); status != http.StatusOK || u.Name != "Karl" {
+		t.Errorf("me after handoff = %d %+v", status, u)
+	}
+	if res := handoff(target.Query().Get("code"), verifier, sameOrigin); res.StatusCode != http.StatusBadRequest {
+		t.Errorf("second handoff = %d", res.StatusCode)
 	}
 }
