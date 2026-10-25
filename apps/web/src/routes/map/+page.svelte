@@ -4,12 +4,14 @@
 
 <script lang="ts">
 	import { mount as attach, onMount, unmount, untrack } from 'svelte';
-	import type { GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl';
+	import type { GeoJSONSource, MapLayerMouseEvent, Popup } from 'maplibre-gl';
 	import SlidersHorizontalIcon from '@lucide/svelte/icons/sliders-horizontal';
 	import { goto } from '$app/navigation';
-	import type { MapPin } from '#lib/api/client.ts';
+	import { api, call, type MapPin, type PlaceMatch } from '#lib/api/client.ts';
 	import LayerPanel from '#lib/components/LayerPanel.svelte';
 	import PinPreview, { gallery } from '#lib/components/PinPreview.svelte';
+	import PlaceConfirm from '#lib/components/PlaceConfirm.svelte';
+	import PlaceSearch from '#lib/components/PlaceSearch.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
 	import type { HousingMap } from '#lib/map/create.ts';
 	import { match, money } from '#lib/format.ts';
@@ -138,7 +140,7 @@
 	}
 
 	let el: HTMLDivElement;
-	let hm = $state<HousingMap>();
+	let hm = $state.raw<HousingMap>();
 	let lib: typeof import('#lib/map/create.ts');
 
 	function fit() {
@@ -239,6 +241,50 @@
 		hm?.map.getSource<GeoJSONSource>('pins')?.setData(fc);
 	});
 
+	let proposal: Popup | undefined;
+
+	function near() {
+		const c = hm?.map.getCenter();
+		return c && { lat: c.lat, lng: c.lng };
+	}
+
+	async function addPlace(m: PlaceMatch, name: string) {
+		await call(api().POST('/api/v1/places', { body: { name, address: m.address, lat: m.lat, lng: m.lng } }));
+		if (!hm) return;
+		const on = hm.layers.overlays;
+		if (on.includes('places')) hm.places.refresh();
+		else hm.setLayers({ ...hm.layers, overlays: [...on, 'places'] });
+	}
+
+	function propose(m: PlaceMatch) {
+		const map = hm?.map;
+		if (!map) return;
+		proposal?.remove();
+		const at: [number, number] = [m.lng, m.lat];
+		map.flyTo({ center: at, zoom: Math.max(map.getZoom(), 16) });
+		hm!.places.draft(at);
+		const box = document.createElement('div');
+		const pop = new lib.Popup({ maxWidth: '300px', className: 'place-popup', offset: 12 }).setLngLat(at).setDOMContent(box);
+		const view = attach(PlaceConfirm, {
+			target: box,
+			props: {
+				match: m,
+				oncancel: () => pop.remove(),
+				onsave: async (name: string) => {
+					await addPlace(m, name);
+					pop.remove();
+				}
+			}
+		});
+		pop.on('close', () => {
+			unmount(view);
+			if (proposal !== pop) return;
+			proposal = undefined;
+			hm?.places.draft(null);
+		});
+		proposal = pop.addTo(map);
+	}
+
 	function choose(id: string) {
 		chosen = id;
 		save('mapCollection', id);
@@ -269,7 +315,10 @@
 			</details>
 			<button type="button" onclick={() => (filtersOpen = true)}><SlidersHorizontalIcon size={16} /> {cutoff ? `≥${cutoff}%` : 'Filters'}</button>
 		{/if}
-		{#if hm}<LayerPanel map={hm} config={data.config} />{/if}
+		{#if hm}
+			<PlaceSearch {near} onpick={propose} />
+			<LayerPanel map={hm} config={data.config} />
+		{/if}
 	</div>
 	{#if !collections.length}
 		<div class="card empty">
@@ -348,7 +397,8 @@
 		pointer-events: auto;
 	}
 
-	.overlay :is(summary, button) {
+	.overlay summary,
+	.overlay > button {
 		border-color: transparent;
 		box-shadow: var(--shadow-lg);
 	}

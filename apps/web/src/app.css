@@ -930,3 +930,14 @@ form.form .field-error {
 		transition-duration: 0.01ms !important;
 	}
 }
+
+.place-tip strong {
+	display: block;
+	padding-right: 1.5rem;
+}
+
+.place-tip button {
+	margin: 0.5rem 0 0 -0.6rem;
+	min-height: 2rem;
+	color: var(--bad);
+}

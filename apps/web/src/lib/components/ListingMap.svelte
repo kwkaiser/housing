@@ -7,7 +7,7 @@
 	let { config, location, title }: { config: MapConfig; location: Schemas['APILocation']; title: string } = $props();
 
 	let el: HTMLDivElement;
-	let hm = $state<HousingMap>();
+	let hm = $state.raw<HousingMap>();
 
 	function circle(lng: number, lat: number, meters: number): [number, number][] {
 		const pts: [number, number][] = [];

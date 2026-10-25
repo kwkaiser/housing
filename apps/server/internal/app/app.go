@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/auth"
+	"git.kwkaiser.io/kwkaiser/housing/internal/geocode"
 	"git.kwkaiser.io/kwkaiser/housing/internal/jobs"
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
 	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
@@ -44,6 +45,7 @@ type App struct {
 	noise    *tiles.Cache
 	cyclosm  *tiles.Cache
 	overlays []overlay
+	geocoder *geocode.Photon
 	handler  http.Handler
 
 	streamPoll time.Duration
@@ -59,6 +61,7 @@ func New(svc *service.Service, q Jobs, log *slog.Logger) (*App, error) {
 	a.terrain = tiles.NewTerrain(filepath.Join(tileDir, "terrain"))
 	a.noise = tiles.NewNoise(filepath.Join(tileDir, "noise"))
 	a.cyclosm = tiles.NewCyclOSM(filepath.Join(tileDir, "cyclosm"))
+	a.geocoder = geocode.NewPhoton()
 	a.overlays = newOverlays(tiles.NewTransitland(filepath.Join(tileDir, "transitland"), svc.TransitlandKey()), tiles.NewOpenFreeMap(filepath.Join(tileDir, "openfreemap")), tiles.NewPlaces(filepath.Join(tileDir, "tigerweb", "places")), tiles.NewTownships(filepath.Join(tileDir, "tigerweb", "townships")))
 	web := a.routes()
 	api := a.etags(a.apiHandler())

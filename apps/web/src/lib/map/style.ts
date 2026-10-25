@@ -3,13 +3,14 @@ import type { MapConfig } from '#lib/api/client.ts';
 import { load, save } from '#lib/storage.ts';
 
 export type Base = 'positron' | 'osm';
-export type OverlayName = 'terrain' | 'noise' | 'towns' | 'bike' | 'rail' | 'bus';
+export type OverlayName = 'places' | 'terrain' | 'noise' | 'towns' | 'bike' | 'rail' | 'bus';
 export type Layers = { base: Base; overlays: OverlayName[] };
 
 export const BIKE = '#009400';
 export const BUS = '#a16207';
 export const RAIL = '#475569';
 export const TOWN = '#86198f';
+export const PLACE = '#1c1917';
 export const noiseLegend: [string, string][] = [
 	['#ffc107', '45'],
 	['#ff8000', '50'],
@@ -24,8 +25,8 @@ const osm = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreet
 const transitland = '<a href="https://www.transit.land/terms">Transitland</a>';
 const census = '<a href="https://www.census.gov/data/developers/data-sets/TIGERweb-map-service.html">U.S. Census Bureau</a>';
 
-export const overlayLabels: Record<OverlayName, string> = { terrain: 'Terrain', noise: 'Noise', towns: 'Town lines', bike: 'Bike lanes', rail: 'Rail transit', bus: 'Bus routes' };
-export const overlayNames: OverlayName[] = ['terrain', 'noise', 'towns', 'bike', 'rail', 'bus'];
+export const overlayLabels: Record<OverlayName, string> = { places: 'Places', terrain: 'Terrain', noise: 'Noise', towns: 'Town lines', bike: 'Bike lanes', rail: 'Rail transit', bus: 'Bus routes' };
+export const overlayNames: OverlayName[] = ['places', 'terrain', 'noise', 'towns', 'bike', 'rail', 'bus'];
 
 export function savedLayers(config: MapConfig): Layers {
 	const saved = load<Partial<Layers>>('mapLayers', {});
@@ -43,7 +44,7 @@ export function availableOverlays(config: MapConfig): OverlayName[] {
 	return overlayNames.filter((n) => {
 		if (n === 'terrain') return !!config.terrain;
 		if (n === 'noise') return !!config.noise;
-		return n === 'bike' || n === 'rail' || names.has(n);
+		return n === 'places' || n === 'bike' || n === 'rail' || names.has(n);
 	});
 }
 
@@ -74,7 +75,9 @@ export function style(config: MapConfig, layers: Layers): StyleSpecification {
 			'ov-towns': { ...empty, attribution: census },
 			'ov-bike': { ...empty, attribution: '<a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/">OpenMapTiles</a>' },
 			'ov-rail': { ...empty, attribution: transitland },
-			'ov-bus': { ...empty, attribution: transitland }
+			'ov-bus': { ...empty, attribution: transitland },
+			places: empty,
+			'place-draft': empty
 		},
 		layers: [
 			{ id: 'osm', type: 'raster', source: 'osm', layout: vis(layers.base === 'osm') },
@@ -120,6 +123,26 @@ export function style(config: MapConfig, layers: Layers): StyleSpecification {
 				source: 'ov-bus',
 				layout: vis(layers.overlays.includes('bus')),
 				paint: { 'line-color': BUS, 'line-width': ['case', hover, ['+', busWeight, 4], busWeight], 'line-opacity': ['case', hover, 1, busOpacity] }
+			},
+			{
+				id: 'places',
+				type: 'circle',
+				source: 'places',
+				layout: vis(layers.overlays.includes('places')),
+				paint: { 'circle-radius': ['case', hover, 9, 7], 'circle-color': PLACE, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5 }
+			},
+			{
+				id: 'places-hit',
+				type: 'circle',
+				source: 'places',
+				layout: vis(layers.overlays.includes('places')),
+				paint: { 'circle-radius': typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches ? 20 : 12, 'circle-opacity': 0 }
+			},
+			{
+				id: 'place-draft',
+				type: 'circle',
+				source: 'place-draft',
+				paint: { 'circle-radius': 9, 'circle-color': PLACE, 'circle-opacity': 0.35, 'circle-stroke-color': PLACE, 'circle-stroke-width': 2.5 }
 			}
 		] as LayerSpecification[]
 	};
@@ -185,6 +208,8 @@ export function style(config: MapConfig, layers: Layers): StyleSpecification {
 
 export function layerIds(name: OverlayName, config: MapConfig): string[] {
 	switch (name) {
+		case 'places':
+			return ['places', 'places-hit'];
 		case 'terrain':
 			return ['terrain'];
 		case 'noise':

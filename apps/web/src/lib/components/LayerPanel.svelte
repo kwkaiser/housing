@@ -10,6 +10,13 @@
 	let base = $state<Base>(untrack(() => map.layers.base));
 	let on = $state<OverlayName[]>(untrack(() => [...map.layers.overlays]));
 
+	function sync(e: Event) {
+		if ((e.currentTarget as HTMLDetailsElement).open) {
+			base = map.layers.base;
+			on = [...map.layers.overlays];
+		}
+	}
+
 	function update() {
 		map.setLayers({ base, overlays: [...on] });
 	}
@@ -20,7 +27,7 @@
 	}
 </script>
 
-<details class="picker">
+<details class="picker" ontoggle={sync}>
 	<summary><LayersIcon size={16} /> <span class="text">Layers</span></summary>
 	<div class="menu">
 		{#if config.positron}

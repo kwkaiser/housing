@@ -20,6 +20,8 @@ export type ProfileItem = Schemas['APIProfileListItem'];
 export type ProfileDetail = Schemas['APIProfileDetail'];
 export type Criterion = Schemas['Criterion'];
 export type Favorite = Schemas['APIFavorite'];
+export type Place = Schemas['APIPlace'];
+export type PlaceMatch = Schemas['APIPlaceMatch'];
 export type User = Schemas['APIUser'];
 
 type Fetch = typeof fetch;
