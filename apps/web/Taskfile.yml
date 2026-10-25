@@ -28,9 +28,14 @@ tasks:
 
   gen:
     desc: Regenerate the API spec and TypeScript types from the server.
+    cmds:
+      - task: :server:openapi
+      - task: types
+
+  types:
+    desc: Regenerate the TypeScript types from src/lib/api/openapi.json.
     deps: [install]
     cmds:
-      - go -C ../server run ./cmd/housing openapi > src/lib/api/openapi.json
       - pnpm gen
 
   clean:

@@ -29,6 +29,11 @@ tasks:
     cmds:
       - go test -tags integration -count=1 -v ./...
 
+  openapi:
+    desc: Write the API spec to the web app.
+    cmds:
+      - go run ./cmd/housing openapi > ../web/src/lib/api/openapi.json
+
   lint:
     cmds:
       - go vet ./...

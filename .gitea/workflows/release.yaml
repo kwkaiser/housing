@@ -15,119 +15,87 @@ env:
   WEB_IMAGE: git.kwkaiser.io/kwkaiser/housing-web
 
 jobs:
-  test:
+  meta:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      sha: ${{ steps.meta.outputs.sha }}
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: apps/server/go.mod
-
-      - name: Vet
-        working-directory: apps/server
-        run: go vet ./...
-
-      - name: Test
-        working-directory: apps/server
-        run: go test ./...
-
-  publish:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
       - name: Resolve version
         id: meta
+        env:
+          VERSION: ${{ github.event.inputs.version || github.event.release.tag_name }}
+          SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            version="${{ github.event.inputs.version }}"
-          else
-            version="${{ github.event.release.tag_name }}"
-          fi
-          version="${version#v}"
+          version="${VERSION#v}"
           if [ -z "$version" ]; then
             echo "could not resolve a version" >&2
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "sha=${SHA:0:7}" >> "$GITHUB_OUTPUT"
 
-      - name: Set up remote builder SSH access
-        env:
-          NIX_REMOTE_BUILDER_KEY: ${{ secrets.NIX_REMOTE_BUILDER_KEY }}
-        run: |
-          set -euo pipefail
-          printf '%s\n' "$NIX_REMOTE_BUILDER_KEY" > /tmp/nix-remote-builder-key
-          chmod 600 /tmp/nix-remote-builder-key
-          ssh-keyscan -H kwkaiser.io | sudo tee -a /etc/ssh/ssh_known_hosts >/dev/null
-          printf 'Host kwkaiser.io\n  User nixbuilder\n  IdentityFile /tmp/nix-remote-builder-key\n' | \
-            sudo tee /etc/ssh/ssh_config.d/nix-remote-builder.conf >/dev/null
+  images:
+    needs: meta
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
 
-      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: ./.gitea/actions/nix
         with:
-          extra-conf: |
-            builders = ssh-ng://nixbuilder@kwkaiser.io x86_64-linux /tmp/nix-remote-builder-key 2 1 - - -
-            builders-use-substitutes = true
-            extra-substituters = ssh-ng://nixbuilder@kwkaiser.io?trusted=true
-            max-jobs = 0
+          builder-key: ${{ secrets.NIX_REMOTE_BUILDER_KEY }}
 
       - name: Build images
         env:
-          IMAGE: ${{ env.IMAGE }}
-          WEB_IMAGE: ${{ env.WEB_IMAGE }}
-          VERSION: ${{ steps.meta.outputs.version }}
+          VERSION: ${{ needs.meta.outputs.version }}
         run: |
-          nix develop --accept-flake-config --command \
+          nix develop --command \
             task build-image TARGET=server IMAGE_NAME="$IMAGE" IMAGE_TAG="$VERSION" SYSTEM=x86_64-linux
-          nix develop --accept-flake-config --command \
+          nix develop --command \
             task build-image TARGET=web IMAGE_NAME="$WEB_IMAGE" IMAGE_TAG="$VERSION" SYSTEM=x86_64-linux
 
       - name: Push images
         env:
-          IMAGE: ${{ env.IMAGE }}
-          WEB_IMAGE: ${{ env.WEB_IMAGE }}
-          VERSION: ${{ steps.meta.outputs.version }}
-          SHA: ${{ steps.meta.outputs.sha }}
+          VERSION: ${{ needs.meta.outputs.version }}
+          SHA: ${{ needs.meta.outputs.sha }}
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_TOKEN: ${{ secrets.K8S_GITEA_REGISTRY_PACKAGE_TOKEN }}
         run: |
-          nix develop --accept-flake-config --command \
+          nix develop --command \
             task push-image TARGET=server IMAGE_NAME="$IMAGE" IMAGE_TAGS="$VERSION $SHA latest"
-          nix develop --accept-flake-config --command \
+          nix develop --command \
             task push-image TARGET=web IMAGE_NAME="$WEB_IMAGE" IMAGE_TAGS="$VERSION $SHA latest"
 
   android:
-    needs: test
+    needs: meta
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
-      - name: Resolve version
-        id: meta
-        run: |
-          set -euo pipefail
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            version="${{ github.event.inputs.version }}"
-          else
-            version="${{ github.event.release.tag_name }}"
-          fi
-          version="${version#v}"
-          if [ -z "$version" ]; then
-            echo "could not resolve a version" >&2
-            exit 1
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: ./.gitea/actions/nix
+        with:
+          builder-key: ${{ secrets.NIX_REMOTE_BUILDER_KEY }}
 
-      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-android-${{ hashFiles('apps/android/pnpm-lock.yaml') }}
+          restore-keys: pnpm-android-
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('apps/android/package.json', 'apps/android/pnpm-lock.yaml') }}
+          restore-keys: gradle-
 
       - name: Build signed APK
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          APK_VERSION: ${{ steps.meta.outputs.version }}
+          APK_VERSION: ${{ needs.meta.outputs.version }}
         run: |
           set -euo pipefail
           export ANDROID_KEYSTORE=/tmp/housing-release.p12
@@ -141,5 +109,5 @@ jobs:
           GITEA_REPO: ${{ github.repository }}
           GITEA_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITEA_TARGET: ${{ github.sha }}
-          APK_VERSION: ${{ steps.meta.outputs.version }}
+          APK_VERSION: ${{ needs.meta.outputs.version }}
         run: nix develop .#android --command task android:publish APK_VERSION="$APK_VERSION"
