@@ -1,3 +1,7 @@
+<script lang="ts" module>
+	let camera: { center: [number, number]; zoom: number } | undefined;
+</script>
+
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import type { GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl';
@@ -13,12 +17,23 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+	let pins = $derived(data.pins);
+
+	$effect(() => {
+		const fresh = data.fresh;
+		if (!fresh) return;
+		let live = true;
+		fresh.then((p) => live && (pins = p)).catch(() => undefined);
+		return () => {
+			live = false;
+		};
+	});
 
 	const UNGRADED = '#78716c';
 	type Fading = '' | 'age' | 'match';
 	type Placed = { pin: MapPin; lat: number; lng: number };
 
-	let collections = $derived(data.pins.collections ?? []);
+	let collections = $derived(pins.collections ?? []);
 	let colors = $derived(Object.fromEntries(collections.map((c) => [c.id, c.color])));
 	let chosen = $state<string>(load('mapCollection', ''));
 	let selected = $derived(collections.some((c) => c.id === chosen) ? chosen : (collections[0]?.id ?? ''));
@@ -29,7 +44,7 @@
 	let filtersOpen = $state(false);
 
 	let placed = $derived.by((): Placed[] => {
-		const out = (data.pins.pins ?? []).map((pin) => ({ pin, lat: pin.lat, lng: pin.lng }));
+		const out = (pins.pins ?? []).map((pin) => ({ pin, lat: pin.lat, lng: pin.lng }));
 		const groups = new Map<string, Placed[]>();
 		for (const p of out) {
 			const key = `${p.lat},${p.lng}`;
@@ -63,7 +78,7 @@
 	const clamp = (n: number) => Math.max(0, Math.min(1, n));
 
 	let features = $derived.by(() => {
-		const start = Date.parse(data.from || data.pins.first_day || '');
+		const start = Date.parse(data.from || pins.first_day || '');
 		const end = data.to ? Date.parse(data.to) : Date.now();
 		const level = (p: (typeof visible)[number]): number | null => {
 			if (fading === 'match') {
@@ -86,7 +101,7 @@
 				type: 'Feature' as const,
 				id: i,
 				properties: {
-					i: data.pins.pins!.indexOf(p.pin),
+					i: pins.pins!.indexOf(p.pin),
 					lead: p.lead,
 					color: g ? colors[p.lead] : UNGRADED,
 					opacity: s,
@@ -100,15 +115,15 @@
 	});
 
 	let summary = $derived.by(() => {
-		const pins = (data.pins.pins ?? []).filter((p) => (p.collections ?? []).includes(selected));
-		const parts = [`${pins.length} listings placed`];
-		const approx = pins.filter((p) => p.approx).length;
-		const ungraded = pins.filter((p) => p.ungraded).length;
-		const dealbreakers = pins.filter((p) => p.grades[selected]?.dealbreakers?.length).length;
+		const shown = (pins.pins ?? []).filter((p) => (p.collections ?? []).includes(selected));
+		const parts = [`${shown.length} listings placed`];
+		const approx = shown.filter((p) => p.approx).length;
+		const ungraded = shown.filter((p) => p.ungraded).length;
+		const dealbreakers = shown.filter((p) => p.grades[selected]?.dealbreakers?.length).length;
 		if (approx) parts.push(`${approx} approximate from zip code`);
 		if (dealbreakers) parts.push(`${dealbreakers} with dealbreakers`);
 		if (ungraded) parts.push(`${ungraded} ungraded`);
-		if (data.pins.unplaced) parts.push(`${data.pins.unplaced} without a location across all collections`);
+		if (pins.unplaced) parts.push(`${pins.unplaced} without a location across all collections`);
 		return parts.join(' · ');
 	});
 
@@ -180,7 +195,7 @@
 	}
 
 	function mount() {
-		hm = lib.createMap(el, data.config);
+		hm = lib.createMap(el, data.config, camera ?? {});
 		const map = hm.map;
 		const tip = new lib.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
 		map.on('load', () => {
@@ -199,13 +214,14 @@
 					'circle-stroke-width': 2
 				}
 			});
-			untrack(fit);
+			if (!camera) untrack(fit);
+			map.on('moveend', () => (camera = { center: map.getCenter().toArray(), zoom: map.getZoom() }));
 		});
 		const pinAt = (e: MapLayerMouseEvent) => {
 			const f = e.features?.[0];
 			if (!f) return null;
 			const p = f.properties as { i: number; lead: string };
-			return { pin: data.pins.pins![p.i], lead: p.lead };
+			return { pin: pins.pins![p.i], lead: p.lead };
 		};
 		map.on('mousemove', 'pins', (e) => {
 			const hit = pinAt(e);
