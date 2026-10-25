@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/sync/errgroup"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/apify"
@@ -22,6 +23,7 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/providers/streeteasy"
 	"git.kwkaiser.io/kwkaiser/housing/internal/providers/zillow"
 	"git.kwkaiser.io/kwkaiser/housing/internal/store"
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
 const DefaultMaxChargeUSD = 1.0
@@ -55,8 +57,9 @@ func (e SourceError) Error() string { return string(e.Source) + ": " + e.Err.Err
 
 func (e SourceError) Unwrap() error { return e.Err }
 
-func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (FetchResult, error) {
-	var res FetchResult
+func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (res FetchResult, err error) {
+	ctx, span := telemetry.Start(ctx, "service.Fetch", attribute.String("collection", o.Collection))
+	defer func() { telemetry.End(span, err) }()
 	log = s.logger(log)
 	flog := log.With("stage", StageFetch)
 	if o.Search.Location == "" {
@@ -89,9 +92,9 @@ func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (
 			case canEnrich && !o.Enrich:
 				return res, fmt.Errorf("%s cannot filter %s listings by %s; enable enrichment to filter on listing details instead", source, o.Mode, joinAmenities(deferred))
 			case canEnrich:
-				flog.Info("amenities checked after enrichment", "source", source, "amenities", joinAmenities(deferred))
+				flog.InfoContext(ctx, "amenities checked after enrichment", "source", source, "amenities", joinAmenities(deferred))
 			default:
-				flog.Info("amenities checked against search results", "source", source, "amenities", joinAmenities(deferred))
+				flog.InfoContext(ctx, "amenities checked against search results", "source", source, "amenities", joinAmenities(deferred))
 			}
 		}
 		providers[i] = p
@@ -126,7 +129,7 @@ func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (
 		return res, errors.Join(failures...)
 	}
 	for _, se := range res.SourceErrs {
-		flog.Warn("source failed; continuing without it", "source", se.Source, "err", se.Err)
+		flog.WarnContext(ctx, "source failed; continuing without it", "source", se.Source, "err", se.Err)
 	}
 	listings := slices.Concat(results...)
 
@@ -140,7 +143,7 @@ func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (
 		return res, err
 	}
 	res.Observed = len(listings)
-	flog.Info("stored observations", "listings", len(listings), "day", res.Day)
+	flog.InfoContext(ctx, "stored observations", "listings", len(listings), "day", res.Day)
 
 	distinct := FreshGroups(stored, listings)
 	for _, g := range distinct {
@@ -148,7 +151,7 @@ func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (
 	}
 	res.Distinct = len(distinct)
 	if res.Duplicates > 0 {
-		log.Info("deduplicated", "stage", StageDedupe, "distinct", res.Distinct, "duplicates", res.Duplicates)
+		log.InfoContext(ctx, "deduplicated", "stage", StageDedupe, "distinct", res.Distinct, "duplicates", res.Duplicates)
 	}
 	listings = dedupe.Primaries(distinct)
 
@@ -158,7 +161,7 @@ func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (
 		if err := p.FetchPhotos(ctx, listings); err != nil {
 			return res, err
 		}
-		log.Info("photos downloaded", "stage", StagePhotos)
+		log.InfoContext(ctx, "photos downloaded", "stage", StagePhotos)
 	}
 	res.Listings = listings
 	return res, nil
@@ -201,7 +204,9 @@ func CarryOver(stored, fresh []listing.Listing) []listing.Listing {
 	return out
 }
 
-func (s *Service) fetchOne(ctx context.Context, p listing.Provider, q listing.Query, o FetchOptions, log *slog.Logger) ([]listing.Listing, error) {
+func (s *Service) fetchOne(ctx context.Context, p listing.Provider, q listing.Query, o FetchOptions, log *slog.Logger) (_ []listing.Listing, err error) {
+	ctx, span := telemetry.Start(ctx, "service.fetchOne", attribute.String("source", string(p.Source())))
+	defer func() { telemetry.End(span, err) }()
 	sourceQuery := q
 	sourceQuery.Amenities, _ = SplitAmenities(q.Amenities, p.SupportedAmenities(q.Offer))
 
@@ -209,7 +214,7 @@ func (s *Service) fetchOne(ctx context.Context, p listing.Provider, q listing.Qu
 	if err != nil {
 		return nil, err
 	}
-	log.Info("searched", "mode", o.Mode, "listings", len(listings))
+	log.InfoContext(ctx, "searched", "mode", o.Mode, "listings", len(listings))
 
 	stage := "search"
 	if enricher, ok := p.(listing.Enricher); ok && o.Enrich && len(listings) > 0 {
@@ -220,7 +225,7 @@ func (s *Service) fetchOne(ctx context.Context, p listing.Provider, q listing.Qu
 	}
 	total := len(listings)
 	matching := slices.DeleteFunc(listings, func(l listing.Listing) bool { return !q.Matches(l) })
-	log.Info("filtered", "after", stage, "matching", len(matching), "total", total)
+	log.InfoContext(ctx, "filtered", "after", stage, "matching", len(matching), "total", total)
 	return matching, nil
 }
 

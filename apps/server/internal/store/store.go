@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -13,6 +14,7 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
 const (
@@ -24,8 +26,14 @@ type Store struct {
 	db *sql.DB
 }
 
+var driverName = sync.OnceValues(func() (string, error) { return telemetry.SQLDriver("sqlite") })
+
 func Open(ctx context.Context, path string) (*Store, error) {
-	db, err := sql.Open("sqlite", "file:"+path+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)")
+	name, err := driverName()
+	if err != nil {
+		return nil, err
+	}
+	db, err := sql.Open(name, "file:"+path+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)")
 	if err != nil {
 		return nil, err
 	}

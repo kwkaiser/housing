@@ -44,7 +44,7 @@ func (a *App) logRequests(next http.Handler) http.Handler {
 			if status == 0 {
 				status = http.StatusOK
 			}
-			a.log.Info("request", "method", r.Method, "path", r.URL.Path, "status", status, "duration", time.Since(start))
+			a.log.InfoContext(r.Context(), "request", "method", r.Method, "path", r.URL.Path, "status", status, "duration", time.Since(start))
 		}()
 		next.ServeHTTP(rec, r)
 	})
@@ -61,7 +61,7 @@ func (a *App) recoverPanics(next http.Handler) http.Handler {
 			if v == http.ErrAbortHandler {
 				panic(v)
 			}
-			a.log.Error("panic", "method", r.Method, "path", r.URL.Path, "panic", v, "stack", string(debug.Stack()))
+			a.log.ErrorContext(r.Context(), "panic", "method", r.Method, "path", r.URL.Path, "panic", v, "stack", string(debug.Stack()))
 			if rec.status == 0 {
 				http.Error(rec, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			}

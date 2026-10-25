@@ -4,8 +4,11 @@ import (
 	"context"
 	"log/slog"
 
+	"go.opentelemetry.io/otel/attribute"
+
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/media"
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
 type CollageOptions struct {
@@ -25,12 +28,12 @@ func DefaultCollageOptions() CollageOptions {
 	return CollageOptions{Grid: media.NewGrid(), MaxPhotos: media.DefaultMaxPhotos}
 }
 
-func (s *Service) Collage(ctx context.Context, o CollageOptions, listings []listing.Listing, log *slog.Logger) (CollageResult, error) {
-	var res CollageResult
+func (s *Service) Collage(ctx context.Context, o CollageOptions, listings []listing.Listing, log *slog.Logger) (res CollageResult, err error) {
+	ctx, span := telemetry.Start(ctx, "service.Collage", attribute.Int("listings", len(listings)))
+	defer func() { telemetry.End(span, err) }()
 	log = s.logger(log).With("stage", StageCollage)
 	db := s.db
 	if listings == nil {
-		var err error
 		if listings, err = db.Load(ctx); err != nil {
 			return res, err
 		}
@@ -66,6 +69,6 @@ func (s *Service) Collage(ctx context.Context, o CollageOptions, listings []list
 	}
 	res.Listings = processed
 	res.Collages = len(distinct)
-	log.Info("collaged", "listings", len(processed), "collages", res.Collages, "without_collages", res.WithoutCollages)
+	log.InfoContext(ctx, "collaged", "listings", len(processed), "collages", res.Collages, "without_collages", res.WithoutCollages)
 	return res, nil
 }

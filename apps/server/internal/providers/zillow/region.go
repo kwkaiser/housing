@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
 const DefaultAutocompleteURL = "https://www.zillowstatic.com/autocomplete/v3/suggestions"
@@ -49,7 +50,7 @@ type Autocomplete struct {
 }
 
 func NewAutocomplete() *Autocomplete {
-	return &Autocomplete{URL: DefaultAutocompleteURL, UserAgent: "Mozilla/5.0", HTTP: http.DefaultClient}
+	return &Autocomplete{URL: DefaultAutocompleteURL, UserAgent: "Mozilla/5.0", HTTP: telemetry.Client(0)}
 }
 
 func (a *Autocomplete) Resolve(ctx context.Context, query string) (Region, error) {
