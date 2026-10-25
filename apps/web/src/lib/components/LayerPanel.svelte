@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import type { MapConfig } from '#lib/api/client.ts';
 	import type { HousingMap } from '#lib/map/create.ts';
+	import LayersIcon from '@lucide/svelte/icons/layers';
 	import { availableOverlays, overlayLabels, type Base, type OverlayName } from '#lib/map/style.ts';
 
 	let { map, config }: { map: HousingMap; config: MapConfig } = $props();
@@ -19,8 +20,8 @@
 	}
 </script>
 
-<details class="picker layer-panel">
-	<summary>Layers</summary>
+<details class="picker">
+	<summary><LayersIcon size={16} /> <span class="text">Layers</span></summary>
 	<div class="menu">
 		{#if config.positron}
 			<label><input type="radio" name="base" value="positron" bind:group={base} onchange={update} /> Positron</label>
@@ -35,3 +36,15 @@
 		{/each}
 	</div>
 </details>
+
+<style>
+	summary {
+		box-shadow: var(--shadow-lg);
+	}
+
+	@media (width < 640px) {
+		.text {
+			display: none;
+		}
+	}
+</style>

@@ -20,3 +20,26 @@
 		</ul>
 	</div>
 {/if}
+
+<style>
+	.errors {
+		max-width: 48rem;
+		margin: 0 0 1rem;
+		padding: 0.75rem 1rem;
+		border: 1px solid color-mix(in srgb, var(--bad) 30%, transparent);
+		border-radius: var(--radius);
+		background: color-mix(in srgb, var(--bad) 10%, var(--surface));
+		color: var(--bad);
+	}
+
+	p {
+		margin: 0;
+		color: inherit;
+		font-weight: 600;
+	}
+
+	ul {
+		margin: 0.35rem 0 0;
+		padding-left: 1.2rem;
+	}
+</style>

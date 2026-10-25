@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
+	import Back from '#lib/components/Back.svelte';
 	import { api, ApiError, call, type Criterion, type Schemas } from '#lib/api/client.ts';
 	import Errors from '#lib/components/Errors.svelte';
 	import { lines } from '#lib/format.ts';
@@ -41,8 +42,8 @@
 
 <svelte:head><title>Edit {p.id} · housing</title></svelte:head>
 
-<h1>Edit {p.id}</h1>
-<p><a href="/profiles/{encodeURIComponent(p.id)}">← Back</a></p>
+<Back href="/profiles/{encodeURIComponent(p.id)}" label={p.name || p.id} />
+<div class="page-head"><h1>Edit profile</h1></div>
 <Errors {error} />
 <form class="form" {onsubmit}>
 	<fieldset>
@@ -55,26 +56,58 @@
 		{#if group.rows.length}
 			<fieldset>
 				<legend>{group.name}</legend>
-				<div class="wrap">
-					<table class="criteria-edit">
-						<thead><tr><th>Label</th><th>Importance</th><th>Remove</th></tr></thead>
-						<tbody>
-							{#each group.rows as r (r.id)}
-								<tr class:invalid={fields[`criteria.${r.id}.label`] || fields[`criteria.${r.id}.importance`]}>
-									<td><input bind:value={r.label} aria-label="Label for {r.id}" disabled={r.remove} /></td>
-									<td>
-										<select bind:value={r.importance} aria-label="Importance for {r.id}" disabled={r.remove}>
-											{#each data.meta.importances ?? [] as imp (imp)}<option value={imp}>{imp}</option>{/each}
-										</select>
-									</td>
-									<td><input type="checkbox" bind:checked={r.remove} aria-label="Remove {r.id}" /></td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
+				<div>
+					{#each group.rows as r (r.id)}
+						<div class="crit" class:removed={r.remove} class:invalid={fields[`criteria.${r.id}.label`] || fields[`criteria.${r.id}.importance`]}>
+							<input bind:value={r.label} aria-label="Label for {r.id}" disabled={r.remove} />
+							<select bind:value={r.importance} aria-label="Importance for {r.id}" disabled={r.remove}>
+								{#each data.meta.importances ?? [] as imp (imp)}<option value={imp}>{imp}</option>{/each}
+							</select>
+							<label class="check"><input type="checkbox" bind:checked={r.remove} aria-label="Remove {r.id}" /> Remove</label>
+						</div>
+					{/each}
 				</div>
 			</fieldset>
 		{/if}
 	{/each}
-	<button class="primary" type="submit" disabled={busy}>Save</button>
+	<div class="form-actions"><button class="primary" type="submit" disabled={busy}>Save changes</button></div>
 </form>
+
+<style>
+	.crit {
+		display: grid;
+		grid-template-columns: 1fr 9rem auto;
+		gap: 0.5rem;
+		align-items: center;
+		padding: 0.5rem 0;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.crit:last-child {
+		border-bottom: 0;
+	}
+
+	.crit input:not([type='checkbox']) {
+		width: 100%;
+		min-width: 0;
+	}
+
+	.removed :is(input:not([type='checkbox']), select) {
+		text-decoration: line-through;
+		opacity: 0.5;
+	}
+
+	.invalid :is(input, select) {
+		border-color: var(--bad);
+	}
+
+	@media (width < 640px) {
+		.crit {
+			grid-template-columns: 1fr auto;
+		}
+
+		.crit input:not([type='checkbox']) {
+			grid-column: 1 / -1;
+		}
+	}
+</style>

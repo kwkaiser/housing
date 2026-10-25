@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import Status from '#lib/components/Status.svelte';
 	import { ago, cost, dateTime, elapsed, kindLabel } from '#lib/format.ts';
 	import type { PageProps } from './$types';
@@ -28,8 +29,8 @@
 
 <svelte:head><title>Jobs · housing</title></svelte:head>
 
-<h1>Jobs</h1>
-<div class="controls">
+<div class="page-head"><h1>Jobs</h1></div>
+<div class="toolbar">
 	<select aria-label="Collection" value={data.query.collection ?? ''} onchange={(e) => goto(href({ collection: e.currentTarget.value }))}>
 		<option value="">All collections</option>
 		{#each data.collections as c (c.id)}<option value={c.id}>{c.id}</option>{/each}
@@ -45,32 +46,33 @@
 </div>
 
 {#if data.jobs.length}
-	<div class="wrap">
-		<table class="jobs">
-			<thead><tr><th class="num">#</th><th>Kind</th><th>Target</th><th>Status</th><th>Created</th><th class="num">Duration</th><th class="num">Cost</th><th>Error</th></tr></thead>
-			<tbody>
-				{#each data.jobs as j (j.id)}
-					<tr>
-						<td class="num"><a href="/jobs/{j.id}">{j.id}</a></td>
-						<td>{kindLabel(j.kind)}<span class="muted">{j.trigger === 'schedule' ? ' · scheduled' : ''}</span></td>
-						<td>
-							{#if j.collection_id}<a href="/c/{encodeURIComponent(j.collection_id)}">{j.collection_id}</a>
-							{:else if j.profile_id}<a href="/profiles/{encodeURIComponent(j.profile_id)}">{j.profile_id}</a>{/if}
-						</td>
-						<td><Status status={j.status} /></td>
-						<td class="nowrap" title={dateTime(j.created_at)}>{ago(j.created_at)}</td>
-						<td class="num">{duration(j.started_at, j.finished_at)}</td>
-						<td class="num">{cost(j.cost_usd)}</td>
-						<td class="bad">{j.error && j.error.length > 80 ? j.error.slice(0, 79) + '…' : (j.error ?? '')}</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	</div>
+	<ul class="cards single">
+		{#each data.jobs as j (j.id)}
+			<li class="card item">
+				<div class="head">
+					<a class="stretch name" href="/jobs/{j.id}">{kindLabel(j.kind)} <span class="muted">#{j.id}</span></a>
+					<Status status={j.status} />
+				</div>
+				<p class="line">
+					{#if j.collection_id}<a href="/c/{encodeURIComponent(j.collection_id)}">{j.collection_id}</a> · {:else if j.profile_id}<a href="/profiles/{encodeURIComponent(j.profile_id)}">{j.profile_id}</a> · {/if}<span title={dateTime(j.created_at)}>{ago(j.created_at)}</span>{j.trigger === 'schedule' ? ' · scheduled' : ''} · {duration(j.started_at, j.finished_at)} · {cost(j.cost_usd)}
+				</p>
+				{#if j.error}<p class="line bad">{j.error.length > 140 ? j.error.slice(0, 139) + '…' : j.error}</p>{/if}
+			</li>
+		{/each}
+	</ul>
 	<div class="pager">
 		{#if page.url.searchParams.has('before')}<a class="button" href={href({})}>Newest</a>{/if}
-		{#if data.next}<a class="button" href="{href({})}{href({}).includes('?') ? '&' : '?'}before={data.next}">Older →</a>{/if}
+		{#if data.next}<a class="button" href="{href({})}{href({}).includes('?') ? '&' : '?'}before={data.next}">Older <ChevronRightIcon size={16} /></a>{/if}
 	</div>
 {:else}
-	<p>No jobs match.</p>
+	<div class="card empty"><p>No jobs match.</p></div>
 {/if}
+
+<style>
+	.pager {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+		margin: 1rem 0;
+	}
+</style>

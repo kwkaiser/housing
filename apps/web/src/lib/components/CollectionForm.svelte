@@ -105,15 +105,15 @@
 		{/if}
 		<div class="field">
 			<span class="label">Mode</span>
-			<div class="options">
-				{#each meta.modes ?? [] as m (m)}<label class="toggle"><input type="radio" name="mode" value={m} bind:group={mode} /> {m}</label>{/each}
+			<div class="chips">
+				{#each meta.modes ?? [] as m (m)}<label><input type="radio" name="mode" value={m} bind:group={mode} /> {m}</label>{/each}
 			</div>
 		</div>
 		<div class="field" class:invalid={fields.sources}>
 			<span class="label">Sources</span>
-			<div class="options">
+			<div class="chips">
 				{#each meta.sources ?? [] as src (src)}
-					<label class="toggle"><input type="checkbox" checked={sources.includes(src)} onchange={(e) => (sources = toggle(sources, src, e.currentTarget.checked))} /> {src}</label>
+					<label><input type="checkbox" checked={sources.includes(src)} onchange={(e) => (sources = toggle(sources, src, e.currentTarget.checked))} /> {src}</label>
 				{/each}
 			</div>
 			{#if fields.sources}<p class="field-error">{fields.sources}</p>{/if}
@@ -121,27 +121,25 @@
 		<div class="field" class:invalid={fields.profiles}>
 			<span class="label">Want profiles</span>
 			<small>Listings are graded against each, in this priority order.</small>
-			<table class="choices">
-				<tbody>
-					{#each picked as pid, i (pid)}
-						<tr>
-							<td><input type="checkbox" checked onchange={() => (picked = picked.filter((p) => p !== pid))} /></td>
-							<td>{wants.find((p) => p.id === pid)?.name || pid} <span class="muted">{pid}</span></td>
-							<td>
-								<button type="button" disabled={i === 0} onclick={() => move(i, -1)} aria-label="Move up">↑</button>
-								<button type="button" disabled={i === picked.length - 1} onclick={() => move(i, 1)} aria-label="Move down">↓</button>
-							</td>
-						</tr>
-					{/each}
-					{#each wants.filter((p) => !picked.includes(p.id)) as p (p.id)}
-						<tr>
-							<td><input type="checkbox" onchange={() => (picked = [...picked, p.id])} /></td>
-							<td>{p.name || p.id} <span class="muted">{p.id}</span></td>
-							<td></td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+			<ul class="order">
+				{#each picked as pid, i (pid)}
+					<li>
+						<input type="checkbox" checked aria-label="Use {pid}" onchange={() => (picked = picked.filter((p) => p !== pid))} />
+						<span class="pos">{i + 1}</span>
+						<span class="text">{wants.find((p) => p.id === pid)?.name || pid} <span class="muted">{pid}</span></span>
+						<span class="moves">
+							<button type="button" disabled={i === 0} onclick={() => move(i, -1)} aria-label="Move up">↑</button>
+							<button type="button" disabled={i === picked.length - 1} onclick={() => move(i, 1)} aria-label="Move down">↓</button>
+						</span>
+					</li>
+				{/each}
+				{#each wants.filter((p) => !picked.includes(p.id)) as p (p.id)}
+					<li class="off">
+						<input type="checkbox" aria-label="Use {p.id}" onchange={() => (picked = [...picked, p.id])} />
+						<span class="text">{p.name || p.id} <span class="muted">{p.id}</span></span>
+					</li>
+				{/each}
+			</ul>
 			{#if fields.profiles}<p class="field-error">{fields.profiles}</p>{/if}
 			{#if avoids.length}
 				<small>Avoid profiles apply to every collection:</small>
@@ -167,9 +165,9 @@
 		</div>
 		<div class="field">
 			<span class="label">Required amenities</span>
-			<div class="options">
+			<div class="chips">
 				{#each meta.amenities ?? [] as am (am)}
-					<label class="toggle"><input type="checkbox" checked={amenities.includes(am)} onchange={(e) => (amenities = toggle(amenities, am, e.currentTarget.checked))} /> {label(am)}</label>
+					<label><input type="checkbox" checked={amenities.includes(am)} onchange={(e) => (amenities = toggle(amenities, am, e.currentTarget.checked))} /> {label(am)}</label>
 				{/each}
 			</div>
 		</div>
@@ -192,5 +190,75 @@
 		</div>
 	</fieldset>
 
-	<button class="primary" type="submit" disabled={busy}>{collection ? 'Save' : 'Create collection'}</button>
+	<div class="form-actions">
+		<button class="primary" type="submit" disabled={busy}>{collection ? 'Save changes' : 'Create collection'}</button>
+	</div>
 </form>
+
+<style>
+	.avoids {
+		margin: 0;
+		padding-left: 1rem;
+	}
+
+	.order {
+		display: flex;
+		flex-direction: column;
+		margin: 0.25rem 0 0;
+		padding: 0;
+		list-style: none;
+		border: 1px solid var(--line);
+		border-radius: var(--radius-sm);
+	}
+
+	li {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		min-height: 3rem;
+		padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+		border-bottom: 1px solid var(--line);
+	}
+
+	li:last-child {
+		border-bottom: 0;
+	}
+
+	li.off {
+		color: var(--muted);
+	}
+
+	.text {
+		flex: 1;
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+
+	.text .muted {
+		display: block;
+		font-size: 0.8rem;
+	}
+
+	.pos {
+		display: inline-grid;
+		place-items: center;
+		width: 1.5rem;
+		height: 1.5rem;
+		border-radius: 50%;
+		background: var(--accent);
+		color: var(--accent-fg);
+		font-size: 0.75rem;
+		font-weight: 700;
+	}
+
+	.moves {
+		display: flex;
+		gap: 0.25rem;
+	}
+
+	.moves button {
+		width: 2.25rem;
+		min-height: 2.25rem;
+		padding: 0;
+	}
+</style>

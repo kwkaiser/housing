@@ -108,3 +108,10 @@ export function lines(s: string): string[] {
 export function sized(path: string, size: 320 | 640 | 1280): string {
 	return `${path}?size=${size}`;
 }
+
+export function tier(m: number): 'high' | 'mid' | 'low' {
+	return m >= 60 ? 'high' : m >= 35 ? 'mid' : 'low';
+}
+
+export type Tone = 'good' | 'bad' | 'warn' | 'accent' | 'muted';
+export type Tag = { text: string; tone: Tone };
