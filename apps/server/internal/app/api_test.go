@@ -173,7 +173,10 @@ func TestAPIListing(t *testing.T) {
 	if len(m.Wants) != 2 || m.Wants[0].Label != "Skylights" || m.Wants[0].Verdict != "present" || len(m.Avoids) != 1 || !m.Avoids[0].Dealbreaker {
 		t.Errorf("model result = %+v", m)
 	}
-	for _, target := range []string{"/api/v1/listings/zillow/nope", "/api/v1/listings/zillow/z1?collection=nope"} {
+	if g := apiGet[APIListingGallery](t, h, key, "/api/v1/listings/zillow/z1/gallery"); len(g.Gallery) != 1 || g.Gallery[0] != v.Gallery[0] {
+		t.Errorf("gallery endpoint = %v", g.Gallery)
+	}
+	for _, target := range []string{"/api/v1/listings/zillow/nope", "/api/v1/listings/zillow/z1?collection=nope", "/api/v1/listings/zillow/nope/gallery"} {
 		if res, _ := apiDo(t, h, http.MethodGet, target, key); res.StatusCode != http.StatusNotFound {
 			t.Errorf("GET %s = %d, want 404", target, res.StatusCode)
 		}

@@ -93,6 +93,7 @@ func (a *App) newAPI() (*http.ServeMux, huma.API) {
 		DefaultStatus: http.StatusAccepted,
 	}, a.apiRunCollection)
 	huma.Get(api, apiV1+"/listings/{source}/{source_id}", a.apiListing, op("getListing", "Get a listing with its grades", "listings"))
+	huma.Get(api, apiV1+"/listings/{source}/{source_id}/gallery", a.apiListingGallery, op("getListingGallery", "Get a listing's stored photos", "listings"))
 	huma.Get(api, apiV1+"/favorites", a.apiFavorites, op("listFavorites", "List favorite listings, newest first", "favorites"))
 	huma.Register(api, huma.Operation{
 		OperationID:   "addFavorite",
@@ -566,6 +567,23 @@ func (a *App) apiListing(ctx context.Context, in *listingInput) (*struct{ Body A
 		out.Grades = append(out.Grades, lg)
 	}
 	return &struct{ Body APIListingDetail }{out}, nil
+}
+
+type listingGalleryInput struct {
+	Source   listing.Source `path:"source"`
+	SourceID string         `path:"source_id"`
+}
+
+type APIListingGallery struct {
+	Gallery []string `json:"gallery" doc:"API paths of the listing's stored photos in listing order, which take a size like other media"`
+}
+
+func (a *App) apiListingGallery(ctx context.Context, in *listingGalleryInput) (*struct{ Body APIListingGallery }, error) {
+	keys, err := a.svc.ListingGallery(ctx, in.Source, in.SourceID)
+	if err != nil {
+		return nil, a.apiError(ctx, err)
+	}
+	return &struct{ Body APIListingGallery }{APIListingGallery{Gallery: mediaPaths(keys)}}, nil
 }
 
 func apiResults(rs []service.ResultView) []APICriterionResult {

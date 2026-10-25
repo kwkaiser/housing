@@ -817,6 +817,22 @@
         ],
         "type": "object"
       },
+      "APIListingGallery": {
+        "additionalProperties": false,
+        "properties": {
+          "gallery": {
+            "description": "API paths of the listing's stored photos in listing order, which take a size like other media",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "gallery"
+        ],
+        "type": "object"
+      },
       "APIListingGrade": {
         "additionalProperties": false,
         "properties": {
@@ -3003,6 +3019,55 @@
         "summary": "Mark a listing as a favorite",
         "tags": [
           "favorites"
+        ]
+      }
+    },
+    "/api/v1/listings/{source}/{source_id}/gallery": {
+      "get": {
+        "operationId": "getListingGallery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIListingGallery"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a listing's stored photos",
+        "tags": [
+          "listings"
         ]
       }
     },

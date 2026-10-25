@@ -905,17 +905,6 @@ form.form .field-error {
 	margin-top: 0.25rem;
 }
 
-.maplibregl-popup-content img.preview {
-	display: block;
-	width: 100%;
-	aspect-ratio: 4 / 3;
-	object-fit: cover;
-	object-position: top;
-	margin-bottom: 0.5rem;
-	border-radius: var(--radius-sm);
-	background: var(--surface-2);
-}
-
 .pin-popup .maplibregl-popup-content {
 	width: 260px;
 }

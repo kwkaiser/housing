@@ -1,5 +1,11 @@
 version: '3'
 
+includes:
+  server:
+    taskfile: ../server/Taskfile.yml
+    dir: ../server
+    internal: true
+
 tasks:
   install:
     sources:
@@ -29,7 +35,7 @@ tasks:
   gen:
     desc: Regenerate the API spec and TypeScript types from the server.
     cmds:
-      - task: :server:openapi
+      - task: server:openapi
       - task: types
 
   types:
