@@ -704,6 +704,8 @@ export interface components {
             source_id: string;
             /** Format: int64 */
             sqft?: number;
+            /** @description API path of the listing's first stored photo, which takes a size like other media */
+            thumbnail?: string;
             /** @description The listing on its source site */
             url: string;
         };
@@ -810,7 +812,7 @@ export interface components {
             /** Format: double */
             lng: number;
             offer: string;
-            /** @description API path of the listing's first collage */
+            /** @description API path of the listing's first stored photo, or else its first collage */
             preview?: string;
             /** Format: int64 */
             price_cents: number;

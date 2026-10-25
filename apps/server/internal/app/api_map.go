@@ -59,7 +59,7 @@ type APIMapPin struct {
 	Offer       listing.OfferType      `json:"offer"`
 	PriceCents  int64                  `json:"price_cents"`
 	Beds        *int                   `json:"beds,omitempty"`
-	Preview     string                 `json:"preview,omitempty" doc:"API path of the listing's first collage"`
+	Preview     string                 `json:"preview,omitempty" doc:"API path of the listing's first stored photo, or else its first collage"`
 	FirstSeen   string                 `json:"first_seen"`
 	LastSeen    string                 `json:"last_seen"`
 	Collections []string               `json:"collections" doc:"Collections that saw the listing, in collection order"`
@@ -125,7 +125,7 @@ func (a *App) mapPins(ctx context.Context, cs []collection.Collection, from, to 
 					Address: cmp.Or(report.AddressLine(l), l.SourceID), Offer: l.Offer, PriceCents: l.Price.Cents, Beds: l.Beds,
 					FirstSeen: row.FirstSeen, LastSeen: row.Day, Grades: map[string]APIPinGrade{}, Ungraded: row.Ungraded,
 				}
-				if len(l.Collages) > 0 {
+				if pin.Preview = a.thumbnail(ctx, l); pin.Preview == "" && len(l.Collages) > 0 {
 					pin.Preview = apiV1 + "/media/" + l.Collages[0]
 				}
 				out.Pins = append(out.Pins, pin)

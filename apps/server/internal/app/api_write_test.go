@@ -22,6 +22,7 @@ import (
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
 	"git.kwkaiser.io/kwkaiser/housing/internal/jobs"
+	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/store"
 )
@@ -361,7 +362,7 @@ func TestAPIMapPins(t *testing.T) {
 		t.Fatalf("no z1 pin in %+v", v.Pins)
 	}
 	g, ok := z1.Grades["somerville"]
-	if !z1.Approx || z1.PriceCents != 290000 || z1.Href != "/api/v1/listings/zillow/z1" || z1.Preview != "/api/v1/media/"+collageKey || !ok || g.Match != 87.5 {
+	if !z1.Approx || z1.PriceCents != 290000 || z1.Href != "/api/v1/listings/zillow/z1" || z1.Preview != "/api/v1/media/"+media.PhotoKey(photoURL) || !ok || g.Match != 87.5 {
 		t.Errorf("z1 = %+v", z1)
 	}
 	if v := apiGet[APIMapPins](t, h, key, "/api/v1/map/pins?from="+day2+"&to="+day1); v.From != day1 || v.To != day2 {

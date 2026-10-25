@@ -13,6 +13,7 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing/dedupe"
+	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/report"
 	"git.kwkaiser.io/kwkaiser/housing/internal/store"
@@ -473,6 +474,20 @@ func (s *Service) MediaPath(key string) (string, error) {
 		return "", ErrInvalidMediaKey
 	}
 	return s.images().Path(key), nil
+}
+
+func (s *Service) Thumbnail(ctx context.Context, l listing.Listing) string {
+	if len(l.Collages) == 0 {
+		return ""
+	}
+	images := s.images()
+	for _, u := range l.Photos[:min(len(l.Photos), media.DefaultMaxPhotos)] {
+		key := media.PhotoKey(u)
+		if ok, err := images.Has(ctx, key); err == nil && ok {
+			return key
+		}
+	}
+	return ""
 }
 
 func ValidMediaKey(key string) bool {

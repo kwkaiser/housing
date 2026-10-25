@@ -740,6 +740,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "thumbnail": {
+            "description": "API path of the listing's first stored photo, which takes a size like other media",
+            "type": "string"
+          },
           "url": {
             "description": "The listing on its source site",
             "type": "string"
@@ -1066,7 +1070,7 @@
             "type": "string"
           },
           "preview": {
-            "description": "API path of the listing's first collage",
+            "description": "API path of the listing's first stored photo, or else its first collage",
             "type": "string"
           },
           "price_cents": {
