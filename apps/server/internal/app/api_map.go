@@ -12,6 +12,7 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/geo"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/report"
+	"git.kwkaiser.io/kwkaiser/housing/internal/tiles"
 )
 
 var mapColors = []string{"#2563eb", "#dc2626", "#16a34a", "#9333ea", "#ea580c", "#0891b2", "#db2777", "#65a30d"}
@@ -161,6 +162,8 @@ func searchArea(c collection.Collection) *APIBounds {
 type APIMapConfig struct {
 	Positron *APITileLayer `json:"positron,omitempty" doc:"A cached CARTO Positron base layer, when the server has a CARTO key"`
 	Terrain  *APIDEMLayer  `json:"terrain,omitempty" doc:"A cached elevation layer for hillshading"`
+	Noise    *APITileLayer `json:"noise,omitempty" doc:"A cached BTS road, rail and aviation noise layer for the contiguous US"`
+	CyclOSM  *APITileLayer `json:"cyclosm,omitempty" doc:"A cached CyclOSM Lite layer of bike infrastructure"`
 	Overlays []APIOverlay  `json:"overlays"`
 }
 
@@ -177,11 +180,11 @@ type APIDEMLayer struct {
 }
 
 type APIOverlay struct {
-	Name      string `json:"name" enum:"bike,rail,bus"`
+	Name      string `json:"name" enum:"towns,bike,rail,bus"`
 	MinZoom   int    `json:"min_zoom"`
 	MaxZoom   int    `json:"max_zoom" doc:"Tiles stop here; clients overzoom beyond it"`
-	URL       string `json:"url" doc:"Template for tiles of simplified line features as JSON"`
-	VectorURL string `json:"vector_url" doc:"Template for the source's raw Mapbox vector tiles"`
+	URL       string `json:"url" doc:"Template for tiles of simplified line or area features as JSON"`
+	VectorURL string `json:"vector_url,omitempty" doc:"Template for the source's raw Mapbox vector tiles, when it has them"`
 }
 
 func (a *App) apiMapConfig(_ context.Context, _ *struct{}) (*struct{ Body APIMapConfig }, error) {
@@ -193,9 +196,19 @@ func (a *App) apiMapConfig(_ context.Context, _ *struct{}) (*struct{ Body APIMap
 	if a.terrain.Enabled() {
 		out.Terrain = &APIDEMLayer{URL: apiV1 + "/tiles/terrain/{z}/{x}/{y}.webp", MaxZoom: a.terrain.MaxZoom, TileSize: 512, Encoding: "terrarium"}
 	}
+	if a.noise.Enabled() {
+		out.Noise = &APITileLayer{URL: apiV1 + "/tiles/noise/{z}/{x}/{y}.png", MaxZoom: a.noise.MaxZoom}
+	}
+	if a.cyclosm.Enabled() {
+		out.CyclOSM = &APITileLayer{URL: apiV1 + "/tiles/cyclosm/{z}/{x}/{y}.png", MaxZoom: a.cyclosm.MaxZoom}
+	}
 	for _, o := range c.Overlays {
 		base := apiV1 + "/overlays/" + o.Name + "/{z}/{x}/{y}"
-		out.Overlays = append(out.Overlays, APIOverlay{Name: o.Name, MinZoom: o.MinZoom, MaxZoom: o.MaxZoom, URL: base + ".json", VectorURL: base + ".pbf"})
+		ov := APIOverlay{Name: o.Name, MinZoom: o.MinZoom, MaxZoom: o.MaxZoom, URL: base + ".json"}
+		if o.Vector {
+			ov.VectorURL = base + ".pbf"
+		}
+		out.Overlays = append(out.Overlays, ov)
 	}
 	return &struct{ Body APIMapConfig }{out}, nil
 }
@@ -207,10 +220,10 @@ type tileInput struct {
 }
 
 type overlayInput struct {
-	Name string `path:"name" enum:"bike,rail,bus"`
+	Name string `path:"name" enum:"towns,bike,rail,bus"`
 	Z    string `path:"z"`
 	X    string `path:"x"`
-	File string `path:"file" doc:"{y}.json for simplified line features, or {y}.pbf for the raw vector tile"`
+	File string `path:"file" doc:"{y}.json for simplified features, or {y}.pbf for the raw vector tile of a vector overlay"`
 }
 
 type tileOutput struct {
@@ -221,6 +234,28 @@ type tileOutput struct {
 
 func (a *App) apiPositronTile(ctx context.Context, in *tileInput) (*tileOutput, error) {
 	b, err := a.positronPNG(ctx, in.Z, in.X, in.File)
+	if err != nil {
+		return nil, tileError(err)
+	}
+	return &tileOutput{ContentType: "image/png", CacheControl: "private, max-age=86400", Body: b}, nil
+}
+
+type pngTileInput struct {
+	Z    string `path:"z"`
+	X    string `path:"x"`
+	File string `path:"file" doc:"{y}.png"`
+}
+
+func (a *App) apiNoiseTile(ctx context.Context, in *pngTileInput) (*tileOutput, error) {
+	return a.pngTile(ctx, "noise", a.noise, in)
+}
+
+func (a *App) apiCyclOSMTile(ctx context.Context, in *pngTileInput) (*tileOutput, error) {
+	return a.pngTile(ctx, "cyclosm", a.cyclosm, in)
+}
+
+func (a *App) pngTile(ctx context.Context, layer string, c *tiles.Cache, in *pngTileInput) (*tileOutput, error) {
+	b, err := a.cachedPNG(ctx, layer, c, in.Z, in.X, in.File)
 	if err != nil {
 		return nil, tileError(err)
 	}

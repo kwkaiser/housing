@@ -139,8 +139,10 @@ func (a *App) newAPI() (*http.ServeMux, huma.API) {
 	huma.Get(api, apiV1+"/map/pins", a.apiMapPins, op("listMapPins", "List map pins for every collection's listings over a range of runs", "map"))
 	huma.Get(api, apiV1+"/map/config", a.apiMapConfig, op("getMapConfig", "Get the tile layers and overlays the server can serve", "map"))
 	huma.Get(api, apiV1+"/tiles/positron/{z}/{x}/{file}", a.apiPositronTile, op("getPositronTile", "Get a cached CARTO Positron base map tile", "map"))
+	huma.Get(api, apiV1+"/tiles/cyclosm/{z}/{x}/{file}", a.apiCyclOSMTile, op("getCyclOSMTile", "Get a cached CyclOSM Lite bike infrastructure tile", "map"))
+	huma.Get(api, apiV1+"/tiles/noise/{z}/{x}/{file}", a.apiNoiseTile, op("getNoiseTile", "Get a cached BTS transportation noise tile", "map"))
 	huma.Get(api, apiV1+"/tiles/terrain/{z}/{x}/{file}", a.apiTerrainTile, op("getTerrainTile", "Get a cached Mapterhorn terrarium-encoded elevation tile", "map"))
-	huma.Get(api, apiV1+"/overlays/{name}/{z}/{x}/{file}", a.apiOverlayTile, op("getOverlayTile", "Get a transit or bike lane overlay tile", "map"))
+	huma.Get(api, apiV1+"/overlays/{name}/{z}/{x}/{file}", a.apiOverlayTile, op("getOverlayTile", "Get a town boundary, transit or bike lane overlay tile", "map"))
 	mux.Handle(mcpPath, a.mcpHandler())
 	huma.Get(api, apiV1+"/media/{key...}", a.apiMedia, op("getMedia", "Get a stored image such as a listing collage", "media"))
 	paths := api.OpenAPI().Paths

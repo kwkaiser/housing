@@ -3,18 +3,29 @@ import type { MapConfig } from '#lib/api/client.ts';
 import { load, save } from '#lib/storage.ts';
 
 export type Base = 'positron' | 'osm';
-export type OverlayName = 'terrain' | 'bike' | 'rail' | 'bus';
+export type OverlayName = 'terrain' | 'noise' | 'towns' | 'bike' | 'rail' | 'bus';
 export type Layers = { base: Base; overlays: OverlayName[] };
 
 export const BIKE = '#009400';
 export const BUS = '#a16207';
 export const RAIL = '#475569';
+export const TOWN = '#86198f';
+export const noiseLegend: [string, string][] = [
+	['#ffc107', '45'],
+	['#ff8000', '50'],
+	['#ff0000', '55'],
+	['#ff3399', '60'],
+	['#a300cc', '70'],
+	['#5200cc', '80'],
+	['#0000ff', '90+']
+];
 
 const osm = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 const transitland = '<a href="https://www.transit.land/terms">Transitland</a>';
+const census = '<a href="https://www.census.gov/data/developers/data-sets/TIGERweb-map-service.html">U.S. Census Bureau</a>';
 
-export const overlayLabels: Record<OverlayName, string> = { terrain: 'Terrain', bike: 'Bike lanes', rail: 'Rail transit', bus: 'Bus routes' };
-export const overlayNames: OverlayName[] = ['terrain', 'bike', 'rail', 'bus'];
+export const overlayLabels: Record<OverlayName, string> = { terrain: 'Terrain', noise: 'Noise', towns: 'Town lines', bike: 'Bike lanes', rail: 'Rail transit', bus: 'Bus routes' };
+export const overlayNames: OverlayName[] = ['terrain', 'noise', 'towns', 'bike', 'rail', 'bus'];
 
 export function savedLayers(config: MapConfig): Layers {
 	const saved = load<Partial<Layers>>('mapLayers', {});
@@ -29,7 +40,11 @@ export function saveLayers(layers: Layers): void {
 
 export function availableOverlays(config: MapConfig): OverlayName[] {
 	const names = new Set((config.overlays ?? []).map((o) => o.name));
-	return overlayNames.filter((n) => (n === 'terrain' ? !!config.terrain : n !== 'bus' || names.has(n)));
+	return overlayNames.filter((n) => {
+		if (n === 'terrain') return !!config.terrain;
+		if (n === 'noise') return !!config.noise;
+		return n === 'bike' || n === 'rail' || names.has(n);
+	});
 }
 
 export function hasOverlay(config: MapConfig, name: OverlayName): boolean {
@@ -51,11 +66,12 @@ export function style(config: MapConfig, layers: Layers): StyleSpecification {
 			osm: { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 19, attribution: osm },
 			cyclosm: {
 				type: 'raster',
-				tiles: ['a', 'b', 'c'].map((s) => `https://${s}.tile-cyclosm.openstreetmap.fr/cyclosm-lite/{z}/{x}/{y}.png`),
-				tileSize: 256,
-				maxzoom: 20,
+				tiles: config.cyclosm ? [config.cyclosm.url] : ['a', 'b', 'c'].map((s) => `https://${s}.tile-cyclosm.openstreetmap.fr/cyclosm-lite/{z}/{x}/{y}.png`),
+				tileSize: retina ? 128 : 256,
+				maxzoom: config.cyclosm?.max_zoom ?? 20,
 				attribution: '<a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases">CyclOSM</a>'
 			},
+			'ov-towns': { ...empty, attribution: census },
 			'ov-bike': { ...empty, attribution: '<a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/">OpenMapTiles</a>' },
 			'ov-rail': { ...empty, attribution: transitland },
 			'ov-bus': { ...empty, attribution: transitland }
@@ -63,6 +79,27 @@ export function style(config: MapConfig, layers: Layers): StyleSpecification {
 		layers: [
 			{ id: 'osm', type: 'raster', source: 'osm', layout: vis(layers.base === 'osm') },
 			{ id: 'cyclosm', type: 'raster', source: 'cyclosm', layout: vis(layers.overlays.includes('bike')), paint: { 'raster-hue-rotate': 255, 'raster-brightness-min': 0.35 } },
+			{
+				id: 'ov-towns-fill',
+				type: 'fill',
+				source: 'ov-towns',
+				layout: vis(layers.overlays.includes('towns')),
+				paint: { 'fill-color': TOWN, 'fill-opacity': ['case', hover, 0.08, 0] }
+			},
+			{
+				id: 'ov-towns',
+				type: 'line',
+				source: 'ov-towns',
+				layout: vis(layers.overlays.includes('towns')),
+				paint: { 'line-color': TOWN, 'line-width': ['case', hover, 4, 1.5], 'line-opacity': ['case', hover, 1, 0.6] }
+			},
+			{
+				id: 'ov-bike-paths',
+				type: 'line',
+				source: 'ov-bike',
+				layout: { ...vis(layers.overlays.includes('bike')), 'line-cap': 'round', 'line-join': 'round' },
+				paint: { 'line-color': BIKE, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 1.5, 16, 3, 18, 5], 'line-opacity': 0.85 }
+			},
 			{
 				id: 'ov-bike',
 				type: 'line',
@@ -121,6 +158,17 @@ export function style(config: MapConfig, layers: Layers): StyleSpecification {
 			}
 		});
 	}
+	if (config.noise) {
+		style.sources.noise = {
+			type: 'raster',
+			tiles: [config.noise.url],
+			tileSize: 256,
+			maxzoom: config.noise.max_zoom,
+			attribution: '<a href="https://www.bts.gov/geospatial/national-transportation-noise-map">BTS</a>'
+		};
+		const at = style.layers.findIndex((l) => l.id === 'cyclosm');
+		style.layers.splice(at, 0, { id: 'noise', type: 'raster', source: 'noise', layout: vis(layers.overlays.includes('noise')), paint: { 'raster-opacity': 0.45 } });
+	}
 	if (!hasOverlay(config, 'rail')) {
 		style.sources.openrailwaymap = {
 			type: 'raster',
@@ -139,8 +187,12 @@ export function layerIds(name: OverlayName, config: MapConfig): string[] {
 	switch (name) {
 		case 'terrain':
 			return ['terrain'];
+		case 'noise':
+			return ['noise'];
+		case 'towns':
+			return ['ov-towns-fill', 'ov-towns'];
 		case 'bike':
-			return ['cyclosm', 'ov-bike'];
+			return ['cyclosm', 'ov-bike-paths', 'ov-bike'];
 		case 'rail':
 			return hasOverlay(config, 'rail') ? ['ov-rail'] : ['openrailwaymap'];
 		case 'bus':

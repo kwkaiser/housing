@@ -1024,6 +1024,14 @@
       "APIMapConfig": {
         "additionalProperties": false,
         "properties": {
+          "cyclosm": {
+            "$ref": "#/components/schemas/APITileLayer",
+            "description": "A cached CyclOSM Lite layer of bike infrastructure"
+          },
+          "noise": {
+            "$ref": "#/components/schemas/APITileLayer",
+            "description": "A cached BTS road, rail and aviation noise layer for the contiguous US"
+          },
           "overlays": {
             "items": {
               "$ref": "#/components/schemas/APIOverlay"
@@ -1286,6 +1294,7 @@
           },
           "name": {
             "enum": [
+              "towns",
               "bike",
               "rail",
               "bus"
@@ -1293,11 +1302,11 @@
             "type": "string"
           },
           "url": {
-            "description": "Template for tiles of simplified line features as JSON",
+            "description": "Template for tiles of simplified line or area features as JSON",
             "type": "string"
           },
           "vector_url": {
-            "description": "Template for the source's raw Mapbox vector tiles",
+            "description": "Template for the source's raw Mapbox vector tiles, when it has them",
             "type": "string"
           }
         },
@@ -1305,8 +1314,7 @@
           "name",
           "min_zoom",
           "max_zoom",
-          "url",
-          "vector_url"
+          "url"
         ],
         "type": "object"
       },
@@ -3301,6 +3309,7 @@
             "required": true,
             "schema": {
               "enum": [
+                "towns",
                 "bike",
                 "rail",
                 "bus"
@@ -3325,12 +3334,12 @@
             }
           },
           {
-            "description": "{y}.json for simplified line features, or {y}.pbf for the raw vector tile",
+            "description": "{y}.json for simplified features, or {y}.pbf for the raw vector tile of a vector overlay",
             "in": "path",
             "name": "file",
             "required": true,
             "schema": {
-              "description": "{y}.json for simplified line features, or {y}.pbf for the raw vector tile",
+              "description": "{y}.json for simplified features, or {y}.pbf for the raw vector tile of a vector overlay",
               "type": "string"
             }
           }
@@ -3370,7 +3379,7 @@
             "description": "Error"
           }
         },
-        "summary": "Get a transit or bike lane overlay tile",
+        "summary": "Get a town boundary, transit or bike lane overlay tile",
         "tags": [
           "map"
         ]
@@ -3588,6 +3597,150 @@
         "summary": "Queue a re-draft of a profile's criteria from its reference listings",
         "tags": [
           "profiles"
+        ]
+      }
+    },
+    "/api/v1/tiles/cyclosm/{z}/{x}/{file}": {
+      "get": {
+        "operationId": "getCyclOSMTile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "z",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "x",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "{y}.png",
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "description": "{y}.png",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a cached CyclOSM Lite bike infrastructure tile",
+        "tags": [
+          "map"
+        ]
+      }
+    },
+    "/api/v1/tiles/noise/{z}/{x}/{file}": {
+      "get": {
+        "operationId": "getNoiseTile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "z",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "x",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "{y}.png",
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "description": "{y}.png",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a cached BTS transportation noise tile",
+        "tags": [
+          "map"
         ]
       }
     },

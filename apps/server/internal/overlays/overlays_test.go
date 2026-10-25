@@ -76,6 +76,19 @@ func TestBike(t *testing.T) {
 	}
 }
 
+func TestBikePaths(t *testing.T) {
+	layers := []mvt.Layer{{Name: "transportation", Features: []mvt.Feature{
+		route(map[string]any{"class": "path", "subclass": "cycleway"}, 0),
+		route(map[string]any{"class": "path", "subclass": "footway", "bicycle": "designated"}, 0.01),
+		route(map[string]any{"class": "path", "subclass": "footway", "bicycle": "yes"}, 0),
+		route(map[string]any{"class": "primary", "bicycle": "designated"}, 0),
+	}}}
+	got := BikePaths.Collect(layers)
+	if len(got) != 1 || got[0].ID != "bikeway" || got[0].Label != "Bike path" || len(got[0].Lines) != 2 {
+		t.Errorf("bike paths = %+v", got)
+	}
+}
+
 func TestRouteLabel(t *testing.T) {
 	for _, tc := range []struct{ short, long, want string }{
 		{"87", "Arlington Center - Lechmere", "87 · Arlington Center - Lechmere"},

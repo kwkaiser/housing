@@ -12,12 +12,14 @@ import (
 )
 
 type Feature struct {
-	ID      string         `json:"id"`
-	Label   string         `json:"label"`
-	Detail  string         `json:"detail,omitempty"`
-	Color   string         `json:"color,omitempty"`
-	Headway int            `json:"headway,omitempty"`
-	Lines   [][]mvt.LatLng `json:"lines"`
+	ID       string           `json:"id"`
+	Label    string           `json:"label"`
+	Detail   string           `json:"detail,omitempty"`
+	Color    string           `json:"color,omitempty"`
+	Headway  int              `json:"headway,omitempty"`
+	Area     float64          `json:"area,omitempty"`
+	Lines    [][]mvt.LatLng   `json:"lines,omitempty"`
+	Polygons [][][]mvt.LatLng `json:"polygons,omitempty"`
 }
 
 type Kind struct {
@@ -26,9 +28,10 @@ type Kind struct {
 }
 
 var (
-	Bus  = Kind{Layer: "routes", pick: transit(modeBus)}
-	Rail = Kind{Layer: "routes", pick: transit(modeRail)}
-	Bike = Kind{Layer: "transportation_name", pick: bike}
+	Bus       = Kind{Layer: "routes", pick: transit(modeBus)}
+	Rail      = Kind{Layer: "routes", pick: transit(modeRail)}
+	Bike      = Kind{Layer: "transportation_name", pick: bike}
+	BikePaths = Kind{Layer: "transportation", pick: bikePath}
 )
 
 func (k Kind) Collect(layers []mvt.Layer) []Feature {
@@ -191,4 +194,14 @@ func bike(p map[string]any) (Feature, bool) {
 		return Feature{}, false
 	}
 	return Feature{ID: "bike:" + name, Label: name, Detail: "Bike path"}, true
+}
+
+func bikePath(p map[string]any) (Feature, bool) {
+	if str(p, "class") != "path" {
+		return Feature{}, false
+	}
+	if str(p, "subclass") != "cycleway" && str(p, "bicycle") != "designated" {
+		return Feature{}, false
+	}
+	return Feature{ID: "bikeway", Label: "Bike path"}, true
 }

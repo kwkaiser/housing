@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -234,5 +235,69 @@ func TestTerrain(t *testing.T) {
 	u.ctype = "text/html"
 	if _, err := c.Get(t.Context(), Tile{Z: 12, X: 1, Y: 1}); !errors.Is(err, ErrUpstream) {
 		t.Errorf("html response err = %v, want ErrUpstream", err)
+	}
+}
+
+func TestCyclOSM(t *testing.T) {
+	c := NewCyclOSM(t.TempDir())
+	if !c.Enabled() || c.MaxZoom != MaxZoom {
+		t.Fatalf("cyclosm enabled = %v, max zoom = %d", c.Enabled(), c.MaxZoom)
+	}
+	if u, _ := c.Upstream(t.Context(), Tile{Z: 14, X: 4958, Y: 6060}); u != "https://c.tile-cyclosm.openstreetmap.fr/cyclosm-lite/14/4958/6060.png" {
+		t.Errorf("upstream = %s", u)
+	}
+}
+
+func TestNoise(t *testing.T) {
+	c := NewNoise(t.TempDir())
+	if !c.Enabled() {
+		t.Fatal("noise should not need a key")
+	}
+	if u, _ := c.Upstream(t.Context(), Tile{Z: 12, X: 1239, Y: 1514}); !strings.HasSuffix(u, "/MapServer/tile/12/1514/1239") {
+		t.Errorf("upstream = %s, want z/y/x order", u)
+	}
+	u := &upstream{status: http.StatusNotFound, ctype: "text/html", body: "missing"}
+	serve(t, c, u)
+	if b, err := c.Get(t.Context(), Tile{Z: 5, X: 1, Y: 1}); err != nil || len(b) != 0 {
+		t.Errorf("missing tile = %q, %v; want empty", b, err)
+	}
+	if _, err := c.Get(t.Context(), Tile{Z: NoiseMaxZoom + 1}); !errors.Is(err, ErrBadTile) {
+		t.Errorf("past max zoom err = %v, want ErrBadTile", err)
+	}
+}
+
+func TestTIGERweb(t *testing.T) {
+	var queries []url.Values
+	body := `{"type":"FeatureCollection","features":[]}`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		queries = append(queries, r.URL.Query())
+		w.Header().Set("Content-Type", "application/geo+json;charset=UTF-8")
+		fmt.Fprint(w, body)
+	}))
+	defer srv.Close()
+	c := newTIGERweb(t.TempDir(), srv.URL, tigerwebPlaces, "1=1", "STATE,PLACE")
+	if !c.Enabled() {
+		t.Fatal("TIGERweb should not need a key")
+	}
+
+	b, err := c.Get(t.Context(), Tile{Z: 12, X: 1239, Y: 1515})
+	if err != nil || string(b) != body {
+		t.Fatalf("Get = %q, %v", b, err)
+	}
+	q := queries[0]
+	if q.Get("geometry") != "-71.103516,42.293564,-71.015625,42.358544" || q.Get("outFields") != "STATE,PLACE" || q.Get("f") != "geojson" || q.Get("outSR") != "4326" {
+		t.Errorf("query = %v", q)
+	}
+
+	body = `{"error":{"code":400,"message":"Failed to execute query.","details":[]}}`
+	if _, err := c.Get(t.Context(), Tile{Z: 12, X: 1, Y: 1}); !errors.Is(err, ErrUpstream) {
+		t.Errorf("arcgis error body = %v, want ErrUpstream", err)
+	}
+	body = `{"type":"FeatureCollection","features":[]}`
+	if b, err := c.Get(t.Context(), Tile{Z: 12, X: 1, Y: 1}); err != nil || string(b) != body {
+		t.Errorf("Get after an error = %q, %v; the error should not have been cached", b, err)
+	}
+	if _, err := c.Get(t.Context(), Tile{Z: 13, X: 1, Y: 1}); !errors.Is(err, ErrBadTile) {
+		t.Errorf("zoom 13 = %v, want ErrBadTile", err)
 	}
 }

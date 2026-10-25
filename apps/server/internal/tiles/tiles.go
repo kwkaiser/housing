@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -86,6 +87,7 @@ type Cache struct {
 	Now       func() time.Time
 	Upstream  func(ctx context.Context, t Tile) (string, error)
 	Check     func(res *http.Response) error
+	Valid     func(body []byte) error
 	Empty     func(status int) bool
 
 	group singleflight.Group
@@ -144,6 +146,35 @@ func NewTerrain(dir string) *Cache {
 	return c
 }
 
+func NewCyclOSM(dir string) *Cache {
+	c := newCache(dir, ".png")
+	c.Upstream = func(_ context.Context, t Tile) (string, error) {
+		return fmt.Sprintf("https://%c.tile-cyclosm.openstreetmap.fr/cyclosm-lite/%d/%d/%d.png", "abc"[(t.X+t.Y)%3], t.Z, t.X, t.Y), nil
+	}
+	c.Check = func(res *http.Response) error {
+		return contentType(res, "image/")
+	}
+	return c
+}
+
+const NoiseMaxZoom = 12
+
+func NewNoise(dir string) *Cache {
+	c := newCache(dir, ".png")
+	c.MaxZoom = NoiseMaxZoom
+	c.TTL = 180 * 24 * time.Hour
+	c.Upstream = func(_ context.Context, t Tile) (string, error) {
+		return fmt.Sprintf("https://geo.dot.gov/server/rest/services/Hosted/NTAD_Noise_2020_CONUS_Aviation_Road_Rail/MapServer/tile/%d/%d/%d", t.Z, t.Y, t.X), nil
+	}
+	c.Check = func(res *http.Response) error {
+		return contentType(res, "image/")
+	}
+	c.Empty = func(status int) bool {
+		return status == http.StatusNotFound
+	}
+	return c
+}
+
 const openFreeMapTileJSON = "https://tiles.openfreemap.org/planet"
 
 func NewOpenFreeMap(dir string) *Cache {
@@ -164,6 +195,72 @@ func newOpenFreeMap(dir, tileJSONURL string) *Cache {
 	c.Check = vectorCheck
 	c.Empty = vectorEmpty
 	return c
+}
+
+const (
+	TIGERwebMaxZoom = 12
+	tigerwebURL     = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_Current/MapServer"
+	tigerwebPlaces  = 28
+	tigerwebCousubs = 22
+)
+
+func NewPlaces(dir string) *Cache {
+	return newTIGERweb(dir, tigerwebURL, tigerwebPlaces, "1=1", "STATE,PLACE,NAME,AREALAND")
+}
+
+func NewTownships(dir string) *Cache {
+	return newTIGERweb(dir, tigerwebURL, tigerwebCousubs, "FUNCSTAT NOT IN ('S','N') AND COUSUB <> '00000'", "STATE,COUSUB,NAME,AREALAND")
+}
+
+func newTIGERweb(dir, base string, layer int, where, fields string) *Cache {
+	c := newCache(dir, ".geojson")
+	c.MaxZoom = TIGERwebMaxZoom
+	c.TTL = 90 * 24 * time.Hour
+	c.Upstream = func(_ context.Context, t Tile) (string, error) {
+		w, s, e, n := t.Bounds()
+		q := url.Values{
+			"where":              {where},
+			"geometry":           {fmt.Sprintf("%.6f,%.6f,%.6f,%.6f", w, s, e, n)},
+			"geometryType":       {"esriGeometryEnvelope"},
+			"inSR":               {"4326"},
+			"outSR":              {"4326"},
+			"spatialRel":         {"esriSpatialRelIntersects"},
+			"outFields":          {fields},
+			"maxAllowableOffset": {strconv.FormatFloat(360/math.Exp2(float64(t.Z))/1024, 'g', 4, 64)},
+			"geometryPrecision":  {"5"},
+			"f":                  {"geojson"},
+		}
+		return fmt.Sprintf("%s/%d/query?%s", base, layer, q.Encode()), nil
+	}
+	c.Check = func(res *http.Response) error {
+		return contentType(res, "application/geo+json")
+	}
+	c.Valid = func(body []byte) error {
+		var doc struct {
+			Type  string `json:"type"`
+			Error *struct {
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		if err := json.Unmarshal(body, &doc); err != nil {
+			return err
+		}
+		if doc.Error != nil {
+			return fmt.Errorf("arcgis: %s", doc.Error.Message)
+		}
+		if doc.Type != "FeatureCollection" {
+			return fmt.Errorf("geojson type %q", doc.Type)
+		}
+		return nil
+	}
+	return c
+}
+
+func (t Tile) Bounds() (west, south, east, north float64) {
+	n := math.Exp2(float64(t.Z))
+	lng := func(x int) float64 { return float64(x)/n*360 - 180 }
+	lat := func(y int) float64 { return math.Atan(math.Sinh(math.Pi*(1-2*float64(y)/n))) * 180 / math.Pi }
+	return lng(t.X), lat(t.Y + 1), lng(t.X + 1), lat(t.Y)
 }
 
 func vectorCheck(res *http.Response) error {
@@ -328,6 +425,11 @@ func (c *Cache) fetch(ctx context.Context, t Tile) ([]byte, error) {
 	}
 	if len(b) > maxTileBytes {
 		return nil, fmt.Errorf("%w: tile larger than %d bytes", ErrUpstream, maxTileBytes)
+	}
+	if c.Valid != nil {
+		if err := c.Valid(b); err != nil {
+			return nil, fmt.Errorf("%w: %s", ErrUpstream, err)
+		}
 	}
 	return b, nil
 }
