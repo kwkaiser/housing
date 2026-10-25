@@ -1,8 +1,9 @@
-import { Popup, type GeoJSONSource, type Map, type MapLayerMouseEvent } from 'maplibre-gl';
+import { Popup, type GeoJSONSource, type Map, type MapMouseEvent } from 'maplibre-gl';
 import type { MapConfig, Schemas } from '#lib/api/client.ts';
 import type { OverlayName } from './style';
 
-type Feature = { id: string; label: string; detail?: string; color?: string; headway?: number; lines: [number, number][][] };
+type Point = [number, number];
+type Feature = { id: string; label: string; detail?: string; color?: string; headway?: number; area?: number; lines?: Point[][]; polygons?: Point[][][] };
 
 const maxTiles = 64;
 
@@ -76,22 +77,27 @@ class Overlay {
 	}
 
 	render() {
-		const byId = new globalThis.Map<string, Feature & { all: [number, number][][] }>();
+		const byId = new globalThis.Map<string, Feature & { all: Point[][] }>();
 		for (const t of this.tiles.values()) {
 			for (const f of t.features) {
 				const prev = byId.get(f.id);
-				if (prev) prev.all.push(...f.lines);
-				else byId.set(f.id, { ...f, all: [...f.lines] });
+				if (!prev) byId.set(f.id, { ...f, all: [...(f.lines ?? [])] });
+				else if (f.lines) prev.all.push(...f.lines);
 			}
 		}
+		const flip = (l: Point[]) => l.map(([lat, lng]) => [lng, lat]);
 		const source = this.map.getSource<GeoJSONSource>(`ov-${this.name}`);
 		source?.setData({
 			type: 'FeatureCollection',
-			features: [...byId.values()].map((f) => ({
-				type: 'Feature',
-				properties: { id: f.id, label: f.label, detail: f.detail ?? '', color: f.color ?? null, headway: f.headway ?? 0 },
-				geometry: { type: 'MultiLineString', coordinates: f.all.map((l) => l.map(([lat, lng]) => [lng, lat])) }
-			}))
+			features: [...byId.values()]
+				.sort((a, b) => (b.area ?? 0) - (a.area ?? 0))
+				.map((f) => ({
+					type: 'Feature',
+					properties: { id: f.id, label: f.label, detail: f.detail ?? '', color: f.color ?? null, headway: f.headway ?? 0 },
+					geometry: f.polygons
+						? { type: 'MultiPolygon', coordinates: f.polygons.map((p) => p.map(flip)) }
+						: { type: 'MultiLineString', coordinates: f.all.map(flip) }
+				}))
 		});
 	}
 }
@@ -126,20 +132,20 @@ export function overlays(map: Map, config: MapConfig) {
 		hovered = null;
 		tip.remove();
 	};
-	for (const name of all.keys()) {
-		const layer = `ov-${name}`;
-		map.on('mousemove', layer, (e: MapLayerMouseEvent) => {
-			const f = e.features?.[0];
-			if (!f || f.id === undefined) return;
-			if (hovered?.id !== f.id) {
-				unhover();
-				hovered = { source: layer, id: f.id };
-				map.setFeatureState(hovered, { hover: true });
-			}
-			tip.setLngLat(e.lngLat).setDOMContent(routeLabel(f.properties)).addTo(map);
-		});
-		map.on('mouseleave', layer, unhover);
-	}
+	const sources = new globalThis.Map<string, string>();
+	for (const name of all.keys()) sources.set(name === 'towns' ? 'ov-towns-fill' : `ov-${name}`, `ov-${name}`);
+	map.on('mousemove', (e: MapMouseEvent) => {
+		const f = map.queryRenderedFeatures(e.point)[0];
+		const source = f && sources.get(f.layer.id);
+		if (!source || f.id === undefined) return unhover();
+		if (hovered?.source !== source || hovered.id !== f.id) {
+			unhover();
+			hovered = { source, id: f.id };
+			map.setFeatureState(hovered, { hover: true });
+		}
+		tip.setLngLat(e.lngLat).setDOMContent(routeLabel(f.properties)).addTo(map);
+	});
+	map.on('mouseout', unhover);
 
 	return {
 		set(name: OverlayName, on: boolean) {

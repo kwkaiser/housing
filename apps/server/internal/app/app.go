@@ -41,6 +41,8 @@ type App struct {
 	log      *slog.Logger
 	positron *tiles.Cache
 	terrain  *tiles.Cache
+	noise    *tiles.Cache
+	cyclosm  *tiles.Cache
 	overlays []overlay
 	handler  http.Handler
 
@@ -55,7 +57,9 @@ func New(svc *service.Service, q Jobs, log *slog.Logger) (*App, error) {
 	tileDir := filepath.Join(svc.DataDir(), "tiles")
 	a.positron = tiles.NewPositron(filepath.Join(tileDir, "positron"), svc.CartoAPIKey())
 	a.terrain = tiles.NewTerrain(filepath.Join(tileDir, "terrain"))
-	a.overlays = newOverlays(tiles.NewTransitland(filepath.Join(tileDir, "transitland"), svc.TransitlandKey()), tiles.NewOpenFreeMap(filepath.Join(tileDir, "openfreemap")))
+	a.noise = tiles.NewNoise(filepath.Join(tileDir, "noise"))
+	a.cyclosm = tiles.NewCyclOSM(filepath.Join(tileDir, "cyclosm"))
+	a.overlays = newOverlays(tiles.NewTransitland(filepath.Join(tileDir, "transitland"), svc.TransitlandKey()), tiles.NewOpenFreeMap(filepath.Join(tileDir, "openfreemap")), tiles.NewPlaces(filepath.Join(tileDir, "tigerweb", "places")), tiles.NewTownships(filepath.Join(tileDir, "tigerweb", "townships")))
 	web := a.routes()
 	api := a.etags(a.apiHandler())
 	a.handler = telemetry.Server(a.logRequests(a.recoverPanics(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

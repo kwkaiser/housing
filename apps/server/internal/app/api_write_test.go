@@ -377,7 +377,7 @@ func TestAPIMapPins(t *testing.T) {
 		t.Errorf("config = %+v", c)
 	}
 	for _, o := range c.Overlays {
-		if !strings.HasSuffix(o.URL, "/{y}.json") || !strings.HasSuffix(o.VectorURL, "/{y}.pbf") {
+		if !strings.HasSuffix(o.URL, "/{y}.json") || o.VectorURL != "" && !strings.HasSuffix(o.VectorURL, "/{y}.pbf") {
 			t.Errorf("overlay = %+v", o)
 		}
 	}

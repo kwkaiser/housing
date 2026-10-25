@@ -84,3 +84,52 @@ func TestAPITerrainTiles(t *testing.T) {
 		}
 	}
 }
+
+func TestAPINoiseTiles(t *testing.T) {
+	a, h, key := apiApp(t)
+	var hits int
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		if r.URL.Path == "/empty" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "image/png")
+		w.Write([]byte("png"))
+	}))
+	defer upstream.Close()
+	a.noise = tiles.NewNoise(t.TempDir())
+	a.noise.Upstream = func(_ context.Context, tl tiles.Tile) (string, error) {
+		if tl.X == 0 {
+			return upstream.URL + "/empty", nil
+		}
+		return upstream.URL + "/tile", nil
+	}
+
+	c := apiGet[APIMapConfig](t, h, key, "/api/v1/map/config")
+	if c.CyclOSM == nil || c.CyclOSM.URL != "/api/v1/tiles/cyclosm/{z}/{x}/{y}.png" || c.CyclOSM.MaxZoom != tiles.MaxZoom {
+		t.Errorf("cyclosm config = %+v", c.CyclOSM)
+	}
+	if c.Noise == nil || c.Noise.URL != "/api/v1/tiles/noise/{z}/{x}/{y}.png" || c.Noise.MaxZoom != tiles.NoiseMaxZoom {
+		t.Errorf("noise config = %+v", c.Noise)
+	}
+
+	for range 2 {
+		res, body := apiDo(t, h, http.MethodGet, "/api/v1/tiles/noise/3/1/2.png", key)
+		if res.StatusCode != http.StatusOK || string(body) != "png" || res.Header.Get("Content-Type") != "image/png" {
+			t.Errorf("tile = %d %q %v", res.StatusCode, body, res.Header)
+		}
+		if res, _ := apiDo(t, h, http.MethodGet, "/api/v1/tiles/noise/3/0/2.png", key); res.StatusCode != http.StatusNotFound {
+			t.Errorf("tile without data = %d, want 404", res.StatusCode)
+		}
+	}
+	if hits != 2 {
+		t.Errorf("upstream hits = %d, want 2 after cached reads of a tile and a missing tile", hits)
+	}
+
+	for _, target := range []string{"/api/v1/tiles/noise/13/1/0.png", "/api/v1/tiles/noise/3/1/2@2x.png", "/api/v1/tiles/noise/3/1/2.webp"} {
+		if res, _ := apiDo(t, h, http.MethodGet, target, key); res.StatusCode != http.StatusNotFound {
+			t.Errorf("GET %s = %d, want 404", target, res.StatusCode)
+		}
+	}
+}

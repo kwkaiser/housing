@@ -22,6 +22,22 @@ func (a *App) positronPNG(ctx context.Context, z, x, file string) ([]byte, error
 	return b, nil
 }
 
+func (a *App) cachedPNG(ctx context.Context, layer string, c *tiles.Cache, z, x, file string) ([]byte, error) {
+	t, err := tiles.Parse(z, x, file, ".png")
+	if err != nil || t.Retina || t.Z > c.MaxZoom || !c.Enabled() {
+		return nil, errNoTile
+	}
+	b, err := c.Get(ctx, t)
+	if err != nil {
+		a.log.WarnContext(ctx, "tile", "layer", layer, "z", t.Z, "x", t.X, "y", t.Y, "err", err)
+		return nil, err
+	}
+	if len(b) == 0 {
+		return nil, errNoTile
+	}
+	return b, nil
+}
+
 func (a *App) terrainWebP(ctx context.Context, z, x, file string) ([]byte, error) {
 	t, err := tiles.Parse(z, x, file, ".webp")
 	if err != nil || t.Z > a.terrain.MaxZoom {

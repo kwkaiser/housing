@@ -326,7 +326,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get a transit or bike lane overlay tile */
+        /** Get a town boundary, transit or bike lane overlay tile */
         get: operations["getOverlayTile"];
         put?: never;
         post?: never;
@@ -389,6 +389,40 @@ export interface paths {
          * @description Replaces the profile's criteria and spends money on a model call. Follow the returned job for progress.
          */
         post: operations["redraftProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tiles/cyclosm/{z}/{x}/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a cached CyclOSM Lite bike infrastructure tile */
+        get: operations["getCyclOSMTile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tiles/noise/{z}/{x}/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a cached BTS transportation noise tile */
+        get: operations["getNoiseTile"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -808,6 +842,10 @@ export interface components {
             latest_day?: string;
         };
         APIMapConfig: {
+            /** @description A cached CyclOSM Lite layer of bike infrastructure */
+            cyclosm?: components["schemas"]["APITileLayer"];
+            /** @description A cached BTS road, rail and aviation noise layer for the contiguous US */
+            noise?: components["schemas"]["APITileLayer"];
             overlays: components["schemas"]["APIOverlay"][];
             /** @description A cached CARTO Positron base layer, when the server has a CARTO key */
             positron?: components["schemas"]["APITileLayer"];
@@ -892,11 +930,11 @@ export interface components {
             /** Format: int64 */
             min_zoom: number;
             /** @enum {string} */
-            name: "bike" | "rail" | "bus";
-            /** @description Template for tiles of simplified line features as JSON */
+            name: "towns" | "bike" | "rail" | "bus";
+            /** @description Template for tiles of simplified line or area features as JSON */
             url: string;
-            /** @description Template for the source's raw Mapbox vector tiles */
-            vector_url: string;
+            /** @description Template for the source's raw Mapbox vector tiles, when it has them */
+            vector_url?: string;
         };
         APIPinGrade: {
             calibrated: boolean;
@@ -1910,10 +1948,10 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                name: "bike" | "rail" | "bus";
+                name: "towns" | "bike" | "rail" | "bus";
                 z: string;
                 x: string;
-                /** @description {y}.json for simplified line features, or {y}.pbf for the raw vector tile */
+                /** @description {y}.json for simplified features, or {y}.pbf for the raw vector tile of a vector overlay */
                 file: string;
             };
             cookie?: never;
@@ -2092,6 +2130,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["APIJob"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    getCyclOSMTile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                z: string;
+                x: string;
+                /** @description {y}.png */
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    getNoiseTile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                z: string;
+                x: string;
+                /** @description {y}.png */
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
                 };
             };
             /** @description Error */
