@@ -9,6 +9,9 @@ includes:
   web:
     taskfile: ./apps/web/Taskfile.yml
     dir: ./apps/web
+  android:
+    taskfile: ./apps/android/Taskfile.yml
+    dir: ./apps/android
 
 vars:
   VERSION:
