@@ -59,9 +59,9 @@ func (a *App) newAPI() (*http.ServeMux, huma.API) {
 	cfg.OpenAPIPath = apiPrefix + "/openapi"
 	cfg.DocsPath = apiPrefix + "/docs"
 	cfg.SchemasPath = apiPrefix + "/schemas"
-	cfg.Info.Description = "Manage collections, profiles, favorites and API keys, read ranked listings and map pins, and queue and follow jobs."
+	cfg.Info.Description = "Manage collections, profiles, and favorites, read ranked listings and map pins, and queue and follow jobs."
 	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
-		apiAuthScheme: {Type: "http", Scheme: "bearer", Description: "An API key created on the API keys page or with `housing apikeys create`, or an access token from the server's OIDC provider."},
+		apiAuthScheme: {Type: "http", Scheme: "bearer", Description: "An access token from the server's OIDC provider."},
 		sessionScheme: {Type: "apiKey", In: "cookie", Name: "__Host-" + sessionCookie, Description: "The browser session set by signing in at /auth/login."},
 	}
 	cfg.Security = []map[string][]string{{apiAuthScheme: {}}, {sessionScheme: {}}}
@@ -140,24 +140,6 @@ func (a *App) newAPI() (*http.ServeMux, huma.API) {
 	huma.Get(api, apiV1+"/tiles/positron/{z}/{x}/{file}", a.apiPositronTile, op("getPositronTile", "Get a cached CARTO Positron base map tile", "map"))
 	huma.Get(api, apiV1+"/tiles/terrain/{z}/{x}/{file}", a.apiTerrainTile, op("getTerrainTile", "Get a cached Mapterhorn terrarium-encoded elevation tile", "map"))
 	huma.Get(api, apiV1+"/overlays/{name}/{z}/{x}/{file}", a.apiOverlayTile, op("getOverlayTile", "Get a transit or bike lane overlay tile", "map"))
-	huma.Get(api, apiV1+"/keys", a.apiKeys, op("listKeys", "List API keys", "keys"))
-	huma.Register(api, huma.Operation{
-		OperationID:   "createKey",
-		Method:        http.MethodPost,
-		Path:          apiV1 + "/keys",
-		Summary:       "Create an API key",
-		Description:   "The token is returned only in this response.",
-		Tags:          []string{"keys"},
-		DefaultStatus: http.StatusCreated,
-	}, a.apiCreateKey)
-	huma.Register(api, huma.Operation{
-		OperationID:   "deleteKey",
-		Method:        http.MethodDelete,
-		Path:          apiV1 + "/keys/{id}",
-		Summary:       "Delete an API key",
-		Tags:          []string{"keys"},
-		DefaultStatus: http.StatusNoContent,
-	}, a.apiDeleteKey)
 	mux.Handle(mcpPath, a.mcpHandler())
 	huma.Get(api, apiV1+"/media/{key...}", a.apiMedia, op("getMedia", "Get a stored image such as a listing collage", "media"))
 	paths := api.OpenAPI().Paths
@@ -181,7 +163,7 @@ func (a *App) apiAuth(api huma.API) func(huma.Context, func(huma.Context)) {
 		switch {
 		case errors.Is(err, errUnauthenticated):
 			ctx.SetHeader("WWW-Authenticate", `Bearer realm="housing"`)
-			huma.WriteErr(api, ctx, http.StatusUnauthorized, "sign in, or send an API key or access token")
+			huma.WriteErr(api, ctx, http.StatusUnauthorized, "sign in, or send an access token")
 		case errors.Is(err, errCrossSite):
 			huma.WriteErr(api, ctx, http.StatusForbidden, "cross-site request rejected")
 		case err != nil:
@@ -198,7 +180,7 @@ func (a *App) apiMe(ctx context.Context, _ *struct{}) (*struct{ Body APIUser }, 
 }
 
 func (a *App) apiError(ctx context.Context, err error) error {
-	if errors.Is(err, collection.ErrNotFound) || errors.Is(err, store.ErrListingNotFound) || errors.Is(err, store.ErrJobNotFound) || errors.Is(err, profile.ErrNotFound) || errors.Is(err, store.ErrAPIKeyNotFound) {
+	if errors.Is(err, collection.ErrNotFound) || errors.Is(err, store.ErrListingNotFound) || errors.Is(err, store.ErrJobNotFound) || errors.Is(err, profile.ErrNotFound) {
 		return huma.Error404NotFound(err.Error())
 	}
 	a.log.ErrorContext(ctx, "api", "err", err)

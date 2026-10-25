@@ -182,44 +182,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/keys": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List API keys */
-        get: operations["listKeys"];
-        put?: never;
-        /**
-         * Create an API key
-         * @description The token is returned only in this response.
-         */
-        post: operations["createKey"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/keys/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete an API key */
-        delete: operations["deleteKey"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/listings/{source}/{source_id}": {
         parameters: {
             query?: never;
@@ -579,10 +541,6 @@ export interface components {
             /** @description Listing sources to search */
             sources?: string[];
         };
-        APICreateKey: {
-            /** @description What the key is for, such as a device */
-            name: string;
-        };
         APICreateProfile: {
             /** @description Replace an existing profile with the same id */
             force?: boolean;
@@ -607,11 +565,6 @@ export interface components {
             notes?: string[];
             /** @description A listing URL to use as the profile's reference */
             url: string;
-        };
-        APICreatedKey: {
-            key: components["schemas"]["APIKey"];
-            /** @description The bearer token; it is shown only once */
-            token: string;
         };
         APICriterionResult: {
             /** @enum {string} */
@@ -723,17 +676,6 @@ export interface components {
             record?: unknown;
             /** Format: int64 */
             seq: number;
-        };
-        APIKey: {
-            /** Format: date-time */
-            created_at: string;
-            /** @description The token's first characters */
-            hint: string;
-            /** Format: int64 */
-            id: number;
-            /** Format: date-time */
-            last_used_at?: string;
-            name: string;
         };
         APIListing: {
             address: components["schemas"]["Address"];
@@ -1061,7 +1003,7 @@ export interface components {
              * @description How the request was authenticated: none when the server runs with --no-auth
              * @enum {string}
              */
-            auth: "none" | "session" | "key" | "token";
+            auth: "none" | "session" | "token";
             email?: string;
             name: string;
         };
@@ -1637,98 +1579,6 @@ export interface operations {
                         retry?: number;
                     })[];
                 };
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ErrorModel"];
-                };
-            };
-        };
-    };
-    listKeys: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIKey"][];
-                };
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ErrorModel"];
-                };
-            };
-        };
-    };
-    createKey: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["APICreateKey"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    "Cache-Control"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APICreatedKey"];
-                };
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ErrorModel"];
-                };
-            };
-        };
-    };
-    deleteKey: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Error */
             default: {

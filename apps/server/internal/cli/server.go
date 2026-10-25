@@ -32,8 +32,8 @@ func newServerCmd(dataDir *string) *cobra.Command {
 		Long: "Run the long-lived server on --addr until interrupted. It serves a JSON API under /api/v1, with its\n" +
 			"OpenAPI spec at /api/openapi.json. The UI is the separate housing-web app.\n\n" +
 			"Browsers sign in through the OIDC provider at /auth/login, configured with " + config.EnvOIDCIssuer + ",\n" +
-			config.EnvOIDCClientID + ", " + config.EnvOIDCClientSecret + " and " + config.EnvPublicURL + ". API clients send\n" +
-			"either a key from `housing apikeys create` or an access token from that provider as a bearer token.\n" +
+			config.EnvOIDCClientID + ", " + config.EnvOIDCClientSecret + " and " + config.EnvPublicURL + ".\n" +
+			"API clients send an access token from that provider as a bearer token.\n" +
 			"--no-auth serves everything without signing in, for local development.\n\n" +
 			"The server also runs queued jobs one at a time and enqueues a run of each collection with a\n" +
 			"--schedule once a day after its scheduled time. It holds the data directory's lock while up, so\n" +

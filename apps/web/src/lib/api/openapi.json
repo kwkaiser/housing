@@ -265,19 +265,6 @@
         ],
         "type": "object"
       },
-      "APICreateKey": {
-        "additionalProperties": false,
-        "properties": {
-          "name": {
-            "description": "What the key is for, such as a device",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name"
-        ],
-        "type": "object"
-      },
       "APICreateProfile": {
         "additionalProperties": false,
         "properties": {
@@ -329,23 +316,6 @@
         "required": [
           "url",
           "id"
-        ],
-        "type": "object"
-      },
-      "APICreatedKey": {
-        "additionalProperties": false,
-        "properties": {
-          "key": {
-            "$ref": "#/components/schemas/APIKey"
-          },
-          "token": {
-            "description": "The bearer token; it is shown only once",
-            "type": "string"
-          }
-        },
-        "required": [
-          "key",
-          "token"
         ],
         "type": "object"
       },
@@ -699,37 +669,6 @@
           "at",
           "level",
           "message"
-        ],
-        "type": "object"
-      },
-      "APIKey": {
-        "additionalProperties": false,
-        "properties": {
-          "created_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "hint": {
-            "description": "The token's first characters",
-            "type": "string"
-          },
-          "id": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "last_used_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "hint",
-          "created_at"
         ],
         "type": "object"
       },
@@ -1687,7 +1626,6 @@
             "enum": [
               "none",
               "session",
-              "key",
               "token"
             ],
             "type": "string"
@@ -2118,7 +2056,7 @@
     },
     "securitySchemes": {
       "bearer": {
-        "description": "An API key created on the API keys page or with `housing apikeys create`, or an access token from the server's OIDC provider.",
+        "description": "An access token from the server's OIDC provider.",
         "scheme": "bearer",
         "type": "http"
       },
@@ -2131,7 +2069,7 @@
     }
   },
   "info": {
-    "description": "Manage collections, profiles, favorites and API keys, read ranked listings and map pins, and queue and follow jobs.",
+    "description": "Manage collections, profiles, and favorites, read ranked listings and map pins, and queue and follow jobs.",
     "title": "housing",
     "version": "1.1.0"
   },
@@ -2894,122 +2832,6 @@
         "summary": "Stream a job's progress",
         "tags": [
           "jobs"
-        ]
-      }
-    },
-    "/api/v1/keys": {
-      "get": {
-        "operationId": "listKeys",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/APIKey"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "summary": "List API keys",
-        "tags": [
-          "keys"
-        ]
-      },
-      "post": {
-        "description": "The token is returned only in this response.",
-        "operationId": "createKey",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/APICreateKey"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APICreatedKey"
-                }
-              }
-            },
-            "description": "Created",
-            "headers": {
-              "Cache-Control": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "summary": "Create an API key",
-        "tags": [
-          "keys"
-        ]
-      }
-    },
-    "/api/v1/keys/{id}": {
-      "delete": {
-        "operationId": "deleteKey",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "format": "int64",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "summary": "Delete an API key",
-        "tags": [
-          "keys"
         ]
       }
     },

@@ -4,7 +4,7 @@
       "type": "http",
       "url": "${HOUSING_URL:-http://127.0.0.1:8080/api/mcp}",
       "headers": {
-        "Authorization": "Bearer ${HOUSING_API_KEY}"
+        "Authorization": "Bearer ${HOUSING_TOKEN}"
       }
     }
   }

@@ -96,7 +96,7 @@ func (a *App) requireAuth(next http.Handler) http.Handler {
 		switch {
 		case errors.Is(err, errUnauthenticated):
 			w.Header().Set("WWW-Authenticate", `Bearer realm="housing"`)
-			http.Error(w, "an API key or access token is required", http.StatusUnauthorized)
+			http.Error(w, "an access token is required", http.StatusUnauthorized)
 		case errors.Is(err, errCrossSite):
 			http.Error(w, "cross-site request rejected", http.StatusForbidden)
 		case err != nil:

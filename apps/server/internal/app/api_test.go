@@ -16,12 +16,8 @@ import (
 
 func apiApp(t *testing.T) (*App, http.Handler, string) {
 	t.Helper()
-	a := seededApp(t)
-	_, key, err := a.svc.CreateAPIKey(t.Context(), "test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	return a, a.Handler(), key
+	a, idp := oidcApp(t)
+	return a, a.Handler(), idp.token(nil)
 }
 
 func apiDo(t *testing.T, h http.Handler, method, target, key string) (*http.Response, []byte) {
@@ -52,7 +48,7 @@ func apiGet[T any](t *testing.T, h http.Handler, key, target string) T {
 
 func TestAPIAuth(t *testing.T) {
 	_, h, key := apiApp(t)
-	for _, bad := range []string{"", "wrong", "hk_wrong", key + "x"} {
+	for _, bad := range []string{"", "wrong", key + "x"} {
 		res, b := apiDo(t, h, http.MethodGet, "/api/v1/collections", bad)
 		if res.StatusCode != http.StatusUnauthorized || res.Header.Get("WWW-Authenticate") == "" || !strings.HasPrefix(res.Header.Get("Content-Type"), "application/problem+json") {
 			t.Errorf("key %q: %d %v\n%s", bad, res.StatusCode, res.Header, b)
@@ -66,23 +62,6 @@ func TestAPIAuth(t *testing.T) {
 	}
 }
 
-func TestAPIKeyLifecycle(t *testing.T) {
-	a, h, key := apiApp(t)
-	if res, _ := apiDo(t, h, http.MethodGet, "/api/v1/collections", key); res.StatusCode != http.StatusOK {
-		t.Fatalf("valid key = %d", res.StatusCode)
-	}
-	ks, err := a.svc.APIKeys(t.Context())
-	if err != nil || len(ks) != 1 || ks[0].LastUsedAt.IsZero() || ks[0].Hint != key[:9] {
-		t.Fatalf("keys after use = %+v %v", ks, err)
-	}
-	if err := a.svc.DeleteAPIKey(t.Context(), ks[0].ID); err != nil {
-		t.Fatal(err)
-	}
-	if res, _ := apiDo(t, h, http.MethodGet, "/api/v1/collections", key); res.StatusCode != http.StatusUnauthorized {
-		t.Errorf("deleted key = %d, want 401", res.StatusCode)
-	}
-}
-
 func TestAPISpec(t *testing.T) {
 	h := seededApp(t).Handler()
 	for _, target := range []string{"/api/openapi.json", "/api/openapi-3.0.json", "/api/openapi.yaml"} {
@@ -93,7 +72,7 @@ func TestAPISpec(t *testing.T) {
 		if strings.Contains(string(b), "...}") {
 			t.Errorf("GET %s: wildcard pattern leaked into spec", target)
 		}
-		for _, s := range []string{"/api/v1/collections/{id}/listings", "/api/v1/media/{key}", "listCollectionListings", "bearer", "createCollection", "updateProfile", "streamJob", "text/event-stream", "listMapPins", "addFavorite", "createKey", "getMeta"} {
+		for _, s := range []string{"/api/v1/collections/{id}/listings", "/api/v1/media/{key}", "listCollectionListings", "bearer", "createCollection", "updateProfile", "streamJob", "text/event-stream", "listMapPins", "addFavorite", "getMeta"} {
 			if !strings.Contains(string(b), s) {
 				t.Errorf("GET %s: missing %q", target, s)
 			}

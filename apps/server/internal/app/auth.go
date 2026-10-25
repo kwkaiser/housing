@@ -32,7 +32,7 @@ var (
 )
 
 type APIUser struct {
-	Auth  string `json:"auth" enum:"none,session,key,token" doc:"How the request was authenticated: none when the server runs with --no-auth"`
+	Auth  string `json:"auth" enum:"none,session,token" doc:"How the request was authenticated: none when the server runs with --no-auth"`
 	Name  string `json:"name"`
 	Email string `json:"email,omitempty"`
 }
@@ -69,16 +69,6 @@ func (a *App) authenticate(r *http.Request) (APIUser, error) {
 }
 
 func (a *App) authenticateBearer(ctx context.Context, token string) (APIUser, error) {
-	if strings.HasPrefix(token, service.APIKeyPrefix) {
-		k, ok, err := a.svc.AuthenticateAPIKey(ctx, token)
-		if err != nil {
-			return APIUser{}, err
-		}
-		if !ok {
-			return APIUser{}, errUnauthenticated
-		}
-		return APIUser{Auth: "key", Name: k.Name}, nil
-	}
 	if a.OIDC == nil {
 		return APIUser{}, errUnauthenticated
 	}
