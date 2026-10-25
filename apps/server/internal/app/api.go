@@ -806,10 +806,19 @@ type mediaOutput struct {
 	Body         []byte
 }
 
+const mediaCacheControl = "private, max-age=31536000, immutable"
+
 func (a *App) apiMedia(ctx context.Context, in *mediaInput) (*mediaOutput, error) {
 	p, err := a.svc.MediaPath(in.Key)
 	if err != nil {
 		return nil, huma.Error404NotFound("no such media")
+	}
+	if in.Size > 0 {
+		if sp, err := a.svc.MediaPath(media.SizedKey(in.Key, in.Size)); err == nil {
+			if b, err := os.ReadFile(sp); err == nil {
+				return &mediaOutput{ContentType: "image/jpeg", CacheControl: mediaCacheControl, Body: b}, nil
+			}
+		}
 	}
 	ctype := mime.TypeByExtension(path.Ext(in.Key))
 	b, err := os.ReadFile(p)
@@ -832,14 +841,11 @@ func (a *App) apiMedia(ctx context.Context, in *mediaInput) (*mediaOutput, error
 			b, ctype = small, "image/jpeg"
 		}
 	}
-	return &mediaOutput{ContentType: ctype, CacheControl: "private, max-age=31536000, immutable", Body: b}, nil
+	return &mediaOutput{ContentType: ctype, CacheControl: mediaCacheControl, Body: b}, nil
 }
 
 func (a *App) resized(p string, original []byte, size int) ([]byte, error) {
-	cached := p + ".s" + strconv.Itoa(size) + ".jpg"
-	if b, err := os.ReadFile(cached); err == nil {
-		return b, nil
-	}
+	cached := media.SizedKey(p, size)
 	b, err := media.Shrink(original, size)
 	if err != nil || bytes.Equal(b, original) {
 		return nil, err

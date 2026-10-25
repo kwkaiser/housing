@@ -130,6 +130,34 @@ func TestProcess(t *testing.T) {
 	}
 }
 
+func TestFetchPhotosBackfillsSizes(t *testing.T) {
+	var big bytes.Buffer
+	if err := jpeg.Encode(&big, solid(1500, 1000, color.RGBA{B: 200, A: 255}), nil); err != nil {
+		t.Fatal(err)
+	}
+	p, store := newTestProcessor(t)
+	u := "http://photos.invalid/big.jpg"
+	key := PhotoKey(u)
+	if err := store.Put(t.Context(), key, bytes.NewReader(big.Bytes())); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := p.FetchPhotos(t.Context(), []listing.Listing{{Source: listing.SourceZillow, SourceID: "a", Photos: []string{u}}}); err != nil {
+		t.Fatal(err)
+	}
+	for _, size := range Sizes {
+		f, err := os.Open(store.Path(SizedKey(key, size)))
+		if err != nil {
+			t.Fatalf("size %d should be stored for an already fetched photo: %v", size, err)
+		}
+		cfg, err := jpeg.DecodeConfig(f)
+		f.Close()
+		if err != nil || max(cfg.Width, cfg.Height) != size {
+			t.Errorf("size %d stored as %dx%d %v", size, cfg.Width, cfg.Height, err)
+		}
+	}
+}
+
 func TestCollageIsOffline(t *testing.T) {
 	srv := newServer(t)
 	p, store := newTestProcessor(t)

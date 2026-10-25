@@ -1,8 +1,29 @@
+<script lang="ts" module>
+	import { api, type MapPin } from '#lib/api/client.ts';
+
+	const galleries = new Map<string, Promise<string[]>>();
+
+	export function gallery(pin: MapPin): Promise<string[]> {
+		const key = `${pin.source}/${pin.source_id}`;
+		let p = galleries.get(key);
+		if (!p) {
+			p = api()
+				.GET('/api/v1/listings/{source}/{source_id}/gallery', { params: { path: { source: pin.source, source_id: pin.source_id } } })
+				.then(({ data }) => data?.gallery ?? [])
+				.catch(() => {
+					galleries.delete(key);
+					return [];
+				});
+			galleries.set(key, p);
+		}
+		return p;
+	}
+</script>
+
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
-	import { api, type MapPin } from '#lib/api/client.ts';
 	import { beds, match, money, sized } from '#lib/format.ts';
 
 	let { pin, lead }: { pin: MapPin; lead: string } = $props();
@@ -18,12 +39,9 @@
 
 	onMount(() => {
 		let live = true;
-		api()
-			.GET('/api/v1/listings/{source}/{source_id}/gallery', { params: { path: { source: pin.source, source_id: pin.source_id } } })
-			.then(({ data }) => {
-				if (live && data?.gallery.length) srcs = data.gallery;
-			})
-			.catch(() => undefined);
+		gallery(pin).then((g) => {
+			if (live && g.length) srcs = g;
+		});
 		return () => {
 			live = false;
 		};
@@ -44,7 +62,7 @@
 	<div class="frame">
 		<div class="track" bind:this={track} {onscroll}>
 			{#each srcs as src, i (src)}
-				<a class="slide" {href} tabindex={i === index ? 0 : -1}><img src={sized(src, 640)} alt="" loading={i === 0 ? 'eager' : 'lazy'} /></a>
+				<a class="slide" {href} tabindex={i === index ? 0 : -1}><img src={sized(src, 640)} alt="" loading={i <= index + 2 ? 'eager' : 'lazy'} /></a>
 			{/each}
 		</div>
 		{#if srcs.length > 1}

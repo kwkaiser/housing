@@ -9,7 +9,7 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	const q = url.searchParams;
 	let from = q.get('from') ?? '';
 	const to = q.get('to') ?? '';
-	if (!q.has('from') && !q.has('to')) from = shiftDay(new Date(), { months: -1 });
+	if (!q.has('from') && !q.has('to')) from = shiftDay(new Date(), { days: -1 });
 	const key = `${from}|${to}`;
 	const request = need(api(fetch).GET('/api/v1/map/pins', { params: { query: { from: from || undefined, to: to || undefined } } })).then((pins) => {
 		cache.set(key, pins);
