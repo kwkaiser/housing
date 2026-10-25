@@ -32,6 +32,55 @@ tasks:
     cmds:
       - ./gradlew assembleDebug
 
+  release:
+    desc: Build a release APK for APK_VERSION (x.y.z) signed with ANDROID_KEYSTORE into build/housing-APK_VERSION.apk.
+    deps: [sync]
+    vars:
+      APK_VERSION: '{{.APK_VERSION | default "0.0.0"}}'
+      APK_VERSION_CODE:
+        sh: echo "{{.APK_VERSION}}" | awk -F. '{ printf "%d", $1 * 10000 + $2 * 100 + $3 }'
+    preconditions:
+      - sh: echo "{{.APK_VERSION}}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'
+        msg: 'APK_VERSION must look like 1.2.3, got "{{.APK_VERSION}}"'
+      - sh: test -f "${ANDROID_KEYSTORE:-}"
+        msg: ANDROID_KEYSTORE must point at the release keystore
+      - sh: test -n "${ANDROID_KEYSTORE_PASSWORD:-}"
+        msg: ANDROID_KEYSTORE_PASSWORD is not set
+    cmds:
+      - sed -i.bak -e 's/versionCode .*/versionCode {{.APK_VERSION_CODE}}/' -e 's/versionName .*/versionName "{{.APK_VERSION}}"/' android/app/build.gradle
+      - rm android/app/build.gradle.bak
+      - cd android && ./gradlew assembleRelease
+      - mkdir -p build
+      - apksigner sign --v4-signing-enabled false --ks "$ANDROID_KEYSTORE" --ks-pass env:ANDROID_KEYSTORE_PASSWORD --ks-key-alias housing --out build/housing-{{.APK_VERSION}}.apk android/app/build/outputs/apk/release/app-release-unsigned.apk
+      - apksigner verify --print-certs build/housing-{{.APK_VERSION}}.apk
+
+  publish:
+    desc: Attach build/housing-APK_VERSION.apk to the Gitea release for tag vAPK_VERSION, creating the release if needed. Needs GITEA_URL, GITEA_REPO and GITEA_TOKEN.
+    vars:
+      APK_VERSION: '{{.APK_VERSION | default "0.0.0"}}'
+      APK: build/housing-{{.APK_VERSION}}.apk
+    preconditions:
+      - sh: test -f {{.APK}}
+        msg: '{{.APK}} not found - run `task android:release APK_VERSION={{.APK_VERSION}}` first'
+    cmds:
+      - |
+        set -euo pipefail
+        : "${GITEA_URL:?GITEA_URL is not set}"
+        : "${GITEA_REPO:?GITEA_REPO is not set}"
+        : "${GITEA_TOKEN:?GITEA_TOKEN is not set}"
+        api="$GITEA_URL/api/v1/repos/$GITEA_REPO"
+        auth="Authorization: token $GITEA_TOKEN"
+        tag="v{{.APK_VERSION}}"
+        id=$(curl -sS -H "$auth" "$api/releases/tags/$tag" | jq -r '.id // empty')
+        if [ -z "$id" ]; then
+          id=$(jq -n --arg tag "$tag" --arg target "${GITEA_TARGET:-}" '{tag_name: $tag, name: $tag, target_commitish: $target}' |
+            curl -fsS -X POST -H "$auth" -H 'Content-Type: application/json' -d @- "$api/releases" | jq -r .id)
+        fi
+        name=$(basename {{.APK}})
+        old=$(curl -fsS -H "$auth" "$api/releases/$id/assets" | jq -r --arg name "$name" '.[] | select(.name == $name) | .id')
+        for a in $old; do curl -fsS -X DELETE -H "$auth" "$api/releases/$id/assets/$a"; done
+        curl -fsS -X POST -H "$auth" -F "attachment=@{{.APK}}" "$api/releases/$id/assets?name=$name" | jq -r .browser_download_url
+
   install-device:
     desc: Build and install the debug APK on the connected device.
     deps: [sync]

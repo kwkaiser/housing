@@ -18,3 +18,20 @@ task android:clean            # delete the generated project
 `task android:build` generates the project on first use. To install over USB, turn on USB debugging in the phone's developer options and accept the prompt when `adb devices` first sees it. To debug the WebView, open `chrome://inspect` in desktop Chrome while the app is running.
 
 Bumping `@capacitor/android` can change the SDK versions the generated project expects. Keep `platformVersions` and `buildToolsVersions` in `flake.nix` in step with `android/variables.gradle` and the Android Gradle plugin.
+
+## Releases
+
+Publishing a Gitea release with a `v<version>` tag builds `housing-<version>.apk`, signs it with the release key and attaches it to that release. Install it from the release page, or point [Obtainium](https://github.com/ImranR98/Obtainium) at the repo to get updates.
+
+The release job needs two repository secrets:
+
+- `ANDROID_KEYSTORE_BASE64`: the PKCS12 release keystore, base64 encoded. The key alias is `housing`.
+- `ANDROID_KEYSTORE_PASSWORD`: its password, which is also the key's password.
+
+Android only installs an update signed with the same key as the installed app, so keep the keystore. To build a signed APK locally:
+
+```sh
+ANDROID_KEYSTORE=path/to/housing-release.p12 ANDROID_KEYSTORE_PASSWORD=... task android:release APK_VERSION=1.2.3
+```
+
+The version code is derived from the version as `major * 10000 + minor * 100 + patch`.

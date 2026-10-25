@@ -35,9 +35,11 @@
           };
         };
 
+        androidBuildTools = "35.0.0";
+
         androidSdk = (androidPkgs.androidenv.composeAndroidPackages {
           platformVersions = [ "36" ];
-          buildToolsVersions = [ "35.0.0" ];
+          buildToolsVersions = [ androidBuildTools ];
           includeEmulator = false;
           includeNDK = false;
           includeSources = false;
@@ -93,10 +95,15 @@
           packages = [
             androidSdk
             pkgs.jdk21
+            pkgs.curl
+            pkgs.jq
           ];
           ANDROID_HOME = "${androidSdk}/libexec/android-sdk";
           ANDROID_SDK_ROOT = "${androidSdk}/libexec/android-sdk";
           JAVA_HOME = pkgs.jdk21.home;
+          shellHook = ''
+            export PATH="$ANDROID_HOME/build-tools/${androidBuildTools}:$PATH"
+          '';
         };
       });
 }
