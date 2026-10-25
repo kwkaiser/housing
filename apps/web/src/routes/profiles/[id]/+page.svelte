@@ -3,6 +3,7 @@
 	import Back from '#lib/components/Back.svelte';
 	import { api, call, type Criterion } from '#lib/api/client.ts';
 	import Collages from '#lib/components/Collages.svelte';
+	import Gallery from '#lib/components/Gallery.svelte';
 	import Errors from '#lib/components/Errors.svelte';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import Status from '#lib/components/Status.svelte';
@@ -107,7 +108,9 @@
 				· <a class="muted" href={r.url} target="_blank" rel="noopener">{r.source}</a>
 				{#each Object.entries(r.scores) as [m, s] (m)} · <span class="muted">{shortModel(m)} {s.toFixed(1)}</span>{/each}
 			</p>
-			{#if r.collages?.length}
+			{#if r.gallery.length}
+				<Gallery srcs={r.gallery} alt={r.address || r.source_id} />
+			{:else if r.collages?.length}
 				<Collages srcs={r.collages} size={640} alt="Reference collage" />
 			{/if}
 		</div>

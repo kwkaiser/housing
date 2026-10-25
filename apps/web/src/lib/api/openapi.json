@@ -780,6 +780,13 @@
           "favorite": {
             "type": "boolean"
           },
+          "gallery": {
+            "description": "API paths of the listing's stored photos in listing order, which take a size like other media",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "grades": {
             "items": {
               "$ref": "#/components/schemas/APIListingGrade"
@@ -805,7 +812,8 @@
           "also_listed",
           "history",
           "grades",
-          "favorite"
+          "favorite",
+          "gallery"
         ],
         "type": "object"
       },
@@ -1469,6 +1477,13 @@
             },
             "type": "array"
           },
+          "gallery": {
+            "description": "API paths of the reference's stored photos in listing order",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "scores": {
             "additionalProperties": {
               "format": "double",
@@ -1493,6 +1508,7 @@
           "url",
           "address",
           "collages",
+          "gallery",
           "scores"
         ],
         "type": "object"
