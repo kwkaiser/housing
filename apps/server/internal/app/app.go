@@ -79,6 +79,7 @@ func (a *App) routes() http.Handler {
 	mux.HandleFunc("GET /version", a.version)
 	mux.HandleFunc("GET /auth/login", a.login)
 	mux.HandleFunc("GET "+auth.CallbackPath, a.callback)
+	mux.HandleFunc("POST /auth/handoff", a.handoff)
 	mux.HandleFunc("POST /auth/logout", a.logout)
 	mux.HandleFunc("/", a.notFound)
 	return mux

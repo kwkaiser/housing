@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import createClient, { type Middleware } from 'openapi-fetch';
+import { signIn } from '#lib/native.ts';
 import type { components, paths } from './schema';
 
 export type Schemas = components['schemas'];
@@ -23,15 +24,15 @@ export type User = Schemas['APIUser'];
 
 type Fetch = typeof fetch;
 
-const signIn: Middleware = {
+const signInOn401: Middleware = {
 	onResponse({ response }) {
-		if (response.status === 401) location.assign(`/auth/login?rd=${encodeURIComponent(location.pathname + location.search)}`);
+		if (response.status === 401) signIn(location.pathname + location.search);
 	}
 };
 
 export function api(f: Fetch = fetch) {
 	const client = createClient<paths>({ baseUrl: '', fetch: f });
-	client.use(signIn);
+	client.use(signInOn401);
 	return client;
 }
 

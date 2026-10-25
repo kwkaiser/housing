@@ -54,3 +54,44 @@ func (s *Store) DeleteSession(ctx context.Context, hash string) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM sessions WHERE hash = ?`, hash)
 	return err
 }
+
+var ErrHandoffNotFound = errors.New("session handoff not found")
+
+type Handoff struct {
+	Challenge string
+	Session   Session
+	ExpiresAt time.Time
+}
+
+func (s *Store) CreateHandoff(ctx context.Context, hash string, h Handoff, now time.Time) error {
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM session_handoffs WHERE expires_at <= ?`, timestamp(now)); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `INSERT INTO session_handoffs (hash, challenge, subject, name, email, expires_at) VALUES (?, ?, ?, ?, ?, ?)`,
+			hash, h.Challenge, h.Session.Subject, h.Session.Name, h.Session.Email, timestamp(h.ExpiresAt))
+		return err
+	})
+}
+
+func (s *Store) TakeHandoff(ctx context.Context, hash string) (Handoff, error) {
+	var (
+		h       Handoff
+		expires string
+	)
+	err := s.tx(ctx, func(tx *sql.Tx) error {
+		err := tx.QueryRowContext(ctx, `DELETE FROM session_handoffs WHERE hash = ? RETURNING challenge, subject, name, email, expires_at`, hash).
+			Scan(&h.Challenge, &h.Session.Subject, &h.Session.Name, &h.Session.Email, &expires)
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrHandoffNotFound
+		}
+		return err
+	})
+	if err != nil {
+		return Handoff{}, err
+	}
+	if h.ExpiresAt, err = parseJobTime(expires); err != nil {
+		return Handoff{}, err
+	}
+	return h, nil
+}

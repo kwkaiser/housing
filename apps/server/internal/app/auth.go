@@ -3,10 +3,12 @@ package app
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"html/template"
 	"net/http"
 	"net/url"
 	"strings"
@@ -22,9 +24,24 @@ const (
 	sessionCookie = "housing_session"
 	loginCookie   = "housing_login"
 	loginTTL      = 10 * time.Minute
+	appRedirect   = "io.kwkaiser.housing://auth"
 )
 
 var crossOrigin http.CrossOriginProtection
+
+var handoffPage = template.Must(template.New("handoff").Parse(`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="0;url={{.}}">
+<title>housing</title>
+</head>
+<body>
+<p>Signed in. <a href="{{.}}">Return to the housing app</a>.</p>
+</body>
+</html>
+`))
 
 var (
 	errUnauthenticated = errors.New("not signed in")
@@ -85,6 +102,7 @@ type loginState struct {
 	Nonce    string `json:"n"`
 	Verifier string `json:"v"`
 	Return   string `json:"r"`
+	App      string `json:"a,omitempty"`
 }
 
 func (a *App) login(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +110,12 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 		a.notFound(w, r)
 		return
 	}
-	st := loginState{State: rand.Text(), Nonce: rand.Text(), Verifier: oauth2.GenerateVerifier(), Return: safeReturn(r.URL.Query().Get("rd"))}
+	app := r.URL.Query().Get("app")
+	if app != "" && !validChallenge(app) {
+		http.Error(w, "invalid app challenge", http.StatusBadRequest)
+		return
+	}
+	st := loginState{State: rand.Text(), Nonce: rand.Text(), Verifier: oauth2.GenerateVerifier(), Return: safeReturn(r.URL.Query().Get("rd")), App: app}
 	b, err := json.Marshal(st)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -127,7 +150,21 @@ func (a *App) callback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Sign-in failed.", http.StatusBadGateway)
 		return
 	}
-	token, err := a.svc.CreateSession(r.Context(), store.Session{Subject: id.Subject, Name: id.Name, Email: id.Email})
+	identity := store.Session{Subject: id.Subject, Name: id.Name, Email: id.Email}
+	if st.App != "" {
+		code, err := a.svc.CreateHandoff(r.Context(), st.App, identity)
+		if err != nil {
+			a.log.ErrorContext(r.Context(), "create handoff", "err", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		a.log.InfoContext(r.Context(), "signed in for app", "subject", id.Subject, "name", id.Name)
+		target := appRedirect + "?" + url.Values{"code": {code}, "rd": {st.Return}}.Encode()
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		handoffPage.Execute(w, template.URL(target))
+		return
+	}
+	token, err := a.svc.CreateSession(r.Context(), identity)
 	if err != nil {
 		a.log.ErrorContext(r.Context(), "create session", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -136,6 +173,45 @@ func (a *App) callback(w http.ResponseWriter, r *http.Request) {
 	a.log.InfoContext(r.Context(), "signed in", "subject", id.Subject, "name", id.Name)
 	http.SetCookie(w, a.cookie(sessionCookie, token, service.SessionTTL))
 	http.Redirect(w, r, st.Return, http.StatusFound)
+}
+
+type handoffRequest struct {
+	Code     string `json:"code"`
+	Verifier string `json:"verifier"`
+}
+
+func (a *App) handoff(w http.ResponseWriter, r *http.Request) {
+	if a.OIDC == nil {
+		a.notFound(w, r)
+		return
+	}
+	if crossOrigin.Check(r) != nil {
+		http.Error(w, "cross-site request rejected", http.StatusForbidden)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	var req handoffRequest
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&req); err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+	token, ok, err := a.svc.RedeemHandoff(r.Context(), req.Code, req.Verifier)
+	if err != nil {
+		a.log.ErrorContext(r.Context(), "redeem handoff", "err", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		http.Error(w, "Sign-in expired. Try again.", http.StatusBadRequest)
+		return
+	}
+	http.SetCookie(w, a.cookie(sessionCookie, token, service.SessionTTL))
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func validChallenge(s string) bool {
+	b, err := base64.RawURLEncoding.DecodeString(s)
+	return err == nil && len(b) == sha256.Size
 }
 
 func (a *App) logout(w http.ResponseWriter, r *http.Request) {
