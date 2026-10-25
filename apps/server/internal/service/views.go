@@ -95,6 +95,7 @@ type ReferenceView struct {
 	URL      string
 	Address  string
 	Collages []string
+	Photos   []string
 	Scores   map[string]float64
 }
 
@@ -292,7 +293,9 @@ func (s *Service) ProfileDetail(ctx context.Context, id string) (ProfileDetailVi
 		return v, err
 	}
 	for _, ref := range own(effective, refs) {
-		v.References = append(v.References, referenceView(effective, ref, slices.Sorted(maps.Keys(ref.Assessments[id]))))
+		r := referenceView(effective, ref, slices.Sorted(maps.Keys(ref.Assessments[id])))
+		r.Photos = s.StoredPhotos(ctx, ref, 0)
+		v.References = append(v.References, r)
 	}
 	cs, err := db.Collections(ctx)
 	if err != nil {
@@ -477,17 +480,27 @@ func (s *Service) MediaPath(key string) (string, error) {
 }
 
 func (s *Service) Thumbnail(ctx context.Context, l listing.Listing) string {
+	if keys := s.StoredPhotos(ctx, l, 1); len(keys) > 0 {
+		return keys[0]
+	}
+	return ""
+}
+
+func (s *Service) StoredPhotos(ctx context.Context, l listing.Listing, limit int) []string {
 	if len(l.Collages) == 0 {
-		return ""
+		return nil
 	}
 	images := s.images()
+	var keys []string
 	for _, u := range l.Photos[:min(len(l.Photos), media.DefaultMaxPhotos)] {
 		key := media.PhotoKey(u)
 		if ok, err := images.Has(ctx, key); err == nil && ok {
-			return key
+			if keys = append(keys, key); len(keys) == limit {
+				break
+			}
 		}
 	}
-	return ""
+	return keys
 }
 
 func ValidMediaKey(key string) bool {

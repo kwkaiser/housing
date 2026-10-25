@@ -714,6 +714,8 @@ export interface components {
             collection?: string;
             day?: string;
             favorite: boolean;
+            /** @description API paths of the listing's stored photos in listing order, which take a size like other media */
+            gallery: string[];
             grades: components["schemas"]["APIListingGrade"][];
             history: components["schemas"]["APIPriceSighting"][];
             listing: components["schemas"]["APIListing"];
@@ -927,6 +929,8 @@ export interface components {
             address: string;
             /** @description API paths of the reference's photo collages */
             collages: string[];
+            /** @description API paths of the reference's stored photos in listing order */
+            gallery: string[];
             /** @description The reference's own score under each grading model */
             scores: {
                 [key: string]: number;

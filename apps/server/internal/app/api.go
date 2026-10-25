@@ -275,6 +275,14 @@ func apiListing(l listing.Listing, thumbnail string) APIListing {
 	return out
 }
 
+func mediaPaths(keys []string) []string {
+	out := make([]string, len(keys))
+	for i, k := range keys {
+		out[i] = apiV1 + "/media/" + k
+	}
+	return out
+}
+
 func (a *App) thumbnail(ctx context.Context, l listing.Listing) string {
 	if key := a.svc.Thumbnail(ctx, l); key != "" {
 		return apiV1 + "/media/" + key
@@ -486,6 +494,7 @@ type APIListingDetail struct {
 	Grades     []APIListingGrade  `json:"grades"`
 	Favorite   bool               `json:"favorite"`
 	Location   *APILocation       `json:"location,omitempty" doc:"Where to place the listing on a map"`
+	Gallery    []string           `json:"gallery" doc:"API paths of the listing's stored photos in listing order, which take a size like other media"`
 }
 
 type APILocation struct {
@@ -535,6 +544,7 @@ func (a *App) apiListing(ctx context.Context, in *listingInput) (*struct{ Body A
 	out := APIListingDetail{
 		Listing: apiListing(v.Listing, a.thumbnail(ctx, v.Listing)), Collection: v.Collection, Day: v.Day,
 		AlsoListed: []APIListing{}, History: []APIPriceSighting{}, Grades: []APIListingGrade{}, Favorite: v.Favorite,
+		Gallery: mediaPaths(a.svc.StoredPhotos(ctx, v.Listing, 0)),
 	}
 	if loc, approx, ok := geo.Locate(v.Listing); ok {
 		out.Location = &APILocation{Lat: loc.Lat, Lng: loc.Lng, Approx: approx}
@@ -620,10 +630,7 @@ func (a *App) apiProfile(ctx context.Context, in *profileInput) (*struct{ Body A
 	}
 	out := APIProfileDetail{Profile: v.Profile, InheritedAvoids: []APIInheritedCriterion{}, Collections: v.Collections, References: []APIReference{}}
 	for _, r := range v.References {
-		ref := APIReference{Source: r.Source, SourceID: r.SourceID, URL: r.URL, Address: r.Address, Collages: []string{}, Scores: r.Scores}
-		for _, k := range r.Collages {
-			ref.Collages = append(ref.Collages, apiV1+"/media/"+k)
-		}
+		ref := APIReference{Source: r.Source, SourceID: r.SourceID, URL: r.URL, Address: r.Address, Collages: mediaPaths(r.Collages), Gallery: mediaPaths(r.Photos), Scores: r.Scores}
 		out.References = append(out.References, ref)
 	}
 	out.Profile.Kind = kindOf(out.Profile)

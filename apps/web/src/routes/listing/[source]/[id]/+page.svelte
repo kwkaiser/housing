@@ -3,6 +3,7 @@
 	import type { Schemas } from '#lib/api/client.ts';
 	import Back from '#lib/components/Back.svelte';
 	import Collages from '#lib/components/Collages.svelte';
+	import Gallery from '#lib/components/Gallery.svelte';
 	import ListingMap from '#lib/components/ListingMap.svelte';
 	import Match from '#lib/components/Match.svelte';
 	import Star from '#lib/components/Star.svelte';
@@ -16,6 +17,7 @@
 	let title = $derived(address(l.address) || `${l.source} ${l.source_id}`);
 	let favorite = $derived(d.favorite);
 	let mapOpen = $state(load('listingMapOpen', false));
+	let collagesOpen = $state(false);
 
 	function verdictTone(r: Schemas['APICriterionResult'], avoid: boolean): Tone {
 		if (r.verdict === 'present') return avoid ? 'bad' : 'good';
@@ -46,12 +48,23 @@
 	{#if d.day}<p class="summary-line">As seen on {d.day}{d.collection ? ` in ${d.collection}` : ''}.</p>{/if}
 </header>
 
-{#if l.collages?.length}<Collages srcs={l.collages} size={1280} alt="Listing collage" />{/if}
+{#if d.gallery.length}
+	<Gallery srcs={d.gallery} alt={title} />
+{:else if l.collages?.length}
+	<Collages srcs={l.collages} size={1280} alt="Listing collage" />
+{/if}
 
 {#if d.location}
 	<details class="section" bind:open={mapOpen} ontoggle={() => save('listingMapOpen', mapOpen)}>
 		<summary>Map{#if d.location.approx}<span class="muted sub">approximate, from the zip code</span>{/if}</summary>
 		{#if mapOpen}<ListingMap config={data.config} location={d.location} {title} />{/if}
+	</details>
+{/if}
+
+{#if d.gallery.length && l.collages?.length}
+	<details class="section" bind:open={collagesOpen}>
+		<summary>Grading collages<span class="muted sub">what the models saw</span></summary>
+		{#if collagesOpen}<Collages srcs={l.collages} size={1280} alt="Listing collage" />{/if}
 	</details>
 {/if}
 

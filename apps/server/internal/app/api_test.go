@@ -166,6 +166,9 @@ func TestAPIListing(t *testing.T) {
 	if len(v.Grades) != 2 || v.Grades[0].ProfileName != "Sunny attic" || len(v.Grades[0].Models) != 1 {
 		t.Fatalf("grades = %+v", v.Grades)
 	}
+	if len(v.Gallery) != 1 || v.Gallery[0] != "/api/v1/media/"+media.PhotoKey(photoURL) {
+		t.Errorf("gallery = %v", v.Gallery)
+	}
 	m := v.Grades[0].Models[0]
 	if len(m.Wants) != 2 || m.Wants[0].Label != "Skylights" || m.Wants[0].Verdict != "present" || len(m.Avoids) != 1 || !m.Avoids[0].Dealbreaker {
 		t.Errorf("model result = %+v", m)

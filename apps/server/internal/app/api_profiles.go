@@ -101,6 +101,7 @@ type APIReference struct {
 	URL      string             `json:"url"`
 	Address  string             `json:"address"`
 	Collages []string           `json:"collages" doc:"API paths of the reference's photo collages"`
+	Gallery  []string           `json:"gallery" doc:"API paths of the reference's stored photos in listing order"`
 	Scores   map[string]float64 `json:"scores" doc:"The reference's own score under each grading model"`
 }
 
