@@ -1,0 +1,44 @@
+version: '3'
+
+tasks:
+  install:
+    sources:
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+    generates:
+      - node_modules/.modules.yaml
+    cmds:
+      - pnpm install --frozen-lockfile
+
+  platform:
+    desc: Generate the Android project from capacitor.config.ts.
+    deps: [install]
+    status:
+      - test -d android
+    cmds:
+      - pnpm exec cap add android
+
+  sync:
+    desc: Copy capacitor config and web assets into the Android project.
+    deps: [platform]
+    cmds:
+      - pnpm sync
+
+  build:
+    desc: Build a debug APK into android/app/build/outputs/apk/debug.
+    deps: [sync]
+    dir: android
+    cmds:
+      - ./gradlew assembleDebug
+
+  install-device:
+    desc: Build and install the debug APK on the connected device.
+    deps: [sync]
+    dir: android
+    cmds:
+      - ./gradlew installDebug
+
+  clean:
+    cmds:
+      - rm -rf android

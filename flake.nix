@@ -26,6 +26,23 @@
 
         serverSrc = ./apps/server;
         webSrc = ./apps/web;
+
+        androidPkgs = import nixpkgs {
+          inherit system;
+          config = {
+            allowUnfree = true;
+            android_sdk.accept_license = true;
+          };
+        };
+
+        androidSdk = (androidPkgs.androidenv.composeAndroidPackages {
+          platformVersions = [ "36" ];
+          buildToolsVersions = [ "35.0.0" ];
+          includeEmulator = false;
+          includeNDK = false;
+          includeSources = false;
+          includeSystemImages = false;
+        }).androidsdk;
       in
       {
         packages.server = pkgs.callPackage ./nix/server.nix {
@@ -69,6 +86,17 @@
             nodejs
             pnpm
           ];
+        };
+
+        devShells.android = pkgs.mkShell {
+          inputsFrom = [ self.devShells.${system}.default ];
+          packages = [
+            androidSdk
+            pkgs.jdk21
+          ];
+          ANDROID_HOME = "${androidSdk}/libexec/android-sdk";
+          ANDROID_SDK_ROOT = "${androidSdk}/libexec/android-sdk";
+          JAVA_HOME = pkgs.jdk21.home;
         };
       });
 }

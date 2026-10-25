@@ -1,0 +1,17 @@
+{
+  "name": "housing-android",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "sync": "cap sync android"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3",
+    "typescript": "6.0.3"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3"
+  }
+}
