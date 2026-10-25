@@ -99,3 +99,48 @@ jobs:
             task push-image TARGET=server IMAGE_NAME="$IMAGE" IMAGE_TAGS="$VERSION $SHA latest"
           nix develop --accept-flake-config --command \
             task push-image TARGET=web IMAGE_NAME="$WEB_IMAGE" IMAGE_TAGS="$VERSION $SHA latest"
+
+  android:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve version
+        id: meta
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            version="${{ github.event.inputs.version }}"
+          else
+            version="${{ github.ref_name }}"
+          fi
+          version="${version#v}"
+          if [ -z "$version" ]; then
+            echo "could not resolve a version" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Build signed APK
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          APK_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          export ANDROID_KEYSTORE=/tmp/housing-release.p12
+          trap 'rm -f "$ANDROID_KEYSTORE"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$ANDROID_KEYSTORE"
+          nix develop .#android --command task android:release APK_VERSION="$APK_VERSION"
+
+      - name: Attach APK to the release
+        env:
+          GITEA_URL: ${{ github.server_url }}
+          GITEA_REPO: ${{ github.repository }}
+          GITEA_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITEA_TARGET: ${{ github.sha }}
+          APK_VERSION: ${{ steps.meta.outputs.version }}
+        run: nix develop .#android --command task android:publish APK_VERSION="$APK_VERSION"
