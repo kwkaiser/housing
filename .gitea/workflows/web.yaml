@@ -1,0 +1,44 @@
+name: web
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - apps/web/**
+      - nix/web.nix
+      - flake.nix
+      - flake.lock
+      - Taskfile.yml
+      - .gitea/actions/**
+      - .gitea/workflows/web.yaml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.gitea/actions/nix
+        with:
+          builder-key: ${{ secrets.NIX_REMOTE_BUILDER_KEY }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-web-${{ hashFiles('apps/web/pnpm-lock.yaml') }}
+          restore-keys: pnpm-web-
+
+      - name: API types match the spec
+        run: |
+          nix develop --command task web:types
+          git diff --exit-code apps/web/src/lib/api
+
+      - name: Check
+        run: nix develop --command task web:check
+
+      - name: pnpm deps match hash
+        run: nix build --no-link .#web.pnpmDeps

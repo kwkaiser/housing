@@ -1,0 +1,43 @@
+name: android
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - apps/android/**
+      - flake.nix
+      - flake.lock
+      - Taskfile.yml
+      - .gitea/actions/**
+      - .gitea/workflows/android.yaml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.gitea/actions/nix
+        with:
+          builder-key: ${{ secrets.NIX_REMOTE_BUILDER_KEY }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-android-${{ hashFiles('apps/android/pnpm-lock.yaml') }}
+          restore-keys: pnpm-android-
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('apps/android/package.json', 'apps/android/pnpm-lock.yaml') }}
+          restore-keys: gradle-
+
+      - name: Build debug APK
+        run: nix develop .#android --command task android:build

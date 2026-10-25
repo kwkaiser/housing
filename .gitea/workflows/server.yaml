@@ -1,0 +1,53 @@
+name: server
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - apps/server/**
+      - apps/web/src/lib/api/openapi.json
+      - nix/server.nix
+      - flake.nix
+      - flake.lock
+      - .gitea/actions/**
+      - .gitea/workflows/server.yaml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/server
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: apps/server/go.mod
+          cache-dependency-path: apps/server/go.sum
+
+      - name: Format
+        run: test -z "$(gofmt -l . | tee /dev/stderr)"
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: API spec matches the server
+        run: |
+          go run ./cmd/housing openapi > ../web/src/lib/api/openapi.json
+          git diff --exit-code ../web/src/lib/api/openapi.json
+
+      - uses: ./.gitea/actions/nix
+        with:
+          builder-key: ${{ secrets.NIX_REMOTE_BUILDER_KEY }}
+
+      - name: Go modules match vendorHash
+        working-directory: .
+        run: nix build --no-link .#server.goModules

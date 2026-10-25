@@ -8,6 +8,11 @@
 , version ? "dev"
 }:
 
+let
+  depsKey = builtins.substring 0 16 (builtins.hashString "sha256"
+    (lib.concatMapStrings (f: builtins.readFile (src + "/${f}"))
+      [ "package.json" "pnpm-lock.yaml" "pnpm-workspace.yaml" ]));
+in
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "housing-web";
   inherit version src;
@@ -19,7 +24,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   ];
 
   pnpmDeps = fetchPnpmDeps {
-    inherit (finalAttrs) pname version src;
+    inherit (finalAttrs) version src;
+    pname = "housing-web-${depsKey}";
     fetcherVersion = 4;
     hash = "sha256-8lDzXU/lvQmjtwGVTmjjrMYMTbGmKyfqXcLOVs4el+0=";
     postInstall = ''

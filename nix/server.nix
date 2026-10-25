@@ -4,11 +4,17 @@
 , version ? "dev"
 }:
 
+let
+  depsKey = builtins.substring 0 16 (builtins.hashString "sha256"
+    (builtins.readFile (src + "/go.mod") + builtins.readFile (src + "/go.sum")));
+in
 buildGoModule {
   pname = "housing";
   inherit version src;
 
-  vendorHash = "sha256-+ySDDZ1AvkGowKKJbtJrd9zDtXON6O7IGqu428K+uHo=";
+  vendorHash = "sha256-TRlgcxLIUYGlFcDgz0NmFxCdREeUkVISCL5Frt2uD+Q=";
+  proxyVendor = true;
+  overrideModAttrs = _: { name = "housing-go-modules-${depsKey}"; };
 
   subPackages = [ "cmd/housing" ];
   tags = [ "timetzdata" ];
