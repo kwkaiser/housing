@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
+	import { afterNavigate } from '$app/navigation';
 	import type { Schemas } from '#lib/api/client.ts';
 	import Back from '#lib/components/Back.svelte';
 	import Collages from '#lib/components/Collages.svelte';
@@ -25,12 +26,18 @@
 		return 'muted';
 	}
 
+	let mapBack = $state<string>();
+	afterNavigate(({ from }) => {
+		if (from?.route.id === '/map') mapBack = from.url.pathname + from.url.search;
+		else if (from) mapBack = undefined;
+	});
+
 	let back = $derived(d.collection ? `/c/${encodeURIComponent(d.collection)}${d.day ? `?day=${d.day}` : ''}` : '/');
 </script>
 
 <svelte:head><title>{title} · housing</title></svelte:head>
 
-<Back href={back} label={d.collection} />
+<Back href={mapBack ?? back} label={mapBack ? 'Map' : d.collection} />
 <header class="hero">
 	<h1><Star source={l.source} id={l.source_id} bind:on={favorite} />{title}</h1>
 	<dl class="facts">
