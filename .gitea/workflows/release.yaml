@@ -1,9 +1,8 @@
 name: release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       version:
@@ -46,7 +45,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             version="${{ github.event.inputs.version }}"
           else
-            version="${{ github.ref_name }}"
+            version="${{ github.event.release.tag_name }}"
           fi
           version="${version#v}"
           if [ -z "$version" ]; then
@@ -113,7 +112,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             version="${{ github.event.inputs.version }}"
           else
-            version="${{ github.ref_name }}"
+            version="${{ github.event.release.tag_name }}"
           fi
           version="${version#v}"
           if [ -z "$version" ]; then

@@ -21,7 +21,7 @@ Bumping `@capacitor/android` can change the SDK versions the generated project e
 
 ## Releases
 
-Pushing a `v*` tag builds `housing-<version>.apk`, signs it with the release key and attaches it to that tag's Gitea release. Install it from the release page, or point [Obtainium](https://github.com/ImranR98/Obtainium) at the repo to get updates.
+Publishing a Gitea release with a `v<version>` tag builds `housing-<version>.apk`, signs it with the release key and attaches it to that release. Install it from the release page, or point [Obtainium](https://github.com/ImranR98/Obtainium) at the repo to get updates.
 
 The release job needs two repository secrets:
 
