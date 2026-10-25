@@ -67,19 +67,19 @@ func (a *App) overlayData(ctx context.Context, name, z, x, file string) ([]byte,
 	}
 	b, err := ov.source.Get(ctx, t)
 	if err != nil {
-		a.log.Warn("overlay tile", "overlay", ov.name, "z", t.Z, "x", t.X, "y", t.Y, "err", err)
+		a.log.WarnContext(ctx, "overlay tile", "overlay", ov.name, "z", t.Z, "x", t.X, "y", t.Y, "err", err)
 		return nil, "", err
 	}
 	if ext == ".pbf" {
 		raw, err := mvt.Inflate(b)
 		if err != nil {
-			a.log.Warn("overlay inflate", "overlay", ov.name, "z", t.Z, "x", t.X, "y", t.Y, "err", err)
+			a.log.WarnContext(ctx, "overlay inflate", "overlay", ov.name, "z", t.Z, "x", t.X, "y", t.Y, "err", err)
 		}
 		return raw, mvtContentType, err
 	}
 	layers, err := mvt.Decode(b, t.Z, t.X, t.Y, ov.kind.Layer)
 	if err != nil {
-		a.log.Warn("overlay decode", "overlay", ov.name, "z", t.Z, "x", t.X, "y", t.Y, "err", err)
+		a.log.WarnContext(ctx, "overlay decode", "overlay", ov.name, "z", t.Z, "x", t.X, "y", t.Y, "err", err)
 		return nil, "", err
 	}
 	body, err := json.Marshal(struct {

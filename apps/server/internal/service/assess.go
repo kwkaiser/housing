@@ -11,12 +11,15 @@ import (
 	"strings"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing/dedupe"
 	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/report"
 	"git.kwkaiser.io/kwkaiser/housing/internal/store"
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
 var DefaultAssessConcurrency = runtime.NumCPU()
@@ -101,8 +104,9 @@ func reportTemplates(ts []template) []report.Template {
 	return out
 }
 
-func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listing.Listing, log *slog.Logger) (AssessResult, error) {
-	var res AssessResult
+func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listing.Listing, log *slog.Logger) (res AssessResult, err error) {
+	ctx, span := telemetry.Start(ctx, "service.Assess", attribute.String("collection", o.Collection), attribute.String("model", o.Model))
+	defer func() { telemetry.End(span, err) }()
 	log = s.logger(log).With("stage", StageAssess)
 	started := s.cfg.Now()
 	key, err := s.cfg.Keys.OpenRouter()

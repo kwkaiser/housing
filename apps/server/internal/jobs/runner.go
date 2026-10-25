@@ -8,8 +8,11 @@ import (
 	"log/slog"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
 const DefaultPoll = 5 * time.Second
@@ -64,7 +67,9 @@ func (r *Runner) next(ctx context.Context) (bool, error) {
 	if err != nil || !ok {
 		return false, err
 	}
-	log := r.logger().With("job", j.ID, "kind", j.Kind)
+	ctx, span := telemetry.Start(ctx, "job "+j.Kind, attribute.Int64("job.id", j.ID), attribute.String("job.kind", j.Kind))
+	defer span.End()
+	log := telemetry.WithSpan(r.logger().With("job", j.ID, "kind", j.Kind), ctx)
 	log.Info("job started")
 	persist := context.WithoutCancel(ctx)
 	events := slog.NewJSONHandler(&eventWriter{ctx: persist, db: q.db, job: j.ID, now: q.now, fallback: log}, nil)
@@ -85,6 +90,8 @@ func (r *Runner) next(ctx context.Context) (bool, error) {
 			}
 		}
 	}
+	span.SetAttributes(attribute.String("job.status", string(j.Status)), attribute.Float64("job.cost_usd", j.CostUSD))
+	telemetry.Record(span, runErr)
 	if result != nil {
 		if b, err := json.Marshal(result); err == nil {
 			j.Result = b

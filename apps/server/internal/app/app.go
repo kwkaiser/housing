@@ -14,6 +14,7 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/auth"
 	"git.kwkaiser.io/kwkaiser/housing/internal/jobs"
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 	"git.kwkaiser.io/kwkaiser/housing/internal/tiles"
 )
 
@@ -57,13 +58,13 @@ func New(svc *service.Service, q Jobs, log *slog.Logger) (*App, error) {
 	a.overlays = newOverlays(tiles.NewTransitland(filepath.Join(tileDir, "transitland"), svc.TransitlandKey()), tiles.NewOpenFreeMap(filepath.Join(tileDir, "openfreemap")))
 	web := a.routes()
 	api := a.etags(a.apiHandler())
-	a.handler = a.logRequests(a.recoverPanics(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	a.handler = telemetry.Server(a.logRequests(a.recoverPanics(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, apiPrefix+"/") {
 			api.ServeHTTP(w, r)
 			return
 		}
 		web.ServeHTTP(w, r)
-	})))
+	}))), "/healthz", "/health")
 	return a, nil
 }
 
@@ -87,7 +88,7 @@ func (a *App) healthz(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	if _, err := a.svc.Store().SchemaVersion(r.Context()); err != nil {
-		a.log.Error("health check", "err", err)
+		a.log.ErrorContext(r.Context(), "health check", "err", err)
 		w.WriteHeader(http.StatusServiceUnavailable)
 		fmt.Fprint(w, "unavailable")
 		return

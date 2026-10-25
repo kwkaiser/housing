@@ -123,7 +123,7 @@ func (a *App) callback(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	q := r.URL.Query()
 	if e := q.Get("error"); e != "" {
-		a.log.Warn("sign-in refused", "error", e, "description", q.Get("error_description"))
+		a.log.WarnContext(r.Context(), "sign-in refused", "error", e, "description", q.Get("error_description"))
 		http.Error(w, "Sign-in was not completed: "+e, http.StatusForbidden)
 		return
 	}
@@ -133,17 +133,17 @@ func (a *App) callback(w http.ResponseWriter, r *http.Request) {
 	}
 	id, err := a.OIDC.Exchange(r.Context(), q.Get("code"), st.Verifier, st.Nonce)
 	if err != nil {
-		a.log.Warn("sign-in exchange", "err", err)
+		a.log.WarnContext(r.Context(), "sign-in exchange", "err", err)
 		http.Error(w, "Sign-in failed.", http.StatusBadGateway)
 		return
 	}
 	token, err := a.svc.CreateSession(r.Context(), store.Session{Subject: id.Subject, Name: id.Name, Email: id.Email})
 	if err != nil {
-		a.log.Error("create session", "err", err)
+		a.log.ErrorContext(r.Context(), "create session", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	a.log.Info("signed in", "subject", id.Subject, "name", id.Name)
+	a.log.InfoContext(r.Context(), "signed in", "subject", id.Subject, "name", id.Name)
 	http.SetCookie(w, a.cookie(sessionCookie, token, service.SessionTTL))
 	http.Redirect(w, r, st.Return, http.StatusFound)
 }
@@ -155,7 +155,7 @@ func (a *App) logout(w http.ResponseWriter, r *http.Request) {
 	}
 	if c, err := r.Cookie(a.cookieName(sessionCookie)); err == nil {
 		if err := a.svc.DeleteSession(r.Context(), c.Value); err != nil {
-			a.log.Error("delete session", "err", err)
+			a.log.ErrorContext(r.Context(), "delete session", "err", err)
 		}
 	}
 	http.SetCookie(w, a.cookie(sessionCookie, "", -1))

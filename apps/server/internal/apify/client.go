@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
 const DefaultBaseURL = "https://api.apify.com/v2"
@@ -22,7 +24,7 @@ type Client struct {
 }
 
 func NewClient(token string) *Client {
-	return &Client{Token: token, BaseURL: DefaultBaseURL, HTTP: http.DefaultClient}
+	return &Client{Token: token, BaseURL: DefaultBaseURL, HTTP: telemetry.Client(0)}
 }
 
 type run struct {

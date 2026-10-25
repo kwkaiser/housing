@@ -18,6 +18,8 @@ import (
 
 	"github.com/google/renameio/v2"
 	"golang.org/x/sync/singleflight"
+
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
 const (
@@ -95,7 +97,7 @@ func newCache(dir, ext string) *Cache {
 		Ext:     ext,
 		MaxZoom: MaxZoom,
 		TTL:     DefaultTTL,
-		Client:  &http.Client{Timeout: 15 * time.Second},
+		Client:  telemetry.Client(15 * time.Second),
 		Now:     time.Now,
 	}
 }

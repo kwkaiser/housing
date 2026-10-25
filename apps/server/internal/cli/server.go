@@ -1,10 +1,12 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
@@ -14,7 +16,10 @@ import (
 	"git.kwkaiser.io/kwkaiser/housing/internal/config"
 	"git.kwkaiser.io/kwkaiser/housing/internal/jobs"
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
+
+const telemetryShutdownTimeout = 10 * time.Second
 
 func newServerCmd(dataDir *string) *cobra.Command {
 	var (
@@ -35,7 +40,18 @@ func newServerCmd(dataDir *string) *cobra.Command {
 			"`housing run` cannot write to the same data directory at the same time.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			log := slog.New(slog.NewJSONHandler(os.Stderr, nil))
+			tel, err := telemetry.Setup(cmd.Context(), version)
+			if err != nil {
+				return err
+			}
+			defer func() {
+				ctx, cancel := context.WithTimeout(context.WithoutCancel(cmd.Context()), telemetryShutdownTimeout)
+				defer cancel()
+				if err := tel.Shutdown(ctx); err != nil {
+					slog.Error("telemetry shutdown", "err", err)
+				}
+			}()
+			log := slog.New(tel.Handler(slog.NewJSONHandler(os.Stderr, nil)))
 			slog.SetDefault(log)
 			var provider *auth.OIDC
 			if !noAuth {
@@ -43,7 +59,6 @@ func newServerCmd(dataDir *string) *cobra.Command {
 				if missing := cfg.Missing(); len(missing) > 0 {
 					return fmt.Errorf("%s not set; pass --no-auth to run without signing in", strings.Join(missing, ", "))
 				}
-				var err error
 				if provider, err = auth.New(cmd.Context(), cfg); err != nil {
 					return err
 				}

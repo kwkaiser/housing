@@ -5,9 +5,12 @@ import (
 	"context"
 	"log/slog"
 
+	"go.opentelemetry.io/otel/attribute"
+
 	"git.kwkaiser.io/kwkaiser/housing/internal/apify"
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
 const DefaultCollectionBudgetUSD = 1.0
@@ -71,9 +74,11 @@ func (s *Service) RunCollection(ctx context.Context, collectionID string, log *s
 	return s.Run(ctx, CollectionRunOptions(c), log)
 }
 
-func (s *Service) Run(ctx context.Context, o RunOptions, log *slog.Logger) (RunResult, error) {
+func (s *Service) Run(ctx context.Context, o RunOptions, log *slog.Logger) (res RunResult, err error) {
+	ctx, span := telemetry.Start(ctx, "service.Run", attribute.String("collection", o.Fetch.Collection), attribute.String("mode", string(o.Fetch.Mode)))
+	defer func() { telemetry.End(span, err) }()
 	log = s.logger(log)
-	res := RunResult{Collection: o.Fetch.Collection, Mode: o.Fetch.Mode}
+	res = RunResult{Collection: o.Fetch.Collection, Mode: o.Fetch.Mode}
 	if _, err := s.cfg.Keys.OpenRouter(); err != nil {
 		return res, err
 	}
@@ -89,7 +94,7 @@ func (s *Service) Run(ctx context.Context, o RunOptions, log *slog.Logger) (RunR
 	}
 	res.Day, res.Fetched, res.Distinct, res.Duplicates, res.SourceErrs = fetched.Day, fetched.Observed, fetched.Distinct, fetched.Duplicates, fetched.SourceErrs
 	if len(fetched.Listings) == 0 {
-		log.Info("no listings matched; nothing to assess", "stage", StageRun)
+		log.InfoContext(ctx, "no listings matched; nothing to assess", "stage", StageRun)
 		return res, nil
 	}
 
@@ -109,11 +114,11 @@ func (s *Service) Run(ctx context.Context, o RunOptions, log *slog.Logger) (RunR
 			return res, err
 		}
 		res.AssessErr = err
-		log.Warn("some listings could not be assessed; continuing to the report", "stage", StageRun, "failed", res.Stats.Failed, "err", err)
+		log.WarnContext(ctx, "some listings could not be assessed; continuing to the report", "stage", StageRun, "failed", res.Stats.Failed, "err", err)
 	}
 	res.Notified, res.NotifyErr = s.notify(ctx, o, res.Day, log)
 	if res.NotifyErr != nil && ctx.Err() == nil {
-		log.Warn("some notifications could not be sent", "stage", StageNotify, "err", res.NotifyErr)
+		log.WarnContext(ctx, "some notifications could not be sent", "stage", StageNotify, "err", res.NotifyErr)
 	}
 	return res, nil
 }

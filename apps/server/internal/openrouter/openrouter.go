@@ -17,6 +17,8 @@ import (
 	"github.com/OpenRouterTeam/go-sdk/retry"
 	"github.com/hashicorp/go-retryablehttp"
 	"golang.org/x/time/rate"
+
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
 type Completer interface {
@@ -134,7 +136,7 @@ func NewClient(apiKey string, opts ...Option) *Client {
 	httpClient.RetryWaitMin = s.retryWaitMin
 	httpClient.RetryWaitMax = s.retryWaitMax
 	httpClient.HTTPClient.Timeout = 5 * time.Minute
-	httpClient.HTTPClient.Transport = newAdaptiveTransport(bufferedTransport{next: httpClient.HTTPClient.Transport}, s.maxConcurrency)
+	httpClient.HTTPClient.Transport = newAdaptiveTransport(bufferedTransport{next: telemetry.Transport(httpClient.HTTPClient.Transport)}, s.maxConcurrency)
 	httpClient.CheckRetry = retryPolicy
 	httpClient.Backoff = backoff
 	httpClient.Logger = nil

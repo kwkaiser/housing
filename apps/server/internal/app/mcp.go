@@ -100,7 +100,7 @@ func (a *App) requireAuth(next http.Handler) http.Handler {
 		case errors.Is(err, errCrossSite):
 			http.Error(w, "cross-site request rejected", http.StatusForbidden)
 		case err != nil:
-			a.log.Error("mcp auth", "err", err)
+			a.log.ErrorContext(r.Context(), "mcp auth", "err", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 		default:
 			next.ServeHTTP(w, r)

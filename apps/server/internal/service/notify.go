@@ -8,18 +8,23 @@ import (
 	"slices"
 	"strings"
 
+	"go.opentelemetry.io/otel/attribute"
+
 	"git.kwkaiser.io/kwkaiser/housing/internal/app/view"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/notify"
 	"git.kwkaiser.io/kwkaiser/housing/internal/report"
 	"git.kwkaiser.io/kwkaiser/housing/internal/store"
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
-func (s *Service) notify(ctx context.Context, o RunOptions, day string, log *slog.Logger) (int, error) {
+func (s *Service) notify(ctx context.Context, o RunOptions, day string, log *slog.Logger) (count int, err error) {
 	n := o.Notify
 	if n.URL == "" || day == "" {
 		return 0, nil
 	}
+	ctx, span := telemetry.Start(ctx, "service.notify", attribute.String("collection", o.Fetch.Collection), attribute.String("day", day))
+	defer func() { telemetry.End(span, err) }()
 	log = s.logger(log).With("stage", StageNotify)
 	collectionID := o.Fetch.Collection
 	db, err := s.catalog(ctx)
@@ -42,10 +47,7 @@ func (s *Service) notify(ctx context.Context, o RunOptions, day string, log *slo
 		return 0, err
 	}
 	notifier := s.cfg.Clients.Notifier(n.URL)
-	var (
-		count int
-		errs  []error
-	)
+	var errs []error
 	for _, row := range r.Rows {
 		members := rowListings(row)
 		if slices.ContainsFunc(members, func(l listing.Listing) bool { return sent[store.Key(l)] }) {
@@ -53,7 +55,7 @@ func (s *Service) notify(ctx context.Context, o RunOptions, day string, log *slo
 		}
 		name := report.AddressLine(row.Listing)
 		if err := notifier.Notify(ctx, message(collectionID, row)); err != nil {
-			log.Warn("notification failed", "listing", name, "match", row.Match, "err", err)
+			log.WarnContext(ctx, "notification failed", "listing", name, "match", row.Match, "err", err)
 			errs = append(errs, fmt.Errorf("%s: %w", name, err))
 			if ctx.Err() != nil {
 				break
@@ -64,9 +66,9 @@ func (s *Service) notify(ctx context.Context, o RunOptions, day string, log *slo
 			return count, err
 		}
 		count++
-		log.Info("notified", "listing", name, "match", row.Match)
+		log.InfoContext(ctx, "notified", "listing", name, "match", row.Match)
 	}
-	log.Info("notifications sent", "sent", count, "min_score", n.Threshold(), "failed", len(errs))
+	log.InfoContext(ctx, "notifications sent", "sent", count, "min_score", n.Threshold(), "failed", len(errs))
 	return count, errors.Join(errs...)
 }
 

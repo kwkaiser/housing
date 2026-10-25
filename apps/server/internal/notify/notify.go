@@ -11,6 +11,8 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
 const DefaultTimeout = 10 * time.Second
@@ -34,7 +36,7 @@ type Ntfy struct {
 }
 
 func NewNtfy(topicURL string) *Ntfy {
-	return &Ntfy{URL: topicURL, Client: &http.Client{Timeout: DefaultTimeout}}
+	return &Ntfy{URL: topicURL, Client: telemetry.Client(DefaultTimeout)}
 }
 
 type ntfyMessage struct {

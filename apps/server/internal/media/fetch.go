@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
+
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
 type HTTPFetcher struct {
@@ -22,6 +24,7 @@ func NewHTTPFetcher() *HTTPFetcher {
 	c.RetryWaitMin = 500 * time.Millisecond
 	c.RetryWaitMax = 5 * time.Second
 	c.HTTPClient.Timeout = 30 * time.Second
+	c.HTTPClient.Transport = telemetry.Transport(c.HTTPClient.Transport)
 	c.Logger = nil
 	return &HTTPFetcher{Client: c, UserAgent: "Mozilla/5.0"}
 }

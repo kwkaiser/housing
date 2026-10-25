@@ -16,7 +16,7 @@ func (a *App) positronPNG(ctx context.Context, z, x, file string) ([]byte, error
 	}
 	b, err := a.positron.Get(ctx, t)
 	if err != nil {
-		a.log.Warn("tile", "z", t.Z, "x", t.X, "y", t.Y, "err", err)
+		a.log.WarnContext(ctx, "tile", "z", t.Z, "x", t.X, "y", t.Y, "err", err)
 		return nil, err
 	}
 	return b, nil
@@ -29,7 +29,7 @@ func (a *App) terrainWebP(ctx context.Context, z, x, file string) ([]byte, error
 	}
 	b, err := a.terrain.Get(ctx, t)
 	if err != nil {
-		a.log.Warn("terrain tile", "z", t.Z, "x", t.X, "y", t.Y, "err", err)
+		a.log.WarnContext(ctx, "terrain tile", "z", t.Z, "x", t.X, "y", t.Y, "err", err)
 		return nil, err
 	}
 	return b, nil
