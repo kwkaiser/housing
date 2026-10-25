@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"git.kwkaiser.io/kwkaiser/housing/internal/auth"
 	"git.kwkaiser.io/kwkaiser/housing/internal/jobs"
 	"git.kwkaiser.io/kwkaiser/housing/internal/service"
 	"git.kwkaiser.io/kwkaiser/housing/internal/tiles"
@@ -31,6 +32,7 @@ type App struct {
 	ShutdownTimeout time.Duration
 	Version         string
 	NoAuth          bool
+	OIDC            *auth.OIDC
 
 	svc      *service.Service
 	jobs     Jobs
@@ -74,6 +76,9 @@ func (a *App) routes() http.Handler {
 	mux.HandleFunc("GET /healthz", a.healthz)
 	mux.HandleFunc("GET /health", a.healthz)
 	mux.HandleFunc("GET /version", a.version)
+	mux.HandleFunc("GET /auth/login", a.login)
+	mux.HandleFunc("GET "+auth.CallbackPath, a.callback)
+	mux.HandleFunc("POST /auth/logout", a.logout)
 	mux.HandleFunc("/", a.notFound)
 	return mux
 }

@@ -1679,6 +1679,32 @@
         },
         "type": "object"
       },
+      "APIUser": {
+        "additionalProperties": false,
+        "properties": {
+          "auth": {
+            "description": "How the request was authenticated: none when the server runs with --no-auth",
+            "enum": [
+              "none",
+              "session",
+              "key",
+              "token"
+            ],
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "auth",
+          "name"
+        ],
+        "type": "object"
+      },
       "Address": {
         "additionalProperties": false,
         "properties": {
@@ -2092,9 +2118,15 @@
     },
     "securitySchemes": {
       "bearer": {
-        "description": "An API key created on the server's API keys page or with `housing apikeys create`.",
+        "description": "An API key created on the API keys page or with `housing apikeys create`, or an access token from the server's OIDC provider.",
         "scheme": "bearer",
         "type": "http"
+      },
+      "session": {
+        "description": "The browser session set by signing in at /auth/login.",
+        "in": "cookie",
+        "name": "__Host-housing_session",
+        "type": "apiKey"
       }
     }
   },
@@ -3218,6 +3250,37 @@
         ]
       }
     },
+    "/api/v1/me": {
+      "get": {
+        "operationId": "getMe",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIUser"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get the signed-in user",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/media/{key}": {
       "get": {
         "operationId": "getMedia",
@@ -3769,6 +3832,9 @@
   "security": [
     {
       "bearer": []
+    },
+    {
+      "session": []
     }
   ]
 }

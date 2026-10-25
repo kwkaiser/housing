@@ -4,7 +4,7 @@ import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
 	const env = loadEnv(mode, '.', 'HOUSING_');
-	const key = env.HOUSING_API_KEY;
+	const server = { target: env.HOUSING_API_URL || 'http://127.0.0.1:8080' };
 	return {
 		plugins: [
 			sveltekit({
@@ -17,13 +17,7 @@ export default defineConfig(({ mode }) => {
 		],
 		build: { chunkSizeWarningLimit: 1200 },
 		server: {
-			proxy: {
-				'/api': {
-					target: env.HOUSING_API_URL || 'http://127.0.0.1:8080',
-					changeOrigin: true,
-					headers: key ? { Authorization: `Bearer ${key}` } : undefined
-				}
-			}
+			proxy: { '/api': server, '/auth': server }
 		}
 	};
 });

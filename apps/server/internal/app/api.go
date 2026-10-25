@@ -36,6 +36,7 @@ const (
 	apiPrefix      = "/api"
 	apiV1          = apiPrefix + "/v1"
 	apiAuthScheme  = "bearer"
+	sessionScheme  = "session"
 	apiSpecVersion = "1.1.0"
 )
 
@@ -60,12 +61,14 @@ func (a *App) newAPI() (*http.ServeMux, huma.API) {
 	cfg.SchemasPath = apiPrefix + "/schemas"
 	cfg.Info.Description = "Manage collections, profiles, favorites and API keys, read ranked listings and map pins, and queue and follow jobs."
 	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
-		apiAuthScheme: {Type: "http", Scheme: "bearer", Description: "An API key created on the server's API keys page or with `housing apikeys create`."},
+		apiAuthScheme: {Type: "http", Scheme: "bearer", Description: "An API key created on the API keys page or with `housing apikeys create`, or an access token from the server's OIDC provider."},
+		sessionScheme: {Type: "apiKey", In: "cookie", Name: "__Host-" + sessionCookie, Description: "The browser session set by signing in at /auth/login."},
 	}
-	cfg.Security = []map[string][]string{{apiAuthScheme: {}}}
+	cfg.Security = []map[string][]string{{apiAuthScheme: {}}, {sessionScheme: {}}}
 	api := humago.New(mux, cfg)
 	api.UseMiddleware(a.apiAuth(api))
 
+	huma.Get(api, apiV1+"/me", a.apiMe, op("getMe", "Get the signed-in user", "auth"))
 	huma.Get(api, apiV1+"/meta", a.apiMeta, op("getMeta", "Get the server version, choices and defaults for building forms", "meta"))
 	huma.Get(api, apiV1+"/collections", a.apiCollections, op("listCollections", "List collections", "collections"))
 	huma.Register(api, huma.Operation{
@@ -173,31 +176,25 @@ func op(id, summary, tag string) func(*huma.Operation) {
 
 func (a *App) apiAuth(api huma.API) func(huma.Context, func(huma.Context)) {
 	return func(ctx huma.Context, next func(huma.Context)) {
-		ok, err := a.authenticate(ctx.Context(), ctx.Header("Authorization"))
-		if err != nil {
+		r, _ := humago.Unwrap(ctx)
+		u, err := a.authenticate(r)
+		switch {
+		case errors.Is(err, errUnauthenticated):
+			ctx.SetHeader("WWW-Authenticate", `Bearer realm="housing"`)
+			huma.WriteErr(api, ctx, http.StatusUnauthorized, "sign in, or send an API key or access token")
+		case errors.Is(err, errCrossSite):
+			huma.WriteErr(api, ctx, http.StatusForbidden, "cross-site request rejected")
+		case err != nil:
 			a.log.ErrorContext(ctx.Context(), "api auth", "err", err)
 			huma.WriteErr(api, ctx, http.StatusInternalServerError, "internal error")
-			return
+		default:
+			next(huma.WithValue(ctx, userKey{}, u))
 		}
-		if !ok {
-			ctx.SetHeader("WWW-Authenticate", `Bearer realm="housing"`)
-			huma.WriteErr(api, ctx, http.StatusUnauthorized, "a valid API key is required")
-			return
-		}
-		next(ctx)
 	}
 }
 
-func (a *App) authenticate(ctx context.Context, header string) (bool, error) {
-	if a.NoAuth {
-		return true, nil
-	}
-	token, ok := strings.CutPrefix(header, "Bearer ")
-	if !ok {
-		return false, nil
-	}
-	_, ok, err := a.svc.AuthenticateAPIKey(ctx, token)
-	return ok, err
+func (a *App) apiMe(ctx context.Context, _ *struct{}) (*struct{ Body APIUser }, error) {
+	return &struct{ Body APIUser }{userFrom(ctx)}, nil
 }
 
 func (a *App) apiError(ctx context.Context, err error) error {

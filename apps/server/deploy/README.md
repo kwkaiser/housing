@@ -1,6 +1,6 @@
 # Deploying housing
 
-The server (`housing server`) is a single binary that serves the JSON API on a loopback port. The UI is the separate web app described below. Neither has a login of its own, so run them behind a reverse proxy that handles TLS and authentication.
+The server (`housing server`) is a single binary that serves the JSON API on a loopback port. The UI is the separate web app described below. The server handles sign-in itself through an OIDC provider (see [Sign-in](#sign-in)), so the reverse proxy in front only needs to terminate TLS.
 
 ## Build
 
@@ -69,7 +69,19 @@ The same keys work for the MCP server at `/api/mcp` (streamable HTTP), which giv
 claude mcp add --transport http housing https://housing.example.com/api/mcp --header "Authorization: Bearer hk_..."
 ```
 
-API keys are separate from the reverse proxy's login, so let `/api/` through the proxy without it if API clients cannot log in there. Keep everything else, including `/keys`, behind the proxy: anyone who can reach the web UI can create keys.
+An access token issued by the OIDC provider to the server's client works anywhere an API key does, for clients that can get one, such as a service account using the client credentials grant.
+
+## Sign-in
+
+Browsers sign in with the OIDC authorization code flow. The server is a confidential client: it keeps the session in the database and gives the browser only an HttpOnly session cookie, valid for 30 days. Set:
+
+- `HOUSING_OIDC_ISSUER`: the provider's issuer URL, exactly as its discovery document gives it. For authentik that is `https://authentik.example.com/application/o/<slug>/`.
+- `HOUSING_OIDC_CLIENT_ID`, `HOUSING_OIDC_CLIENT_SECRET`: the client's credentials.
+- `HOUSING_PUBLIC_URL`: the URL people open, such as `https://housing.example.com`. The provider must allow `<HOUSING_PUBLIC_URL>/auth/callback` as a redirect URI.
+
+The server reads the provider's discovery document on start and will not start if it cannot. Who may sign in is up to the provider; in authentik, bind a policy or group to the application. Signing out ends the server's session and then the provider's, through its end-session endpoint.
+
+`--no-auth` turns all of this off: every request is treated as signed in and the variables above are not needed. It is meant for local development only.
 
 ## systemd
 
@@ -85,9 +97,6 @@ On stop, the server stops accepting connections and lets in-flight requests fini
 
 ## Web app
 
-`apps/web` builds into its own image, `git.kwkaiser.io/kwkaiser/housing-web`, which runs Caddy on port 8080. Caddy serves the app and proxies `/api/` to the server. Settings:
+`apps/web` builds into its own image, `git.kwkaiser.io/kwkaiser/housing-web`, which runs Caddy on port 8080. Caddy serves the app and proxies `/api/` and `/auth/` to the server, keeping the `Host` header so the server's same-origin checks pass. `HOUSING_API_URL` sets where the server listens and defaults to `http://housing:8080`.
 
-- `HOUSING_API_URL`: where the server listens. Defaults to `http://housing:8080`.
-- `HOUSING_API_KEY`: optional. When set, Caddy adds it as the bearer token on every proxied API request. When unset, run the server with `--no-api-auth`.
-
-For local development, `task dev` runs the server with `--no-api-auth` alongside the Vite dev server. The dev server proxies `/api` to `HOUSING_API_URL` (default `http://127.0.0.1:8080`) and sends `HOUSING_API_KEY` if it is set.
+For local development, `task dev` runs the server with `--no-auth` alongside the Vite dev server, which proxies `/api` and `/auth` to `HOUSING_API_URL` (default `http://127.0.0.1:8080`). To try real sign-in locally, set the OIDC variables in `.env` with `HOUSING_PUBLIC_URL=http://localhost:5173`, allow `http://localhost:5173/auth/callback` on the provider, and run `task server:server` and `task web:dev`.

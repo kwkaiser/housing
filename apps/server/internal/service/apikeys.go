@@ -31,7 +31,7 @@ func (s *Service) CreateAPIKey(ctx context.Context, name string) (store.APIKey, 
 		return store.APIKey{}, "", profile.FieldError{Field: "name", Err: errors.New("the name must be at most 100 characters")}
 	}
 	token := APIKeyPrefix + base64.RawURLEncoding.EncodeToString(randomBytes(32))
-	k, err := s.db.CreateAPIKey(ctx, name, token[:apiKeyHintLength], hashAPIKey(token), s.cfg.Now())
+	k, err := s.db.CreateAPIKey(ctx, name, token[:apiKeyHintLength], hashToken(token), s.cfg.Now())
 	if err != nil {
 		return store.APIKey{}, "", err
 	}
@@ -50,7 +50,7 @@ func (s *Service) AuthenticateAPIKey(ctx context.Context, token string) (store.A
 	if !strings.HasPrefix(token, APIKeyPrefix) {
 		return store.APIKey{}, false, nil
 	}
-	k, err := s.db.APIKeyByHash(ctx, hashAPIKey(token))
+	k, err := s.db.APIKeyByHash(ctx, hashToken(token))
 	if errors.Is(err, store.ErrAPIKeyNotFound) {
 		return store.APIKey{}, false, nil
 	}
@@ -66,7 +66,7 @@ func (s *Service) AuthenticateAPIKey(ctx context.Context, token string) (store.A
 	return k, true, nil
 }
 
-func hashAPIKey(token string) string {
+func hashToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
 }

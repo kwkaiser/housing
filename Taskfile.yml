@@ -16,7 +16,7 @@ vars:
 
 tasks:
   dev:
-    desc: Run the server without API auth and the web dev server, which proxies /api to it.
+    desc: Run the server without signing in and the web dev server, which proxies /api and /auth to it.
     deps: [server:dev, web:dev]
 
   hashes:
