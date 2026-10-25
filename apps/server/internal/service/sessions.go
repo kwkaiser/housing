@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"time"
 
@@ -40,4 +43,15 @@ func (s *Service) Session(ctx context.Context, token string) (store.Session, boo
 
 func (s *Service) DeleteSession(ctx context.Context, token string) error {
 	return s.db.DeleteSession(ctx, hashToken(token))
+}
+
+func hashToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
+
+func randomBytes(n int) []byte {
+	b := make([]byte, n)
+	rand.Read(b)
+	return b
 }

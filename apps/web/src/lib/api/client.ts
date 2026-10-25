@@ -19,7 +19,6 @@ export type ProfileItem = Schemas['APIProfileListItem'];
 export type ProfileDetail = Schemas['APIProfileDetail'];
 export type Criterion = Schemas['Criterion'];
 export type Favorite = Schemas['APIFavorite'];
-export type ApiKey = Schemas['APIKey'];
 export type User = Schemas['APIUser'];
 
 type Fetch = typeof fetch;

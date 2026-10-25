@@ -11,8 +11,7 @@
 		{ label: 'Map', href: '/map' },
 		{ label: 'Collections', href: '/collections' },
 		{ label: 'Profiles', href: '/profiles' },
-		{ label: 'Jobs', href: '/jobs' },
-		{ label: 'API keys', href: '/keys' }
+		{ label: 'Jobs', href: '/jobs' }
 	];
 
 	function active(item: (typeof nav)[number], path: string): boolean {

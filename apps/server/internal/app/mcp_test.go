@@ -63,7 +63,7 @@ func TestMCP(t *testing.T) {
 	srv := httptest.NewServer(h)
 	defer srv.Close()
 
-	if _, err := mcpSession(t, srv, "hk_wrong"); err == nil {
+	if _, err := mcpSession(t, srv, "wrong"); err == nil {
 		t.Fatal("connecting with a bad key should fail")
 	}
 	res, err := http.Post(srv.URL+"/api/mcp", "application/json", strings.NewReader(`{}`))

@@ -387,38 +387,6 @@ func TestAPIMapPins(t *testing.T) {
 	}
 }
 
-func TestAPIKeys(t *testing.T) {
-	_, h, key := apiApp(t)
-
-	res, b := apiSend(t, h, http.MethodPost, "/api/v1/keys", key, map[string]any{"name": "phone"})
-	if res.StatusCode != http.StatusCreated || res.Header.Get("Cache-Control") != "no-store" {
-		t.Fatalf("create = %d %v\n%s", res.StatusCode, res.Header, b)
-	}
-	created := decode[APICreatedKey](t, b)
-	if created.Key.Name != "phone" || !strings.HasPrefix(created.Token, created.Key.Hint) {
-		t.Errorf("created = %+v", created)
-	}
-	if res, _ := apiDo(t, h, http.MethodGet, "/api/v1/collections", created.Token); res.StatusCode != http.StatusOK {
-		t.Errorf("new key = %d", res.StatusCode)
-	}
-	if ks := apiGet[[]APIKey](t, h, key, "/api/v1/keys"); len(ks) != 2 {
-		t.Errorf("keys = %+v", ks)
-	}
-	if res, b := apiSend(t, h, http.MethodPost, "/api/v1/keys", key, map[string]any{"name": " "}); res.StatusCode != http.StatusUnprocessableEntity {
-		t.Errorf("blank name = %d\n%s", res.StatusCode, b)
-	}
-	target := "/api/v1/keys/" + strconv.FormatInt(created.Key.ID, 10)
-	if res, _ := apiSend(t, h, http.MethodDelete, target, key, nil); res.StatusCode != http.StatusNoContent {
-		t.Errorf("delete = %d", res.StatusCode)
-	}
-	if res, _ := apiSend(t, h, http.MethodDelete, target, key, nil); res.StatusCode != http.StatusNotFound {
-		t.Errorf("delete again = %d", res.StatusCode)
-	}
-	if res, _ := apiDo(t, h, http.MethodGet, "/api/v1/collections", created.Token); res.StatusCode != http.StatusUnauthorized {
-		t.Errorf("deleted key = %d", res.StatusCode)
-	}
-}
-
 func TestAPIETags(t *testing.T) {
 	_, h, key := apiApp(t)
 

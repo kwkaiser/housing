@@ -213,7 +213,7 @@ func TestSignIn(t *testing.T) {
 		t.Fatalf("me = %d %+v", status, u)
 	}
 
-	create := authReq{method: http.MethodPost, target: "/api/v1/keys", body: `{"name":"phone"}`, cookies: []*http.Cookie{session}}
+	create := authReq{method: http.MethodPut, target: "/api/v1/listings/zillow/z1/favorite", cookies: []*http.Cookie{session}}
 	for _, header := range []map[string]string{
 		{"Sec-Fetch-Site": "cross-site"},
 		{"Sec-Fetch-Site": "same-site"},
@@ -225,8 +225,8 @@ func TestSignIn(t *testing.T) {
 		}
 	}
 	create.header = map[string]string{"Sec-Fetch-Site": "same-origin"}
-	if res := authDo(t, h, create); res.StatusCode != http.StatusCreated {
-		t.Errorf("same-origin write = %d, want 201", res.StatusCode)
+	if res := authDo(t, h, create); res.StatusCode != http.StatusNoContent {
+		t.Errorf("same-origin write = %d, want 204", res.StatusCode)
 	}
 
 	res = authDo(t, h, authReq{method: http.MethodPost, target: "/auth/logout", cookies: []*http.Cookie{session}, header: map[string]string{"Sec-Fetch-Site": "same-origin"}})
@@ -291,18 +291,11 @@ func TestBearerAccessToken(t *testing.T) {
 		}
 	}
 
-	_, key, err := a.svc.CreateAPIKey(t.Context(), "script")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if u, status := me(t, h, bearer(key)); status != http.StatusOK || u.Auth != "key" || u.Name != "script" {
-		t.Errorf("api key = %d %+v", status, u)
-	}
-	write := bearer(key)
-	write.method, write.target, write.body = http.MethodPost, "/api/v1/keys", `{"name":"x"}`
+	write := bearer(idp.token(nil))
+	write.method, write.target = http.MethodPut, "/api/v1/listings/zillow/z1/favorite"
 	write.header["Sec-Fetch-Site"] = "cross-site"
-	if res := authDo(t, h, write); res.StatusCode != http.StatusCreated {
-		t.Errorf("bearer write with cross-site fetch metadata = %d, want 201", res.StatusCode)
+	if res := authDo(t, h, write); res.StatusCode != http.StatusNoContent {
+		t.Errorf("bearer write with cross-site fetch metadata = %d, want 204", res.StatusCode)
 	}
 }
 
