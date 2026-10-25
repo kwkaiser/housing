@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -38,7 +39,7 @@ func (a *App) mcpHandler() http.Handler {
 		JSONResponse:               true,
 		DisableLocalhostProtection: true,
 	})
-	return a.bearerAuth(h)
+	return a.requireAuth(h)
 }
 
 func (a *App) mcpServer() *mcp.Server {
@@ -89,20 +90,21 @@ func (a *App) mcpServer() *mcp.Server {
 	return srv
 }
 
-func (a *App) bearerAuth(next http.Handler) http.Handler {
+func (a *App) requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ok, err := a.authenticate(r.Context(), r.Header.Get("Authorization"))
-		if err != nil {
+		_, err := a.authenticate(r)
+		switch {
+		case errors.Is(err, errUnauthenticated):
+			w.Header().Set("WWW-Authenticate", `Bearer realm="housing"`)
+			http.Error(w, "an API key or access token is required", http.StatusUnauthorized)
+		case errors.Is(err, errCrossSite):
+			http.Error(w, "cross-site request rejected", http.StatusForbidden)
+		case err != nil:
 			a.log.Error("mcp auth", "err", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
+		default:
+			next.ServeHTTP(w, r)
 		}
-		if !ok {
-			w.Header().Set("WWW-Authenticate", `Bearer realm="housing"`)
-			http.Error(w, "a valid API key is required", http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
 	})
 }
 

@@ -31,11 +31,13 @@ h2 { margin: 1.5rem 0 .5rem; font-size: 1.1rem; }
 p { margin: 0 0 1rem; color: var(--muted); max-width: 70ch; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
-.top { border-bottom: 1px solid var(--line); padding: max(.6rem, env(safe-area-inset-top)) 1rem .6rem; }
-.top nav { display: flex; align-items: baseline; gap: 1.25rem; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+.top { display: flex; align-items: baseline; gap: 1rem; border-bottom: 1px solid var(--line); padding: max(.6rem, env(safe-area-inset-top)) 1rem .6rem; }
+.top nav { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 1.25rem; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
 .top a { color: var(--muted); }
 .top a.brand { color: var(--fg); font-weight: 600; margin-right: .5rem; }
 .top a[aria-current=page] { color: var(--fg); font-weight: 600; }
+.top .account { display: flex; align-items: baseline; gap: .5rem; margin: 0; color: var(--muted); white-space: nowrap; }
+.top .account button { padding: .1rem .5rem; }
 button, select, input, textarea { font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: .3rem .6rem; }
 button { cursor: pointer; }
 button:disabled { opacity: .4; cursor: default; }

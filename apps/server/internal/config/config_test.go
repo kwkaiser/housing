@@ -28,3 +28,17 @@ func TestLoadMissing(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 }
+
+func TestLoadOIDC(t *testing.T) {
+	t.Setenv(EnvOIDCIssuer, "https://auth.example.com/")
+	t.Setenv(EnvOIDCClientID, "")
+	t.Setenv(EnvOIDCClientSecret, "secret")
+	t.Setenv(EnvPublicURL, "")
+	cfg := LoadOIDC()
+	if cfg.Issuer != "https://auth.example.com/" || cfg.ClientSecret != "secret" {
+		t.Fatalf("LoadOIDC() = %+v", cfg)
+	}
+	if got := cfg.Missing(); len(got) != 2 || got[0] != EnvOIDCClientID || got[1] != EnvPublicURL {
+		t.Fatalf("Missing() = %v", got)
+	}
+}

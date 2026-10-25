@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import createClient from 'openapi-fetch';
+import createClient, { type Middleware } from 'openapi-fetch';
 import type { components, paths } from './schema';
 
 export type Schemas = components['schemas'];
@@ -20,11 +20,20 @@ export type ProfileDetail = Schemas['APIProfileDetail'];
 export type Criterion = Schemas['Criterion'];
 export type Favorite = Schemas['APIFavorite'];
 export type ApiKey = Schemas['APIKey'];
+export type User = Schemas['APIUser'];
 
 type Fetch = typeof fetch;
 
+const signIn: Middleware = {
+	onResponse({ response }) {
+		if (response.status === 401) location.assign(`/auth/login?rd=${encodeURIComponent(location.pathname + location.search)}`);
+	}
+};
+
 export function api(f: Fetch = fetch) {
-	return createClient<paths>({ baseUrl: '', fetch: f });
+	const client = createClient<paths>({ baseUrl: '', fetch: f });
+	client.use(signIn);
+	return client;
 }
 
 export class ApiError extends Error {

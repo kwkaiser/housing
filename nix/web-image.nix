@@ -14,11 +14,6 @@ let
     runtimeInputs = [ caddy ];
     text = ''
       export HOUSING_WEB_ROOT=${web}
-      if [ -n "''${HOUSING_API_KEY:-}" ]; then
-        export HOUSING_API_AUTHORIZATION="Bearer $HOUSING_API_KEY"
-      else
-        export HOUSING_API_AUTHORIZATION=""
-      fi
       exec caddy run --adapter caddyfile --config ${./Caddyfile}
     '';
   };

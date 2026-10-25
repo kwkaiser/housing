@@ -7,10 +7,9 @@
 :{$HOUSING_WEB_LISTEN_PORT:8080} {
 	encode zstd gzip
 
-	@api path /api/*
-	handle @api {
+	@server path /api/* /auth/*
+	handle @server {
 		reverse_proxy {$HOUSING_API_URL:http://127.0.0.1:8081} {
-			header_up Authorization "{$HOUSING_API_AUTHORIZATION}"
 			flush_interval -1
 		}
 	}

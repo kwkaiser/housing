@@ -3,7 +3,7 @@
 	import { page } from '$app/state';
 	import type { LayoutProps } from './$types';
 
-	let { children }: LayoutProps = $props();
+	let { data, children }: LayoutProps = $props();
 
 	const nav = [
 		{ label: 'Listings', href: '/', prefixes: ['/c/', '/listing/'] },
@@ -28,6 +28,12 @@
 			<a href={item.href} aria-current={active(item, page.url.pathname) ? 'page' : undefined}>{item.label}</a>
 		{/each}
 	</nav>
+	{#if data.me.auth === 'session'}
+		<form class="account" method="post" action="/auth/logout" data-sveltekit-reload>
+			<span title={data.me.email}>{data.me.name}</span>
+			<button type="submit">Sign out</button>
+		</form>
+	{/if}
 </header>
 <main>
 	{@render children()}
