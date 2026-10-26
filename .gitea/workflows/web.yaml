@@ -26,7 +26,7 @@ jobs:
         with:
           builder-key: ${{ secrets.NIX_REMOTE_BUILDER_KEY }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.local/share/pnpm/store
           key: pnpm-web-${{ hashFiles('apps/web/pnpm-lock.yaml') }}

@@ -25,13 +25,13 @@ jobs:
         with:
           builder-key: ${{ secrets.NIX_REMOTE_BUILDER_KEY }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.local/share/pnpm/store
           key: pnpm-android-${{ hashFiles('apps/android/pnpm-lock.yaml') }}
           restore-keys: pnpm-android-
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
