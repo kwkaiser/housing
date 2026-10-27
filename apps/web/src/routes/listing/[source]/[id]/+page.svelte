@@ -5,6 +5,7 @@
 	import Back from '#lib/components/Back.svelte';
 	import Collages from '#lib/components/Collages.svelte';
 	import Gallery from '#lib/components/Gallery.svelte';
+	import Hide from '#lib/components/Hide.svelte';
 	import ListingMap from '#lib/components/ListingMap.svelte';
 	import Match from '#lib/components/Match.svelte';
 	import Star from '#lib/components/Star.svelte';
@@ -17,6 +18,7 @@
 	let l = $derived(d.listing);
 	let title = $derived(address(l.address) || `${l.source} ${l.source_id}`);
 	let favorite = $derived(d.favorite);
+	let hidden = $derived(d.hidden);
 	let mapOpen = $state(load('listingMapOpen', false));
 	let collagesOpen = $state(false);
 
@@ -51,7 +53,9 @@
 		{#each d.also_listed ?? [] as also (also.source + also.source_id)}
 			<a class="button" href={also.url} target="_blank" rel="noopener">{also.source} · {money(also.price.cents, also.offer)} <ExternalLinkIcon size={14} /></a>
 		{/each}
+		<Hide source={l.source} id={l.source_id} bind:on={hidden} />
 	</div>
+	{#if hidden}<p class="summary-line">Hidden from listings and the map.</p>{/if}
 	{#if d.day}<p class="summary-line">As seen on {d.day}{d.collection ? ` in ${d.collection}` : ''}.</p>{/if}
 </header>
 

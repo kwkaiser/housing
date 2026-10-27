@@ -25,8 +25,9 @@
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import { beds, match, money, sized } from '#lib/format.ts';
+	import Hide from './Hide.svelte';
 
-	let { pin, lead }: { pin: MapPin; lead: string } = $props();
+	let { pin, lead, onhidden }: { pin: MapPin; lead: string; onhidden?: (on: boolean) => void } = $props();
 
 	let srcs = $state<string[]>(untrack(() => (pin.preview ? [pin.preview] : [])));
 	let index = $state(0);
@@ -77,8 +78,13 @@
 <div class="muted">First seen {pin.first_seen}{retrieved} · {(pin.collections ?? []).join(', ')}</div>
 {#if g?.dealbreakers?.length}<div class="bad">Dealbreakers: {g.dealbreakers.join(', ')}</div>{/if}
 {#if pin.approx}<div class="muted">Approximate: placed at the zip code's center</div>{/if}
+<div class="actions"><Hide source={pin.source} id={pin.source_id} on={pin.hidden ?? false} onchange={onhidden} /></div>
 
 <style>
+	.actions {
+		margin-top: 0.5rem;
+	}
+
 	.frame {
 		position: relative;
 		margin-bottom: 0.5rem;

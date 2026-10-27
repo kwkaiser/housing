@@ -73,7 +73,7 @@ func TestAPISpec(t *testing.T) {
 		if strings.Contains(string(b), "...}") {
 			t.Errorf("GET %s: wildcard pattern leaked into spec", target)
 		}
-		for _, s := range []string{"/api/v1/collections/{id}/listings", "/api/v1/media/{key}", "listCollectionListings", "bearer", "createCollection", "updateProfile", "streamJob", "text/event-stream", "listMapPins", "addFavorite", "getMeta", "addPlace", "searchPlaces"} {
+		for _, s := range []string{"/api/v1/collections/{id}/listings", "/api/v1/media/{key}", "listCollectionListings", "bearer", "createCollection", "updateProfile", "streamJob", "text/event-stream", "listMapPins", "addFavorite", "getMeta", "addPlace", "searchPlaces", "hideListing"} {
 			if !strings.Contains(string(b), s) {
 				t.Errorf("GET %s: missing %q", target, s)
 			}

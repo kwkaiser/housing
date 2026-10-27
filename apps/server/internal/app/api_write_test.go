@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -507,5 +508,44 @@ func TestAPICollectionDays(t *testing.T) {
 	}
 	if res, _ := apiDo(t, h, http.MethodGet, apiV1+"/collections/nope/days", key); res.StatusCode != http.StatusNotFound {
 		t.Errorf("missing collection = %d, want 404", res.StatusCode)
+	}
+}
+
+func TestAPIHidden(t *testing.T) {
+	_, h, key := apiApp(t)
+
+	before := apiGet[APICollectionListings](t, h, key, "/api/v1/collections/somerville/listings")
+	if res, b := apiSend(t, h, http.MethodPut, "/api/v1/listings/zillow/z1/hidden", key, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("hide = %d\n%s", res.StatusCode, b)
+	}
+	if res, _ := apiSend(t, h, http.MethodPut, "/api/v1/listings/zillow/nope/hidden", key, nil); res.StatusCode != http.StatusNotFound {
+		t.Errorf("hide missing = %d", res.StatusCode)
+	}
+	if d := apiGet[APIListingDetail](t, h, key, "/api/v1/listings/zillow/z1"); !d.Hidden {
+		t.Error("detail not hidden")
+	}
+	v := apiGet[APICollectionListings](t, h, key, "/api/v1/collections/somerville/listings")
+	if len(v.Rows) != len(before.Rows)-1 || v.Unlisted != 1 || slices.ContainsFunc(v.Rows, func(r APIListingRow) bool { return r.Listing.SourceID == "z1" }) {
+		t.Errorf("rows = %d unlisted %d", len(v.Rows), v.Unlisted)
+	}
+	if v.Rows[0].Rank != 1 {
+		t.Errorf("first rank = %d", v.Rows[0].Rank)
+	}
+	v = apiGet[APICollectionListings](t, h, key, "/api/v1/collections/somerville/listings?hidden=true")
+	if len(v.Rows) != len(before.Rows) || !v.Rows[0].Hidden || v.Rows[1].Hidden || v.Unlisted != 0 {
+		t.Errorf("with hidden = %d rows, unlisted %d", len(v.Rows), v.Unlisted)
+	}
+	pins := apiGet[APIMapPins](t, h, key, "/api/v1/map/pins")
+	for _, p := range pins.Pins {
+		if p.Hidden != (p.SourceID == "z1") {
+			t.Errorf("pin %s hidden = %v", p.SourceID, p.Hidden)
+		}
+	}
+
+	if res, _ := apiSend(t, h, http.MethodDelete, "/api/v1/listings/zillow/z1/hidden", key, nil); res.StatusCode != http.StatusNoContent {
+		t.Errorf("unhide = %d", res.StatusCode)
+	}
+	if v := apiGet[APICollectionListings](t, h, key, "/api/v1/collections/somerville/listings"); len(v.Rows) != len(before.Rows) || v.Rows[0].Hidden {
+		t.Errorf("after unhide = %d rows", len(v.Rows))
 	}
 }

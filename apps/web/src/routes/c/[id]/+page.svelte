@@ -32,7 +32,8 @@
 	let filtersOpen = $state(false);
 	let newOnly = $derived(page.url.searchParams.get('new') === '1');
 	let hideRepeats = $derived(page.url.searchParams.get('repeats') === '0');
-	let activeFilters = $derived([withDealbreakers, newOnly, hideRepeats].filter(Boolean).length);
+	let withHidden = $derived(page.url.searchParams.get('hidden') === '1');
+	let activeFilters = $derived([withDealbreakers, newOnly, hideRepeats, withHidden].filter(Boolean).length);
 	let running = $derived(c.last_run?.status === 'queued' || c.last_run?.status === 'running');
 
 	const sorts = [
@@ -143,6 +144,7 @@
 	}
 
 	function seen(r: ListingRow): Tag | null {
+		if (r.hidden) return { text: 'hidden', tone: 'muted' };
 		if (r.new) return { text: 'new', tone: 'accent' };
 		return r.status === 'repeat' ? { text: 'repeat', tone: 'muted' } : null;
 	}
@@ -217,9 +219,9 @@
 
 <p class="summary-line">
 	{#if !data.single}
-		{view.listings} retrieved {data.from ? `since ${data.from}` : 'on any date'}{data.to ? ` through ${data.to}` : ''} · {view.graded} graded{view.hidden ? ` · ${view.hidden} hidden for dealbreakers` : ''}
+		{view.listings} retrieved {data.from ? `since ${data.from}` : 'on any date'}{data.to ? ` through ${data.to}` : ''} · {view.graded} graded{view.hidden ? ` · ${view.hidden} hidden for dealbreakers` : ''}{view.unlisted ? ` · ${view.unlisted} hidden by you` : ''}
 	{:else if view.day}
-		{view.listings} listings · {view.graded} graded{view.hidden ? ` · ${view.hidden} hidden for dealbreakers` : ''}
+		{view.listings} listings · {view.graded} graded{view.hidden ? ` · ${view.hidden} hidden for dealbreakers` : ''}{view.unlisted ? ` · ${view.unlisted} hidden by you` : ''}
 	{:else}
 		Never run
 	{/if}
@@ -236,6 +238,7 @@
 		<label>Show dealbreakers <input type="checkbox" checked={withDealbreakers} onchange={(e) => goto(href({ dealbreakers: e.currentTarget.checked ? '1' : null }), { reset: false })} /></label>
 		<label>New only <input type="checkbox" checked={newOnly} onchange={(e) => goto(href({ new: e.currentTarget.checked ? '1' : null }), { reset: false })} /></label>
 		<label>Hide repeats <input type="checkbox" checked={hideRepeats} onchange={(e) => goto(href({ repeats: e.currentTarget.checked ? '0' : null }), { reset: false })} /></label>
+		<label>Show hidden <input type="checkbox" checked={withHidden} onchange={(e) => goto(href({ hidden: e.currentTarget.checked ? '1' : null }), { reset: false })} /></label>
 	</div>
 </Sheet>
 

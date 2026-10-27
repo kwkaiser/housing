@@ -111,6 +111,22 @@ func (a *App) newAPI() (*http.ServeMux, huma.API) {
 		Tags:          []string{"favorites"},
 		DefaultStatus: http.StatusNoContent,
 	}, a.apiSetFavorite(false))
+	huma.Register(api, huma.Operation{
+		OperationID:   "hideListing",
+		Method:        http.MethodPut,
+		Path:          apiV1 + "/listings/{source}/{source_id}/hidden",
+		Summary:       "Hide a listing from listings and the map",
+		Tags:          []string{"listings"},
+		DefaultStatus: http.StatusNoContent,
+	}, a.apiSetHidden(true))
+	huma.Register(api, huma.Operation{
+		OperationID:   "unhideListing",
+		Method:        http.MethodDelete,
+		Path:          apiV1 + "/listings/{source}/{source_id}/hidden",
+		Summary:       "Stop hiding a listing",
+		Tags:          []string{"listings"},
+		DefaultStatus: http.StatusNoContent,
+	}, a.apiSetHidden(false))
 	huma.Get(api, apiV1+"/profiles", a.apiProfiles, op("listProfiles", "List profiles", "profiles"))
 	huma.Register(api, huma.Operation{
 		OperationID:   "createProfile",
@@ -359,6 +375,7 @@ type APIListingRow struct {
 	Status             service.Status `json:"status" enum:"new,changed,repeat" doc:"new: first seen this day; changed: price, description or photos differ from the previous sighting; repeat: unchanged since the previous sighting, so its grade carries over"`
 	PreviousPriceCents *int64         `json:"previous_price_cents,omitempty"`
 	Favorite           bool           `json:"favorite"`
+	Hidden             bool           `json:"hidden"`
 	Day                string         `json:"day" doc:"The run this row is from"`
 }
 
@@ -415,6 +432,7 @@ type collectionListingsInput struct {
 	From         string  `query:"from" format:"date" doc:"With from or to, list each listing's latest graded sighting across the runs in this range instead of one run"`
 	To           string  `query:"to" format:"date"`
 	Dealbreakers bool    `query:"dealbreakers" doc:"Include listings that hit a dealbreaker"`
+	Hidden       bool    `query:"hidden" doc:"Include listings marked hidden"`
 	MinMatch     float64 `query:"min_match" minimum:"0" doc:"Only listings whose best match is at least this"`
 	NewOnly      bool    `query:"new_only" doc:"Only listings first seen on this day"`
 	HideRepeats  bool    `query:"hide_repeats" doc:"Leave out listings unchanged since their previous sighting"`
@@ -432,6 +450,7 @@ type APICollectionListings struct {
 	Listings    int                 `json:"listings" doc:"Listings observed that day, or across the range"`
 	Graded      int                 `json:"graded" doc:"Distinct listings with a grade"`
 	Hidden      int                 `json:"hidden" doc:"Graded listings left out for hitting a dealbreaker"`
+	Unlisted    int                 `json:"unlisted" doc:"Graded listings left out for being marked hidden"`
 	Matched     int                 `json:"matched" doc:"Rows that pass the filters, before offset and limit"`
 	Stale       bool                `json:"stale"`
 	Models      []string            `json:"models"`
@@ -446,16 +465,16 @@ func (a *App) apiCollectionListings(ctx context.Context, in *collectionListingsI
 		if in.From != "" && in.To != "" && in.From > in.To {
 			in.From, in.To = in.To, in.From
 		}
-		v, err = a.svc.CollectionSpan(ctx, in.ID, service.SpanOptions{From: in.From, To: in.To, Dealbreakers: in.Dealbreakers})
+		v, err = a.svc.CollectionSpan(ctx, in.ID, service.SpanOptions{From: in.From, To: in.To, Dealbreakers: in.Dealbreakers, Hidden: in.Hidden})
 	} else {
-		v, err = a.svc.CollectionDay(ctx, in.ID, service.DayOptions{Day: in.Day, Dealbreakers: in.Dealbreakers})
+		v, err = a.svc.CollectionDay(ctx, in.ID, service.DayOptions{Day: in.Day, Dealbreakers: in.Dealbreakers, Hidden: in.Hidden})
 	}
 	if err != nil {
 		return nil, a.apiError(ctx, err)
 	}
 	out := APICollectionListings{
 		Collection: apiCollection(v.Collection), Day: v.Day, From: in.From, To: in.To, PreviousDay: v.Prev, NextDay: v.Next,
-		Listings: v.Listings, Graded: v.Graded, Hidden: v.Hidden, Stale: v.Stale,
+		Listings: v.Listings, Graded: v.Graded, Hidden: v.Hidden, Unlisted: v.Unlisted, Stale: v.Stale,
 		Models: v.Models, Profiles: []APIProfileSummary{}, Rows: []APIListingRow{},
 	}
 	if out.Models == nil {
@@ -474,7 +493,7 @@ func (a *App) apiCollectionListings(ctx context.Context, in *collectionListingsI
 		}
 		r := APIListingRow{
 			Rank: row.Rank, Listing: a.listing(ctx, row.Listing), Best: apiGrade(row.Grade), Grades: []APIGrade{}, AlsoListed: row.AlsoListed,
-			FirstSeen: row.FirstSeen, New: row.New(), Status: row.Status, PreviousPriceCents: row.PreviousPriceCents, Favorite: row.Favorite, Day: row.Day,
+			FirstSeen: row.FirstSeen, New: row.New(), Status: row.Status, PreviousPriceCents: row.PreviousPriceCents, Favorite: row.Favorite, Hidden: row.Hidden, Day: row.Day,
 		}
 		for _, id := range v.Collection.Profiles {
 			if g, ok := row.Grades[id]; ok {
@@ -520,6 +539,7 @@ type APIListingDetail struct {
 	History    []APIPriceSighting `json:"history"`
 	Grades     []APIListingGrade  `json:"grades"`
 	Favorite   bool               `json:"favorite"`
+	Hidden     bool               `json:"hidden"`
 	Location   *APILocation       `json:"location,omitempty" doc:"Where to place the listing on a map"`
 	Gallery    []string           `json:"gallery" doc:"API paths of the listing's stored photos in listing order, which take a size like other media"`
 }
@@ -570,7 +590,7 @@ func (a *App) apiListing(ctx context.Context, in *listingInput) (*struct{ Body A
 	}
 	out := APIListingDetail{
 		Listing: a.listing(ctx, v.Listing), Collection: v.Collection, Day: v.Day,
-		AlsoListed: []APIListing{}, History: []APIPriceSighting{}, Grades: []APIListingGrade{}, Favorite: v.Favorite,
+		AlsoListed: []APIListing{}, History: []APIPriceSighting{}, Grades: []APIListingGrade{}, Favorite: v.Favorite, Hidden: v.Hidden,
 		Gallery: mediaPaths(a.svc.StoredPhotos(ctx, v.Listing, 0)),
 	}
 	if loc, approx, ok := geo.Locate(v.Listing); ok {
