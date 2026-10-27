@@ -8,7 +8,9 @@ import (
 	"sync"
 	"time"
 
-	_ "modernc.org/sqlite"
+	"github.com/ncruces/go-sqlite3"
+	_ "github.com/ncruces/go-sqlite3/driver"
+	"github.com/ncruces/go-sqlite3/ext/vec1"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/digest"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
@@ -26,7 +28,10 @@ type Store struct {
 	db *sql.DB
 }
 
-var driverName = sync.OnceValues(func() (string, error) { return telemetry.SQLDriver("sqlite") })
+var driverName = sync.OnceValues(func() (string, error) {
+	sqlite3.AutoExtension(vec1.Register)
+	return telemetry.SQLDriver("sqlite3")
+})
 
 func Open(ctx context.Context, path string) (*Store, error) {
 	name, err := driverName()

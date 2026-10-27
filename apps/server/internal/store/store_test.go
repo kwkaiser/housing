@@ -69,6 +69,22 @@ func TestMigrate(t *testing.T) {
 	}
 }
 
+func TestVectorExtension(t *testing.T) {
+	s := open(t)
+	if _, err := s.db.Exec(`CREATE VIRTUAL TABLE v USING vec1`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.db.Exec(`INSERT INTO v(cmd, vector) VALUES ('rebuild', '{index:"flat"}')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.db.Exec(`INSERT INTO v(rowid, vector) VALUES (1, vec1_from_json('[1,2,3,4]'))`); err != nil {
+		t.Fatal(err)
+	}
+	if n := count(t, s, `SELECT count(*) FROM v`); n != 1 {
+		t.Errorf("rows = %d, want 1", n)
+	}
+}
+
 func TestRoundTrip(t *testing.T) {
 	ctx := t.Context()
 	s := open(t)

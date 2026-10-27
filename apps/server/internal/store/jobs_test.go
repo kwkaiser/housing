@@ -145,7 +145,7 @@ func TestFailRunningJobs(t *testing.T) {
 func TestMigrateJobsOverExistingDatabase(t *testing.T) {
 	ctx := t.Context()
 	path := filepath.Join(t.TempDir(), FileName)
-	db, err := sql.Open("sqlite", "file:"+path+"?_pragma=foreign_keys(1)")
+	db, err := sql.Open("sqlite3", "file:"+path+"?_pragma=foreign_keys(1)")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -16,3 +16,4 @@ vite.config.*.timestamp-*
 *.tsbuildinfo
 /apps/android/android/
 /apps/android/build/
+.DS_Store
