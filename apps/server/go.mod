@@ -3,10 +3,10 @@ module git.kwkaiser.io/kwkaiser/housing
 go 1.26.7
 
 require (
-	github.com/OpenRouterTeam/go-sdk v0.9.75
+	github.com/OpenRouterTeam/go-sdk v0.9.79
 	github.com/XSAM/otelsql v0.44.0
 	github.com/coreos/go-oidc/v3 v3.21.0
-	github.com/danielgtaylor/huma/v2 v2.39.1
+	github.com/danielgtaylor/huma/v2 v2.40.0
 	github.com/go-jose/go-jose/v4 v4.1.6
 	github.com/google/renameio/v2 v2.0.2
 	github.com/hashicorp/go-retryablehttp v0.7.8
@@ -42,7 +42,6 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/ncruces/go-sqlite3-wasm/v6 v6.3.35304 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/pb33f/go-yaml v0.1.1 // indirect
