@@ -27,6 +27,7 @@ func newRootCmd() *cobra.Command {
 		newImportCmd(dataDir),
 		newJobsCmd(dataDir),
 		newRunCmd(dataDir),
+		newEmbedCmd(dataDir),
 	)
 	return cmd
 }

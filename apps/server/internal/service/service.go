@@ -28,6 +28,7 @@ const (
 	StagePhotos  Stage = "photos"
 	StageCollage Stage = "collage"
 	StageAssess  Stage = "assess"
+	StageEmbed   Stage = "embed"
 	StageRun     Stage = "run"
 	StageProfile Stage = "profile"
 	StageImport  Stage = "import"
@@ -37,6 +38,7 @@ const (
 
 type Clients struct {
 	OpenRouter func(apiKey string) openrouter.Completer
+	Embedder   func(apiKey string) openrouter.Embedder
 	Apify      func(token string, maxChargeUSD float64) apify.Runner
 	Provider   func(source listing.Source, runner apify.Runner) (listing.Provider, error)
 	Lookup     func(rawURL string, runner apify.Runner) (listing.Lookup, error)
@@ -69,6 +71,9 @@ func Open(ctx context.Context, cfg Config) (*Service, error) {
 	c := &cfg.Clients
 	if c.OpenRouter == nil {
 		c.OpenRouter = func(key string) openrouter.Completer { return openrouter.NewClient(key) }
+	}
+	if c.Embedder == nil {
+		c.Embedder = func(key string) openrouter.Embedder { return openrouter.NewClient(key) }
 	}
 	if c.Apify == nil {
 		c.Apify = func(token string, maxChargeUSD float64) apify.Runner {
