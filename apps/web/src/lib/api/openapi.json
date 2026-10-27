@@ -149,6 +149,11 @@
           },
           "to": {
             "type": "string"
+          },
+          "unlisted": {
+            "description": "Graded listings left out for being marked hidden",
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
@@ -156,6 +161,7 @@
           "listings",
           "graded",
           "hidden",
+          "unlisted",
           "matched",
           "stale",
           "models",
@@ -793,6 +799,9 @@
             },
             "type": "array"
           },
+          "hidden": {
+            "type": "boolean"
+          },
           "history": {
             "items": {
               "$ref": "#/components/schemas/APIPriceSighting"
@@ -813,6 +822,7 @@
           "history",
           "grades",
           "favorite",
+          "hidden",
           "gallery"
         ],
         "type": "object"
@@ -931,6 +941,9 @@
             },
             "type": "array"
           },
+          "hidden": {
+            "type": "boolean"
+          },
           "listing": {
             "$ref": "#/components/schemas/APIListing"
           },
@@ -964,6 +977,7 @@
           "new",
           "status",
           "favorite",
+          "hidden",
           "day"
         ],
         "type": "object"
@@ -1082,6 +1096,10 @@
             },
             "description": "The listing's best grade in each collection that graded it",
             "type": "object"
+          },
+          "hidden": {
+            "description": "The listing is marked hidden",
+            "type": "boolean"
           },
           "href": {
             "description": "This listing's API path",
@@ -2475,6 +2493,16 @@
             }
           },
           {
+            "description": "Include listings marked hidden",
+            "explode": false,
+            "in": "query",
+            "name": "hidden",
+            "schema": {
+              "description": "Include listings marked hidden",
+              "type": "boolean"
+            }
+          },
+          {
             "description": "Only listings whose best match is at least this",
             "explode": false,
             "in": "query",
@@ -3170,6 +3198,88 @@
           }
         },
         "summary": "Get a listing's stored photos",
+        "tags": [
+          "listings"
+        ]
+      }
+    },
+    "/api/v1/listings/{source}/{source_id}/hidden": {
+      "delete": {
+        "operationId": "unhideListing",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Stop hiding a listing",
+        "tags": [
+          "listings"
+        ]
+      },
+      "put": {
+        "operationId": "hideListing",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Hide a listing from listings and the map",
         "tags": [
           "listings"
         ]

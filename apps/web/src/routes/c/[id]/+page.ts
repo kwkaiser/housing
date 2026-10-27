@@ -19,6 +19,7 @@ export const load: PageLoad = async ({ fetch, params, url }) => {
 						from: single ? undefined : from || ALL_DATES,
 						to: to || undefined,
 						dealbreakers: q.get('dealbreakers') === '1',
+						hidden: q.get('hidden') === '1',
 						new_only: q.get('new') === '1',
 						hide_repeats: q.get('repeats') === '0',
 						min_match: Number(q.get('min')) || undefined

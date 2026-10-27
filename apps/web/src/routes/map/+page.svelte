@@ -42,7 +42,7 @@
 	let selected = $derived(collections.some((c) => c.id === chosen) ? chosen : (collections[0]?.id ?? ''));
 	let fading = $state<Fading>(load<Fading>('mapFading', 'age'));
 	let contrast = $state<number>(Number(load('mapContrast', 50)));
-	let show = $state<{ dealbreakers?: boolean; ungraded?: boolean }>(load('mapShow', {}));
+	let show = $state<{ dealbreakers?: boolean; ungraded?: boolean; hidden?: boolean }>(load('mapShow', {}));
 	let cutoff = $state<number>(Number(load('mapCutoff', 0)) || 0);
 	let filtersOpen = $state(false);
 
@@ -70,6 +70,7 @@
 		if (!(pin.collections ?? []).includes(c)) return null;
 		const g = pin.grades[c];
 		if (!show.ungraded && !g) return null;
+		if (!show.hidden && pin.hidden) return null;
 		if (!show.dealbreakers && g?.dealbreakers?.length) return null;
 		if (g && cutoff > 0 && g.match < cutoff) return null;
 		return c;
@@ -97,7 +98,7 @@
 		const gamma = 0.5 + 3.5 * (contrast / 100);
 		return visible.map((p, i) => {
 			const l = level(p);
-			const s = !fading ? 1 : l === null ? 0.5 : FLOOR + (1 - FLOOR) * l ** gamma;
+			const s = (!fading ? 1 : l === null ? 0.5 : FLOOR + (1 - FLOOR) * l ** gamma) * (p.pin.hidden ? 0.4 : 1);
 			const g = p.pin.grades[p.lead];
 			const hollow = Boolean(g?.dealbreakers?.length);
 			return {
@@ -125,8 +126,10 @@
 		const approx = shown.filter((p) => p.approx).length;
 		const ungraded = shown.filter((p) => p.ungraded).length;
 		const dealbreakers = shown.filter((p) => p.grades[selected]?.dealbreakers?.length).length;
+		const hidden = shown.filter((p) => p.hidden).length;
 		if (approx) parts.push(`${approx} approximate from zip code`);
 		if (dealbreakers) parts.push(`${dealbreakers} with dealbreakers`);
+		if (hidden) parts.push(`${hidden} hidden`);
 		if (ungraded) parts.push(`${ungraded} ungraded`);
 		if (pins.unplaced) parts.push(`${pins.unplaced} without a location across all collections`);
 		return parts.join(' · ');
@@ -204,7 +207,7 @@
 			const g = hit.pin.grades[hit.lead];
 			tip
 				.setLngLat(e.lngLat)
-				.setText([money(hit.pin.price_cents, hit.pin.offer), g ? match(g.match, g.calibrated, g.stale) : 'ungraded', g?.dealbreakers?.length ? 'dealbreaker' : null, hit.pin.first_seen].filter(Boolean).join(' · '))
+				.setText([money(hit.pin.price_cents, hit.pin.offer), g ? match(g.match, g.calibrated, g.stale) : 'ungraded', g?.dealbreakers?.length ? 'dealbreaker' : null, hit.pin.hidden ? 'hidden' : null, hit.pin.first_seen].filter(Boolean).join(' · '))
 				.addTo(map);
 		});
 		map.on('mouseleave', 'pins-hit', () => {
@@ -216,8 +219,13 @@
 			if (!hit) return;
 			tip.remove();
 			const box = document.createElement('div');
-			const preview = attach(PinPreview, { target: box, props: { pin: hit.pin, lead: hit.lead } });
 			const pop = new lib.Popup({ maxWidth: '280px', className: 'pin-popup' }).setLngLat(hit.at).setDOMContent(box);
+			const onhidden = (on: boolean) => {
+				hit.pin.hidden = on;
+				pins = { ...pins };
+				if (on && !show.hidden) pop.remove();
+			};
+			const preview = attach(PinPreview, { target: box, props: { pin: hit.pin, lead: hit.lead, onhidden } });
 			pop.on('close', () => unmount(preview));
 			pop.addTo(map);
 		});
@@ -337,6 +345,7 @@
 		<label>Match cutoff <span><input type="number" min="0" step="5" inputmode="numeric" placeholder="0" bind:value={cutoff} oninput={() => save('mapCutoff', cutoff || 0)} /> %</span></label>
 		<label>Show dealbreakers <input type="checkbox" bind:checked={show.dealbreakers} onchange={() => save('mapShow', show)} /></label>
 		<label>Show ungraded <input type="checkbox" bind:checked={show.ungraded} onchange={() => save('mapShow', show)} /></label>
+		<label>Show hidden <input type="checkbox" bind:checked={show.hidden} onchange={() => save('mapShow', show)} /></label>
 	</div>
 	<h3 class="label">Appearance</h3>
 	<div class="option-list">

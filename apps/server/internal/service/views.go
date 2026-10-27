@@ -22,6 +22,7 @@ import (
 type DayOptions struct {
 	Day          string
 	Dealbreakers bool
+	Hidden       bool
 }
 
 type Status string
@@ -39,6 +40,7 @@ type ListingRow struct {
 	Status             Status
 	PreviousPriceCents *int64
 	Favorite           bool
+	Hidden             bool
 }
 
 func (r ListingRow) New() bool {
@@ -67,6 +69,7 @@ type CollectionDayView struct {
 	Listings    int
 	Graded      int
 	Hidden      int
+	Unlisted    int
 	Stale       bool
 	Models      []string
 	Profiles    []ProfileView
@@ -146,6 +149,10 @@ func (s *Service) CollectionDay(ctx context.Context, collectionID string, o DayO
 	if err != nil {
 		return v, err
 	}
+	hidden, err := db.HiddenKeys(ctx)
+	if err != nil {
+		return v, err
+	}
 	r := report.Build(reportTemplates(templates), listings, reportOptions(v.Collection))
 	v.Graded = len(r.Rows)
 	v.Models = modelsFor(v.Collection, r.Models)
@@ -154,7 +161,11 @@ func (s *Service) CollectionDay(ctx context.Context, collectionID string, o DayO
 			v.Hidden++
 			continue
 		}
-		lr := ListingRow{Row: row, Day: v.Day, Favorite: favorites[store.Key(row.Listing)]}
+		if hidden[store.Key(row.Listing)] && !o.Hidden {
+			v.Unlisted++
+			continue
+		}
+		lr := ListingRow{Row: row, Day: v.Day, Favorite: favorites[store.Key(row.Listing)], Hidden: hidden[store.Key(row.Listing)]}
 		lr.FirstSeen, lr.Status, lr.PreviousPriceCents = sightings(v.Day, history[store.Key(row.Listing)])
 		lr.Rank = len(v.Rows) + 1
 		v.Stale = v.Stale || row.Stale
@@ -317,6 +328,7 @@ type ListingView struct {
 	History    []store.Sighting
 	Grades     []GradeView
 	Favorite   bool
+	Hidden     bool
 }
 
 type GradeView struct {
@@ -365,6 +377,9 @@ func (s *Service) ListingDetail(ctx context.Context, source listing.Source, sour
 		return v, err
 	}
 	if v.Favorite, err = db.IsFavorite(ctx, source, sourceID); err != nil {
+		return v, err
+	}
+	if v.Hidden, err = db.IsHidden(ctx, source, sourceID); err != nil {
 		return v, err
 	}
 
@@ -538,6 +553,7 @@ type SpanOptions struct {
 	From         string
 	To           string
 	Dealbreakers bool
+	Hidden       bool
 }
 
 func (s *Service) CollectionSpan(ctx context.Context, collectionID string, o SpanOptions) (CollectionDayView, error) {
@@ -574,6 +590,10 @@ func (s *Service) CollectionSpan(ctx context.Context, collectionID string, o Spa
 	for _, row := range rows {
 		if len(row.Dealbreakers) > 0 && !o.Dealbreakers {
 			v.Hidden++
+			continue
+		}
+		if row.Hidden && !o.Hidden {
+			v.Unlisted++
 			continue
 		}
 		row.Favorite = favorites[store.Key(row.Listing)]
@@ -618,6 +638,10 @@ func (s *Service) CollectionRange(ctx context.Context, collectionID, from, to st
 	if err != nil {
 		return v, err
 	}
+	hidden, err := db.HiddenKeys(ctx)
+	if err != nil {
+		return v, err
+	}
 	index := map[string]int{}
 	for _, d := range v.Days {
 		if from != "" && d.Day < from || to != "" && d.Day > to {
@@ -630,6 +654,7 @@ func (s *Service) CollectionRange(ctx context.Context, collectionID, from, to st
 		add := func(rr RangeRow) {
 			key := store.Key(rr.Listing)
 			rr.FirstSeen, rr.Status, rr.PreviousPriceCents = sightings(d.Day, history[key])
+			rr.Hidden = hidden[key]
 			if i, ok := index[key]; ok {
 				v.Rows[i] = rr
 				return

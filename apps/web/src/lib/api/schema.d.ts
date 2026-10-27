@@ -234,6 +234,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/listings/{source}/{source_id}/hidden": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Hide a listing from listings and the map */
+        put: operations["hideListing"];
+        post?: never;
+        /** Stop hiding a listing */
+        delete: operations["unhideListing"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/map/config": {
         parameters: {
             query?: never;
@@ -584,6 +602,11 @@ export interface components {
             rows: components["schemas"]["APIListingRow"][];
             stale: boolean;
             to?: string;
+            /**
+             * Format: int64
+             * @description Graded listings left out for being marked hidden
+             */
+            unlisted: number;
         };
         APICreateCollection: {
             /** @description Required amenities; an empty list clears them */
@@ -820,6 +843,7 @@ export interface components {
             /** @description API paths of the listing's stored photos in listing order, which take a size like other media */
             gallery: string[];
             grades: components["schemas"]["APIListingGrade"][];
+            hidden: boolean;
             history: components["schemas"]["APIPriceSighting"][];
             listing: components["schemas"]["APIListing"];
             /** @description Where to place the listing on a map */
@@ -859,6 +883,7 @@ export interface components {
             favorite: boolean;
             first_seen: string;
             grades: components["schemas"]["APIGrade"][];
+            hidden: boolean;
             listing: components["schemas"]["APIListing"];
             new: boolean;
             /** Format: int64 */
@@ -917,6 +942,8 @@ export interface components {
             grades: {
                 [key: string]: components["schemas"]["APIPinGrade"];
             };
+            /** @description The listing is marked hidden */
+            hidden?: boolean;
             /** @description This listing's API path */
             href: string;
             last_seen: string;
@@ -1473,6 +1500,8 @@ export interface operations {
                 to?: string;
                 /** @description Include listings that hit a dealbreaker */
                 dealbreakers?: boolean;
+                /** @description Include listings marked hidden */
+                hidden?: boolean;
                 /** @description Only listings whose best match is at least this */
                 min_match?: number;
                 /** @description Only listings first seen on this day */
@@ -1854,6 +1883,66 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["APIListingGallery"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    hideListing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source: string;
+                source_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    unhideListing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source: string;
+                source_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {

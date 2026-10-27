@@ -66,6 +66,7 @@ type APIMapPin struct {
 	Collections []string               `json:"collections" doc:"Collections that saw the listing, in collection order"`
 	Grades      map[string]APIPinGrade `json:"grades" doc:"The listing's best grade in each collection that graded it"`
 	Ungraded    bool                   `json:"ungraded,omitempty" doc:"No collection has graded the listing yet"`
+	Hidden      bool                   `json:"hidden,omitempty" doc:"The listing is marked hidden"`
 }
 
 type APIPinGrade struct {
@@ -124,7 +125,7 @@ func (a *App) mapPins(ctx context.Context, cs []collection.Collection, from, to 
 				pin := APIMapPin{
 					Source: l.Source, SourceID: l.SourceID, Href: apiListingPath(l.Source, l.SourceID), Lat: loc.Lat, Lng: loc.Lng, Approx: approx,
 					Address: cmp.Or(report.AddressLine(l), l.SourceID), Offer: l.Offer, PriceCents: l.Price.Cents, Beds: l.Beds,
-					FirstSeen: row.FirstSeen, LastSeen: row.Day, Grades: map[string]APIPinGrade{}, Ungraded: row.Ungraded,
+					FirstSeen: row.FirstSeen, LastSeen: row.Day, Grades: map[string]APIPinGrade{}, Ungraded: row.Ungraded, Hidden: row.Hidden,
 				}
 				if pin.Preview = a.thumbnail(ctx, l); pin.Preview == "" {
 					if collages := a.svc.StoredCollages(ctx, l.Collages); len(collages) > 0 {
