@@ -2,7 +2,7 @@
 
 A thin [Capacitor](https://capacitorjs.com) shell around the deployed web app. The APK only loads `HOUSING_APP_URL` (default `https://housing.kwkaiser.io`) in a WebView. The phone needs to reach that URL, so connect to tailscale first.
 
-Sign-in runs in a Custom Tab rather than the WebView, because Google and other identity providers refuse to sign in inside an embedded WebView. The web app opens `/auth/login?app=<challenge>` in the browser, and after the provider signs you in the server sends the browser to `io.kwkaiser.housing://auth` with a one-time code. The app catches that link and posts the code with its PKCE verifier to `/auth/handoff`, which sets the session cookie in the WebView. `task android:deeplink` adds the intent filter for that link from `intent-filter.xml`, since the generated manifest is not checked in.
+Sign-in runs in a Custom Tab rather than the WebView, because Google and other identity providers refuse to sign in inside an embedded WebView. The web app opens `/auth/login?app=<challenge>` in the browser, and after the provider signs you in the server sends the browser to `io.kwkaiser.housing://auth` with a one-time code. The app catches that link and posts the code with its PKCE verifier to `/auth/handoff`, which sets the session cookie in the WebView. `task android:deeplink` adds the intent filter for that link from `intent-filter.xml`, since the generated manifest is not checked in. Likewise `task android:permissions` adds the location permissions from `permissions.xml`, which the WebView needs before it can prompt for the map's locate button.
 
 The Android project under `android/` is generated from `capacitor.config.ts` and is not checked in. Change the app through the config instead of editing it.
 
