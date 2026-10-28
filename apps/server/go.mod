@@ -3,7 +3,7 @@ module git.kwkaiser.io/kwkaiser/housing
 go 1.26.7
 
 require (
-	github.com/OpenRouterTeam/go-sdk v0.9.79
+	github.com/OpenRouterTeam/go-sdk v0.9.83
 	github.com/XSAM/otelsql v0.44.0
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/danielgtaylor/huma/v2 v2.40.0
