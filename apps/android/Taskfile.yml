@@ -30,9 +30,20 @@ tasks:
       - awk 'FNR == NR { filter = filter $0 "\n"; next } { print } !done && /<\/intent-filter>/ { printf "\n%s", filter; done = 1 }' intent-filter.xml {{.MANIFEST}} > {{.MANIFEST}}.new
       - mv {{.MANIFEST}}.new {{.MANIFEST}}
 
+  permissions:
+    desc: Declare the location permissions the map's locate button requests.
+    deps: [deeplink]
+    vars:
+      MANIFEST: android/app/src/main/AndroidManifest.xml
+    status:
+      - grep -q 'android.permission.ACCESS_FINE_LOCATION' {{.MANIFEST}}
+    cmds:
+      - awk 'FNR == NR { perms = perms $0 "\n"; next } /<\/manifest>/ { printf "%s", perms } { print }' permissions.xml {{.MANIFEST}} > {{.MANIFEST}}.new
+      - mv {{.MANIFEST}}.new {{.MANIFEST}}
+
   sync:
     desc: Copy capacitor config and web assets into the Android project.
-    deps: [deeplink]
+    deps: [permissions]
     cmds:
       - pnpm sync
 
