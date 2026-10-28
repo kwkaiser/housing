@@ -171,8 +171,7 @@
 	}
 
 	.nav {
-		top: 50%;
-		transform: translateY(-50%);
+		top: calc(50% - 1.25rem);
 		transition: opacity 0.15s;
 	}
 
