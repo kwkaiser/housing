@@ -1738,7 +1738,7 @@ export interface operations {
                          */
                         event: "event";
                         /** @description The event ID. */
-                        id?: number;
+                        id?: number | string;
                         /** @description The retry time in milliseconds. */
                         retry?: number;
                     } | {
@@ -1749,7 +1749,7 @@ export interface operations {
                          */
                         event: "job";
                         /** @description The event ID. */
-                        id?: number;
+                        id?: number | string;
                         /** @description The retry time in milliseconds. */
                         retry?: number;
                     })[];
