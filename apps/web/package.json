@@ -18,13 +18,13 @@
     "svelte": "5.57.2",
     "svelte-check": "4.7.7",
     "typescript": "^6.0.3",
-    "vite": "8.3.4"
+    "vite": "8.3.5"
   },
   "dependencies": {
     "@capacitor/app": "8.1.2",
     "@capacitor/browser": "8.0.5",
     "@capacitor/core": "8.5.3",
-    "@lucide/svelte": "1.60.0",
+    "@lucide/svelte": "1.61.0",
     "maplibre-gl": "6.15.0",
     "openapi-fetch": "0.17.0"
   },
