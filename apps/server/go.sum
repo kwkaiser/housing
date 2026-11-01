@@ -1,5 +1,5 @@
-github.com/OpenRouterTeam/go-sdk v0.9.100 h1:sDgHixnhQVbSIJfjuqKUj+q+UwPul24qGk52bVyToCw=
-github.com/OpenRouterTeam/go-sdk v0.9.100/go.mod h1:4a0ze9dCIvO81DQGO5ZmCZsHLCmglMwwp8pZfKkEicE=
+github.com/OpenRouterTeam/go-sdk v0.9.101 h1:M8ZTvct6/UOYPfpdqdBdwuGlTg2X89KFuBlhvxElhjo=
+github.com/OpenRouterTeam/go-sdk v0.9.101/go.mod h1:4a0ze9dCIvO81DQGO5ZmCZsHLCmglMwwp8pZfKkEicE=
 github.com/XSAM/otelsql v0.44.0 h1:KxCiv26Fh4okTPlgROE2BWk+lgi20pdgMGxuSwgbRls=
 github.com/XSAM/otelsql v0.44.0/go.mod h1:FySZIr4R4WWMqvIjf2Iah7C0LAlpKvs9XRkaX7rE608=
 github.com/bahlo/generic-list-go v0.2.0 h1:5sz/EEAK+ls5wF+NeqDpk5+iNdMDXrh3z3nPnH1Wvgk=
