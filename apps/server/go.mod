@@ -3,11 +3,11 @@ module git.kwkaiser.io/kwkaiser/housing
 go 1.26.10
 
 require (
-	github.com/OpenRouterTeam/go-sdk v0.9.101
+	github.com/OpenRouterTeam/go-sdk v0.9.102
 	github.com/XSAM/otelsql v0.44.0
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/danielgtaylor/huma/v2 v2.40.0
-	github.com/go-jose/go-jose/v4 v4.1.7
+	github.com/go-jose/go-jose/v4 v4.1.8
 	github.com/google/renameio/v2 v2.0.2
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/invopop/jsonschema v0.14.0
