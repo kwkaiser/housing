@@ -18,8 +18,8 @@ importers:
         specifier: 8.5.3
         version: 8.5.3
       '@lucide/svelte':
-        specifier: 1.61.0
-        version: 1.61.0(svelte@5.57.3)
+        specifier: 1.62.0
+        version: 1.62.0(svelte@5.57.3)
       maplibre-gl:
         specifier: 6.16.0
         version: 6.16.0
@@ -91,8 +91,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@lucide/svelte@1.61.0':
-    resolution: {integrity: sha512-Vwj4ADoKgVogLFpEbXv2PS2hh2fj+aAqPuiNydI88Zkyb1l7veL4fXgRrOX3tgpESHhIGneNkSSYhHupvCBshg==}
+  '@lucide/svelte@1.62.0':
+    resolution: {integrity: sha512-GPnNiUlc29piQn+noy/YAwP3Bfgqs9JxbLPIVbb+T4u2vGxUHeCWdZx0dw0EphP9juWbcLLMsellifhGrLw5yg==}
     peerDependencies:
       svelte: ^5
 
@@ -755,7 +755,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  '@lucide/svelte@1.61.0(svelte@5.57.3)':
+  '@lucide/svelte@1.62.0(svelte@5.57.3)':
     dependencies:
       svelte: 5.57.3
 
