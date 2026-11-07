@@ -11,8 +11,8 @@
     "gen": "openapi-typescript src/lib/api/openapi.json -o src/lib/api/schema.d.ts"
   },
   "devDependencies": {
-    "@sveltejs/adapter-static": "4.0.0",
-    "@sveltejs/kit": "3.1.0",
+    "@sveltejs/adapter-static": "4.0.1",
+    "@sveltejs/kit": "3.1.1",
     "@sveltejs/vite-plugin-svelte": "7.3.1",
     "openapi-typescript": "7.13.0",
     "svelte": "5.57.3",
@@ -24,7 +24,7 @@
     "@capacitor/app": "8.1.2",
     "@capacitor/browser": "8.0.5",
     "@capacitor/core": "8.6.0",
-    "@lucide/svelte": "1.63.0",
+    "@lucide/svelte": "1.65.0",
     "maplibre-gl": "6.16.0",
     "openapi-fetch": "0.17.0"
   },
