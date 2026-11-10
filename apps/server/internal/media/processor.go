@@ -15,12 +15,13 @@ import (
 	"strconv"
 	"strings"
 
+	"go.opentelemetry.io/otel/attribute"
 	_ "golang.org/x/image/webp"
 	"golang.org/x/sync/errgroup"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/digest"
-
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
 const (
@@ -57,7 +58,9 @@ func (p *Processor) Process(ctx context.Context, listings []listing.Listing) ([]
 	return p.Collage(ctx, listings)
 }
 
-func (p *Processor) FetchPhotos(ctx context.Context, listings []listing.Listing) error {
+func (p *Processor) FetchPhotos(ctx context.Context, listings []listing.Listing) (err error) {
+	ctx, span := telemetry.Start(ctx, "media.FetchPhotos", attribute.Int("listings", len(listings)), attribute.Int("concurrency", max(p.Concurrency, 1)))
+	defer func() { telemetry.End(span, err) }()
 	var urls []string
 	seen := map[string]bool{}
 	for _, l := range listings {
@@ -69,6 +72,7 @@ func (p *Processor) FetchPhotos(ctx context.Context, listings []listing.Listing)
 		}
 	}
 
+	span.SetAttributes(attribute.Int("photos", len(urls)))
 	var g errgroup.Group
 	g.SetLimit(max(p.Concurrency, 1))
 	for _, u := range urls {
@@ -86,7 +90,9 @@ func (p *Processor) FetchPhotos(ctx context.Context, listings []listing.Listing)
 	return ctx.Err()
 }
 
-func (p *Processor) Collage(ctx context.Context, listings []listing.Listing) ([]listing.Listing, error) {
+func (p *Processor) Collage(ctx context.Context, listings []listing.Listing) (_ []listing.Listing, err error) {
+	ctx, span := telemetry.Start(ctx, "media.Collage", attribute.Int("listings", len(listings)))
+	defer func() { telemetry.End(span, err) }()
 	collages := map[string][]string{}
 	out := make([]listing.Listing, len(listings))
 	for i, l := range listings {
@@ -198,6 +204,12 @@ func (p *Processor) collage(ctx context.Context, setKey string, urls []string) (
 			return keys, err
 		}
 	}
+	return p.build(ctx, setKey, indexKey, urls)
+}
+
+func (p *Processor) build(ctx context.Context, setKey, indexKey string, urls []string) (_ []string, err error) {
+	ctx, span := telemetry.Start(ctx, "media.buildCollage", attribute.String("set", setKey), attribute.Int("photos", len(urls)))
+	defer func() { telemetry.End(span, err) }()
 
 	var imgs []image.Image
 	for _, u := range urls {

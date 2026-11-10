@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	"go.opentelemetry.io/otel/attribute"
+
 	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
@@ -47,7 +49,12 @@ type RunInput struct {
 	MaxItems int
 }
 
-func (c *Client) Run(ctx context.Context, actorID string, input any) ([]json.RawMessage, error) {
+func (c *Client) Run(ctx context.Context, actorID string, input any) (items []json.RawMessage, err error) {
+	ctx, span := telemetry.Start(ctx, "apify.Run", attribute.String("actor", actorID))
+	defer func() {
+		span.SetAttributes(attribute.Int("items", len(items)))
+		telemetry.End(span, err)
+	}()
 	q := url.Values{"waitForFinish": {"60"}}
 	if ri, ok := input.(RunInput); ok {
 		input = ri.Input
@@ -83,11 +90,27 @@ func (c *Client) Run(ctx context.Context, actorID string, input any) ([]json.Raw
 		return nil, fmt.Errorf("run %s of %s %s: %s", r.ID, actorID, r.Status, r.StatusMessage)
 	}
 
-	var items []json.RawMessage
-	if err := c.do(ctx, http.MethodGet, "/datasets/"+r.DefaultDatasetID+"/items?format=json&clean=true", nil, &items); err != nil {
-		return nil, fmt.Errorf("fetch dataset %s: %w", r.DefaultDatasetID, err)
+	span.SetAttributes(attribute.String("run_id", r.ID))
+	if err := c.dataset(ctx, r.DefaultDatasetID, &items); err != nil {
+		return nil, err
 	}
 	return items, nil
+}
+
+func (c *Client) dataset(ctx context.Context, id string, items *[]json.RawMessage) (err error) {
+	ctx, span := telemetry.Start(ctx, "apify.dataset", attribute.String("dataset", id))
+	defer func() {
+		n := 0
+		for _, it := range *items {
+			n += len(it)
+		}
+		span.SetAttributes(attribute.Int("items", len(*items)), attribute.Int("item_bytes", n))
+		telemetry.End(span, err)
+	}()
+	if err := c.do(ctx, http.MethodGet, "/datasets/"+id+"/items?format=json&clean=true", nil, items); err != nil {
+		return fmt.Errorf("fetch dataset %s: %w", id, err)
+	}
+	return nil
 }
 
 func (c *Client) do(ctx context.Context, method, path string, body []byte, out any) error {

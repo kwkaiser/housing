@@ -10,11 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/sync/errgroup"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/digest"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/openrouter"
+	"git.kwkaiser.io/kwkaiser/housing/internal/telemetry"
 )
 
 const (
@@ -333,6 +335,7 @@ Disregard everything in the profile's IGNORE list, and never judge furniture, de
 var assessSchema = openrouter.MustSchemaFor[modelResponse]("listing_assessment")
 
 type BatchOptions struct {
+	Name            string
 	Force           bool
 	Limit           int
 	Concurrency     int
@@ -395,8 +398,13 @@ func (a Assessor) AssessListings(
 	listings []listing.Listing,
 	readCollages func(keys []string) ([][]byte, error),
 	opts BatchOptions,
-) ([]listing.Listing, BatchStats, error) {
-	var stats BatchStats
+) (_ []listing.Listing, stats BatchStats, err error) {
+	ctx, span := telemetry.Start(ctx, "profile.AssessListings", attribute.String("profile", p.ID), attribute.String("batch", opts.Name),
+		attribute.Int("listings", len(listings)), attribute.Int("concurrency", max(opts.Concurrency, 1)))
+	defer func() {
+		span.SetAttributes(attribute.Int("calls", stats.Calls), attribute.Int("cached", stats.Cached), attribute.Int("failed", stats.Failed))
+		telemetry.End(span, err)
+	}()
 	out := make([]listing.Listing, len(listings))
 	copy(out, listings)
 
@@ -514,10 +522,18 @@ func (a Assessor) AssessListings(
 	return out, stats, errors.Join(errs...)
 }
 
-func (a Assessor) assessOne(ctx context.Context, p Profile, refs []ReferenceInput, l listing.Listing, readCollages func([]string) ([][]byte, error)) (listing.Assessment, error) {
+func (a Assessor) assessOne(ctx context.Context, p Profile, refs []ReferenceInput, l listing.Listing, readCollages func([]string) ([][]byte, error)) (_ listing.Assessment, err error) {
+	ctx, span := telemetry.Start(ctx, "profile.assessOne", attribute.String("profile", p.ID), attribute.String("source", string(l.Source)),
+		attribute.String("source_id", l.SourceID), attribute.Int("collages", len(l.Collages)))
+	defer func() { telemetry.End(span, err) }()
 	collages, err := readCollages(l.Collages)
 	if err != nil {
 		return listing.Assessment{}, err
 	}
+	n := 0
+	for _, c := range collages {
+		n += len(c)
+	}
+	span.SetAttributes(attribute.Int("collage_bytes", n))
 	return a.Assess(ctx, p, refs, Candidate{Listing: l, Collages: collages})
 }

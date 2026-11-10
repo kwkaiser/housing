@@ -166,31 +166,30 @@ func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listin
 	checkpoint := func(ls []listing.Listing) error { return db.Save(ctx, ls) }
 	budget := profile.NewBudget(o.MaxRunUSD)
 	var errs []error
-	for i, t := range templates {
-		if ctx.Err() != nil {
-			break
-		}
+	assessProfile := func(ctx context.Context, i int, t template) (err error) {
+		ctx, span := telemetry.Start(ctx, "service.assessProfile", attribute.String("profile", t.Profile.ID), attribute.Int("listings", len(res.Listings)))
+		defer func() { telemetry.End(span, err) }()
 		p := t.Profile
 		refs, err := s.references(p, t.refs)
 		if err != nil {
-			return res, err
+			return err
 		}
 		for i := range refs {
 			if refs[i].Collages, err = shrinkAll(refs[i].Collages); err != nil {
-				return res, err
+				return err
 			}
 		}
 		assessor := profile.Assessor{Client: client, Model: o.Model, Attempts: profile.DefaultAssessAttempts, ImagePx: DefaultAssessImagePx, ReasoningEffort: profile.DefaultAssessReasoningEffort, MaxTokens: profile.DefaultAssessMaxTokens}
 
 		calibrated, cs, cerr := assessor.AssessListings(ctx, p, refs, t.References,
 			readShrunk(images),
-			profile.BatchOptions{Force: o.Force, Concurrency: 1, Budget: budget,
+			profile.BatchOptions{Name: "reference", Force: o.Force, Concurrency: 1, Budget: budget,
 				Observe: assessObserver(log.With("profile", p.ID, "model", o.Model, "batch", "reference"), 1, budget)},
 		)
 		res.Stats.Add(cs)
 		if cs.Updated > 0 {
 			if err := db.SaveReferenceListings(ctx, p.ID, calibrated); err != nil {
-				return res, err
+				return err
 			}
 		}
 		res.Templates[i].References = calibrated
@@ -204,6 +203,7 @@ func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listin
 		assessed, st, aerr := assessor.AssessListings(ctx, p, refs, res.Listings,
 			readShrunk(images),
 			profile.BatchOptions{
+				Name:            "listings",
 				Force:           o.Force,
 				Limit:           o.Limit,
 				Concurrency:     cmpOr(o.Concurrency, DefaultAssessConcurrency),
@@ -218,7 +218,7 @@ func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listin
 		res.Listings = assessed
 		if st.Updated > 0 {
 			if err := db.Save(ctx, assessed); err != nil {
-				return res, err
+				return err
 			}
 		}
 		if aerr != nil {
@@ -226,6 +226,15 @@ func (s *Service) Assess(ctx context.Context, o AssessOptions, listings []listin
 		}
 		log.Info("assessed profile", "profile", p.ID, "model", o.Model, "calls", st.Calls, "cost_usd", usd(st.CostUSD), "tokens", st.Tokens.Total(),
 			"updated", st.Updated, "cached", st.Cached, "failed", st.Failed, "no_collages", st.NoCollages, "over_limit", st.OverLimit, "over_budget", st.OverBudget)
+		return nil
+	}
+	for i, t := range templates {
+		if ctx.Err() != nil {
+			break
+		}
+		if err := assessProfile(ctx, i, t); err != nil {
+			return res, err
+		}
 	}
 	if budget.Exhausted() {
 		res.BudgetReached = true
