@@ -100,8 +100,6 @@ func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (
 		providers[i] = p
 	}
 
-	db := s.db
-
 	results := make([][]listing.Listing, len(providers))
 	failures := make([]error, len(providers))
 	var g errgroup.Group
@@ -133,19 +131,19 @@ func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (
 	}
 	listings := slices.Concat(results...)
 
-	stored, err := db.Load(ctx)
+	stored, err := s.loadStored(ctx, listings)
 	if err != nil {
 		return res, err
 	}
 	listings = CarryOver(stored, listings)
 
-	if err := db.Observe(ctx, res.Day, o.Collection, listings); err != nil {
+	if err := s.observe(ctx, res.Day, o.Collection, listings); err != nil {
 		return res, err
 	}
 	res.Observed = len(listings)
 	flog.InfoContext(ctx, "stored observations", "listings", len(listings), "day", res.Day)
 
-	distinct := FreshGroups(stored, listings)
+	distinct := dedupeFresh(ctx, stored, listings)
 	for _, g := range distinct {
 		res.Duplicates += len(g.Others)
 	}
@@ -165,6 +163,28 @@ func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (
 	}
 	res.Listings = listings
 	return res, nil
+}
+
+func (s *Service) loadStored(ctx context.Context, fresh []listing.Listing) (stored []listing.Listing, err error) {
+	ctx, span := telemetry.Start(ctx, "service.loadStored", attribute.Int("fresh", len(fresh)))
+	defer func() { telemetry.End(span, err) }()
+	stored, err = s.db.Load(ctx)
+	span.SetAttributes(attribute.Int("stored", len(stored)))
+	return stored, err
+}
+
+func (s *Service) observe(ctx context.Context, day, collection string, listings []listing.Listing) (err error) {
+	ctx, span := telemetry.Start(ctx, "service.observe", attribute.Int("listings", len(listings)))
+	defer func() { telemetry.End(span, err) }()
+	return s.db.Observe(ctx, day, collection, listings)
+}
+
+func dedupeFresh(ctx context.Context, stored, fresh []listing.Listing) []dedupe.Group {
+	_, span := telemetry.Start(ctx, "service.dedupe", attribute.Int("stored", len(stored)), attribute.Int("fresh", len(fresh)))
+	defer span.End()
+	groups := FreshGroups(stored, fresh)
+	span.SetAttributes(attribute.Int("distinct", len(groups)))
+	return groups
 }
 
 func FreshGroups(stored, fresh []listing.Listing) []dedupe.Group {
@@ -210,7 +230,7 @@ func (s *Service) fetchOne(ctx context.Context, p listing.Provider, q listing.Qu
 	sourceQuery := q
 	sourceQuery.Amenities, _ = SplitAmenities(q.Amenities, p.SupportedAmenities(q.Offer))
 
-	listings, err := p.Search(ctx, sourceQuery)
+	listings, err := search(ctx, p, sourceQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +238,7 @@ func (s *Service) fetchOne(ctx context.Context, p listing.Provider, q listing.Qu
 
 	stage := "search"
 	if enricher, ok := p.(listing.Enricher); ok && o.Enrich && len(listings) > 0 {
-		if listings, err = enricher.Enrich(ctx, listings); err != nil {
+		if listings, err = enrich(ctx, p.Source(), enricher, listings); err != nil {
 			return nil, err
 		}
 		stage = "enrich"
@@ -227,6 +247,24 @@ func (s *Service) fetchOne(ctx context.Context, p listing.Provider, q listing.Qu
 	matching := slices.DeleteFunc(listings, func(l listing.Listing) bool { return !q.Matches(l) })
 	log.InfoContext(ctx, "filtered", "after", stage, "matching", len(matching), "total", total)
 	return matching, nil
+}
+
+func search(ctx context.Context, p listing.Provider, q listing.Query) (ls []listing.Listing, err error) {
+	ctx, span := telemetry.Start(ctx, "provider.Search", attribute.String("source", string(p.Source())))
+	defer func() {
+		span.SetAttributes(attribute.Int("listings", len(ls)))
+		telemetry.End(span, err)
+	}()
+	return p.Search(ctx, q)
+}
+
+func enrich(ctx context.Context, source listing.Source, e listing.Enricher, in []listing.Listing) (ls []listing.Listing, err error) {
+	ctx, span := telemetry.Start(ctx, "provider.Enrich", attribute.String("source", string(source)), attribute.Int("input", len(in)))
+	defer func() {
+		span.SetAttributes(attribute.Int("listings", len(ls)))
+		telemetry.End(span, err)
+	}()
+	return e.Enrich(ctx, in)
 }
 
 func NewProvider(source listing.Source, runner apify.Runner) (listing.Provider, error) {

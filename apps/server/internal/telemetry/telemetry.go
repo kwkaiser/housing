@@ -13,14 +13,17 @@ import (
 	"github.com/XSAM/otelsql"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	otelruntime "go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
@@ -28,8 +31,9 @@ import (
 )
 
 const (
-	Name        = "git.kwkaiser.io/kwkaiser/housing"
-	ServiceName = "housing"
+	Name                  = "git.kwkaiser.io/kwkaiser/housing"
+	ServiceName           = "housing"
+	DefaultMetricInterval = 15 * time.Second
 )
 
 var tracer = otel.Tracer(Name)
@@ -75,7 +79,25 @@ func Setup(ctx context.Context, version string) (*Telemetry, error) {
 	lp := sdklog.NewLoggerProvider(sdklog.WithProcessor(sdklog.NewBatchProcessor(logs)), sdklog.WithResource(res))
 	t.shutdown = append(t.shutdown, lp.Shutdown)
 
+	metrics, err := otlpmetrichttp.New(ctx)
+	if err != nil {
+		return nil, errors.Join(err, t.Shutdown(ctx))
+	}
+	var readerOpts []sdkmetric.PeriodicReaderOption
+	if os.Getenv("OTEL_METRIC_EXPORT_INTERVAL") == "" {
+		readerOpts = append(readerOpts, sdkmetric.WithInterval(DefaultMetricInterval))
+	}
+	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metrics, readerOpts...)), sdkmetric.WithResource(res))
+	t.shutdown = append(t.shutdown, mp.Shutdown)
+	if err := otelruntime.Start(otelruntime.WithMeterProvider(mp)); err != nil {
+		return nil, errors.Join(err, t.Shutdown(ctx))
+	}
+	if err := registerProcessMemory(mp); err != nil {
+		return nil, errors.Join(err, t.Shutdown(ctx))
+	}
+
 	otel.SetTracerProvider(tp)
+	otel.SetMeterProvider(mp)
 	global.SetLoggerProvider(lp)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	t.enabled = true
@@ -99,7 +121,11 @@ func (t *Telemetry) Handler(h slog.Handler) slog.Handler {
 }
 
 func Start(ctx context.Context, name string, attrs ...attribute.KeyValue) (context.Context, trace.Span) {
-	return tracer.Start(ctx, name, trace.WithAttributes(attrs...))
+	ctx, span := tracer.Start(ctx, name, trace.WithAttributes(attrs...))
+	if !span.IsRecording() {
+		return ctx, span
+	}
+	return ctx, &memSpan{Span: span, start: readMemory()}
 }
 
 func End(span trace.Span, err error) {
