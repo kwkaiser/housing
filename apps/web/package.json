@@ -24,7 +24,7 @@
     "@capacitor/app": "8.1.2",
     "@capacitor/browser": "8.0.5",
     "@capacitor/core": "8.6.0",
-    "@lucide/svelte": "1.69.0",
+    "@lucide/svelte": "1.70.0",
     "maplibre-gl": "6.16.0",
     "openapi-fetch": "0.17.0"
   },
