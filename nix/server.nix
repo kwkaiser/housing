@@ -12,7 +12,7 @@ buildGoModule {
   pname = "housing";
   inherit version src;
 
-  vendorHash = "sha256-tfapPtv+bu8JX9HBc8dsHVveICFycHTKsGEIsP/fVSY=";
+  vendorHash = "sha256-snP1rHvyZS2YgzSXsv0SW+qLzJ29zHKbJrUTRV5XG3U=";
   proxyVendor = true;
   overrideModAttrs = _: { name = "housing-go-modules-${depsKey}"; };
 
