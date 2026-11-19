@@ -27,7 +27,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     inherit (finalAttrs) version src;
     pname = "housing-web-${depsKey}";
     fetcherVersion = 4;
-    hash = "sha256-/0pRGeCbssWtO8mFl0F3c842sbepLukFFxQywEfW0u0=";
+    hash = "sha256-jzSDakghAuacA0hOUkaGcihQZISNPgKZ5JIxfNppN3s=";
     postInstall = ''
       rm -rf "$storePath"/v11/links
     '';
