@@ -24,6 +24,7 @@
       "matchManagers": [
         "gomod"
       ],
+      "minimumReleaseAge": "7 days",
       "postUpgradeTasks": {
         "commands": [
           "./nix/update-hashes.sh"
@@ -48,34 +49,6 @@
         ],
         "executionMode": "branch"
       }
-    },
-    {
-      "matchManagers": [
-        "gomod"
-      ],
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "digest"
-      ],
-      "groupName": "go dependencies"
-    },
-    {
-      "matchManagers": [
-        "npm"
-      ],
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "digest"
-      ],
-      "groupName": "web dependencies"
-    },
-    {
-      "matchManagers": [
-        "github-actions"
-      ],
-      "groupName": "workflow actions"
     },
     {
       "matchUpdateTypes": [
