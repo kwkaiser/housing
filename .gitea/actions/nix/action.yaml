@@ -25,7 +25,7 @@ runs:
     - uses: DeterminateSystems/determinate-nix-action@v3.24.3
       with:
         extra-conf: |
-          builders = ssh-ng://nixbuilder@kwkaiser.io x86_64-linux /tmp/nix-remote-builder-key 2 1 - - -
+          builders = ssh-ng://nixbuilder@kwkaiser.io x86_64-linux,i686-linux /tmp/nix-remote-builder-key 2 1 - - -
           builders-use-substitutes = true
           extra-substituters = ssh-ng://nixbuilder@kwkaiser.io?trusted=true&priority=10
           max-jobs = 0
