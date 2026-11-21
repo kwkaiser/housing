@@ -1,5 +1,5 @@
-github.com/OpenRouterTeam/go-sdk v0.9.122 h1:atiEuxZm3XBctd2cGNa6xViH3/QNw/WvHQ03uBCneS0=
-github.com/OpenRouterTeam/go-sdk v0.9.122/go.mod h1:4a0ze9dCIvO81DQGO5ZmCZsHLCmglMwwp8pZfKkEicE=
+github.com/OpenRouterTeam/go-sdk v0.9.126 h1:3RpFuRQeclThiEuDWqQNMsKurO8Z063cXevV6kILk5M=
+github.com/OpenRouterTeam/go-sdk v0.9.126/go.mod h1:4a0ze9dCIvO81DQGO5ZmCZsHLCmglMwwp8pZfKkEicE=
 github.com/XSAM/otelsql v0.44.0 h1:KxCiv26Fh4okTPlgROE2BWk+lgi20pdgMGxuSwgbRls=
 github.com/XSAM/otelsql v0.44.0/go.mod h1:FySZIr4R4WWMqvIjf2Iah7C0LAlpKvs9XRkaX7rE608=
 github.com/bahlo/generic-list-go v0.2.0 h1:5sz/EEAK+ls5wF+NeqDpk5+iNdMDXrh3z3nPnH1Wvgk=
@@ -60,10 +60,10 @@ github.com/mattn/go-isatty v0.0.24 h1:tGZZoVgT/KiqK1c8ocVLeDS8BSWMRd47J3Lbz7vsRe
 github.com/mattn/go-isatty v0.0.24/go.mod h1:nMCL3Zebbrt45jsMDgnfIwz6ydEQApk5oEI3HqDio6A=
 github.com/modelcontextprotocol/go-sdk v1.8.0 h1:KIvahhYqwtbeniWVPs3TcXEA7b8jEtwfBpOTAI+Urx4=
 github.com/modelcontextprotocol/go-sdk v1.8.0/go.mod h1:dL7u98E/zjJTGzEq+j30jQ8K2k1mb6LeAH4inEcSGts=
-github.com/ncruces/go-sqlite3 v0.37.0 h1:Ps3EH70hhznZ+qkWIrTUlbTRlEv3dGTSQ/LOXlJxpaM=
-github.com/ncruces/go-sqlite3 v0.37.0/go.mod h1:GASdtn4/ABuWBpm283DX4XJymxoVdVqKYpIDEDjqcV0=
-github.com/ncruces/go-sqlite3-wasm/v6 v6.5.35401 h1:GM27MxQNSRvqi44IYsZANqQKGonIRjUcPojI67RJfq4=
-github.com/ncruces/go-sqlite3-wasm/v6 v6.5.35401/go.mod h1:zeroyGPjT3/xj22bhcPdlFLSYugMoi74v+aISTwWrtM=
+github.com/ncruces/go-sqlite3 v0.38.0 h1:FSy3sxWTaGPzTZgE9mkM+bo6b4Kj0iTvsDjJz2IfB84=
+github.com/ncruces/go-sqlite3 v0.38.0/go.mod h1:qPQrrHbHYP7FQsgp9rAD0xr14DCDOXZwk8jeU6Y+dUg=
+github.com/ncruces/go-sqlite3-wasm/v6 v6.7.35401 h1:BlrYMg6wi+S0oxZ8IeGMHXi2nfjK+06KLQ3w85bqxOM=
+github.com/ncruces/go-sqlite3-wasm/v6 v6.7.35401/go.mod h1:K/Z0eKUURoWW9cJ9rHeMGDF0G4pr0A6WizdC+Ohzj54=
 github.com/ncruces/julianday v1.0.0 h1:fH0OKwa7NWvniGQtxdJRxAgkBMolni2BjDHaWTxqt7M=
 github.com/ncruces/julianday v1.0.0/go.mod h1:Dusn2KvZrrovOMJuOt0TNXL6tB7U2E8kvza5fFc9G7g=
 github.com/pb33f/go-yaml v0.1.1 h1:yWGmhVdwzionRnSc/hEJwcfq6PaZL2QdYzyReXBbX7Q=
