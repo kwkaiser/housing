@@ -8,6 +8,7 @@
 	import Hide from '#lib/components/Hide.svelte';
 	import ListingMap from '#lib/components/ListingMap.svelte';
 	import Match from '#lib/components/Match.svelte';
+	import Share from '#lib/components/Share.svelte';
 	import Star from '#lib/components/Star.svelte';
 	import { address, baths, beds, dateTime, label, money, percent, shortModel, sqft, type Tone } from '#lib/format.ts';
 	import { load, save } from '#lib/storage.ts';
@@ -50,6 +51,7 @@
 	</dl>
 	<div class="links">
 		<a class="button" href={l.url} target="_blank" rel="noopener">{l.source} <ExternalLinkIcon size={14} /></a>
+		<Share url={l.url} />
 		{#each d.also_listed ?? [] as also (also.source + also.source_id)}
 			<a class="button" href={also.url} target="_blank" rel="noopener">{also.source} · {money(also.price.cents, also.offer)} <ExternalLinkIcon size={14} /></a>
 		{/each}

@@ -3,6 +3,7 @@
 	import type { Grade, Listing, Schemas } from '#lib/api/client.ts';
 	import { address, baths, beds, money, sized, sqft, type Tag } from '#lib/format.ts';
 	import Match from './Match.svelte';
+	import Share from './Share.svelte';
 	import Star from './Star.svelte';
 
 	let {
@@ -57,6 +58,7 @@
 			{#each [l, ...also] as x (x.source + x.source_id)}
 				<a href={x.url} target="_blank" rel="noopener">{x.source} <ExternalLinkIcon size={11} /></a>
 			{/each}
+			<Share url={l.url} compact />
 			{#if note}<span>· {note}</span>{/if}
 		</div>
 	</div>
