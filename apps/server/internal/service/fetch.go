@@ -13,6 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/apify"
+	"git.kwkaiser.io/kwkaiser/housing/internal/geo"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing/dedupe"
 	"git.kwkaiser.io/kwkaiser/housing/internal/media"
@@ -138,6 +139,7 @@ func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (
 		return res, err
 	}
 	listings = CarryOver(stored, listings)
+	s.locate(ctx, listings, flog)
 
 	if err := s.observe(ctx, res.Day, o.Collection, listings); err != nil {
 		return res, err
@@ -219,6 +221,9 @@ func CarryOver(stored, fresh []listing.Listing) []listing.Listing {
 			}
 			if l.Collages == nil {
 				l.Collages = prev.Collages
+			}
+			if !geo.Placed(l) && geo.Placed(prev) && l.Address == prev.Address {
+				l.Coordinates = prev.Coordinates
 			}
 		}
 		out[i] = l

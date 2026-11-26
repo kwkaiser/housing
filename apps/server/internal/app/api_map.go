@@ -55,7 +55,6 @@ type APIMapPin struct {
 	Href        string                 `json:"href" doc:"This listing's API path"`
 	Lat         float64                `json:"lat"`
 	Lng         float64                `json:"lng"`
-	Approx      bool                   `json:"approx,omitempty" doc:"Placed at the zip code's center"`
 	Address     string                 `json:"address"`
 	Offer       listing.OfferType      `json:"offer"`
 	PriceCents  int64                  `json:"price_cents"`
@@ -114,8 +113,7 @@ func (a *App) mapPins(ctx context.Context, cs []collection.Collection, from, to 
 			key := string(l.Source) + "/" + l.SourceID
 			j, ok := seen[key]
 			if !ok {
-				loc, approx, placed := geo.Locate(l)
-				if !placed {
+				if !geo.Placed(l) {
 					seen[key] = -1
 					out.Unplaced++
 					continue
@@ -123,7 +121,7 @@ func (a *App) mapPins(ctx context.Context, cs []collection.Collection, from, to 
 				j = len(out.Pins)
 				seen[key] = j
 				pin := APIMapPin{
-					Source: l.Source, SourceID: l.SourceID, Href: apiListingPath(l.Source, l.SourceID), Lat: loc.Lat, Lng: loc.Lng, Approx: approx,
+					Source: l.Source, SourceID: l.SourceID, Href: apiListingPath(l.Source, l.SourceID), Lat: l.Coordinates.Lat, Lng: l.Coordinates.Lng,
 					Address: cmp.Or(report.AddressLine(l), l.SourceID), Offer: l.Offer, PriceCents: l.Price.Cents, Beds: l.Beds,
 					FirstSeen: row.FirstSeen, LastSeen: row.Day, Grades: map[string]APIPinGrade{}, Ungraded: row.Ungraded, Hidden: row.Hidden,
 				}

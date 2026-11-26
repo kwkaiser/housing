@@ -77,7 +77,6 @@
 <div>{[g ? match(g.match, g.calibrated, g.stale) : 'Not graded yet', money(pin.price_cents, pin.offer), bd].filter(Boolean).join(' · ')}</div>
 <div class="muted">First seen {pin.first_seen}{retrieved} · {(pin.collections ?? []).join(', ')}</div>
 {#if g?.dealbreakers?.length}<div class="bad">Dealbreakers: {g.dealbreakers.join(', ')}</div>{/if}
-{#if pin.approx}<div class="muted">Approximate: placed at the zip code's center</div>{/if}
 <div class="actions"><Hide source={pin.source} id={pin.source_id} on={pin.hidden ?? false} onchange={onhidden} /></div>
 
 <style>

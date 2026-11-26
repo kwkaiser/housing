@@ -985,10 +985,6 @@
       "APILocation": {
         "additionalProperties": false,
         "properties": {
-          "approx": {
-            "description": "Placed at the zip code's center because the listing has no coordinates",
-            "type": "boolean"
-          },
           "lat": {
             "format": "double",
             "type": "number"
@@ -1071,10 +1067,6 @@
         "properties": {
           "address": {
             "type": "string"
-          },
-          "approx": {
-            "description": "Placed at the zip code's center",
-            "type": "boolean"
           },
           "beds": {
             "format": "int64",

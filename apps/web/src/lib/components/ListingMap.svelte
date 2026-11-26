@@ -9,33 +9,18 @@
 	let el: HTMLDivElement;
 	let hm = $state.raw<HousingMap>();
 
-	function circle(lng: number, lat: number, meters: number): [number, number][] {
-		const pts: [number, number][] = [];
-		for (let i = 0; i <= 64; i++) {
-			const a = (i / 64) * 2 * Math.PI;
-			const dLat = (meters / 111_320) * Math.sin(a);
-			const dLng = (meters / (111_320 * Math.cos((lat * Math.PI) / 180))) * Math.cos(a);
-			pts.push([lng + dLng, lat + dLat]);
-		}
-		return pts;
-	}
-
 	function mount(createMap: typeof import('#lib/map/create.ts').createMap) {
-		const { lat, lng, approx } = location;
-		hm = createMap(el, config, { center: [lng, lat], zoom: approx ? 13.5 : 15.5 });
+		const { lat, lng } = location;
+		hm = createMap(el, config, { center: [lng, lat], zoom: 15.5 });
 		const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2563eb';
 		hm.map.on('load', () => {
 			const map = hm!.map;
-			if (approx) {
-				map.addSource('area', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [circle(lng, lat, 400)] } } });
-				map.addLayer({ id: 'area', type: 'fill', source: 'area', paint: { 'fill-color': accent, 'fill-opacity': 0.1, 'fill-outline-color': accent } });
-			}
 			map.addSource('pin', { type: 'geojson', data: { type: 'Feature', properties: { title }, geometry: { type: 'Point', coordinates: [lng, lat] } } });
 			map.addLayer({
 				id: 'pin',
 				type: 'circle',
 				source: 'pin',
-				paint: { 'circle-radius': 8, 'circle-color': accent, 'circle-opacity': approx ? 0.3 : 0.6, 'circle-stroke-color': accent, 'circle-stroke-width': 3 }
+				paint: { 'circle-radius': 8, 'circle-color': accent, 'circle-opacity': 0.6, 'circle-stroke-color': accent, 'circle-stroke-width': 3 }
 			});
 		});
 	}

@@ -169,7 +169,8 @@ func newTestService(t *testing.T, fc *fakeCompleter) *Service {
 			Lookup: func(string, apify.Runner) (listing.Lookup, error) {
 				return fakeLookup{ref: rental(listing.SourceZillow, "ref", "1 Attic Way")}, nil
 			},
-			Photos: fakePhotos{body: jpegBytes(t)},
+			Photos:   fakePhotos{body: jpegBytes(t)},
+			Geocoder: fakeGeocoder{},
 		},
 	})
 }

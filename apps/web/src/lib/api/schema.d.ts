@@ -897,8 +897,6 @@ export interface components {
             status: "new" | "changed" | "repeat";
         };
         APILocation: {
-            /** @description Placed at the zip code's center because the listing has no coordinates */
-            approx?: boolean;
             /** Format: double */
             lat: number;
             /** Format: double */
@@ -931,8 +929,6 @@ export interface components {
         };
         APIMapPin: {
             address: string;
-            /** @description Placed at the zip code's center */
-            approx?: boolean;
             /** Format: int64 */
             beds?: number;
             /** @description Collections that saw the listing, in collection order */

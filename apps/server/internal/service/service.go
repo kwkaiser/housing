@@ -13,6 +13,7 @@ import (
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/apify"
 	"git.kwkaiser.io/kwkaiser/housing/internal/config"
+	"git.kwkaiser.io/kwkaiser/housing/internal/geocode"
 	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/notify"
@@ -42,6 +43,7 @@ type Clients struct {
 	Lookup     func(rawURL string, runner apify.Runner) (listing.Lookup, error)
 	Photos     media.Fetcher
 	Notifier   func(url string) notify.Notifier
+	Geocoder   Geocoder
 }
 
 type Config struct {
@@ -82,6 +84,9 @@ func Open(ctx context.Context, cfg Config) (*Service, error) {
 	}
 	if c.Lookup == nil {
 		c.Lookup = LookupFor
+	}
+	if c.Geocoder == nil {
+		c.Geocoder = geocode.NewPhoton()
 	}
 	if c.Notifier == nil {
 		c.Notifier = func(url string) notify.Notifier { return notify.NewNtfy(url) }

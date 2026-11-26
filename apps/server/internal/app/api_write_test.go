@@ -133,7 +133,7 @@ func TestAPIFavorites(t *testing.T) {
 	if len(fs) != 1 || fs[0].Listing.SourceID != "z1" || fs[0].Best == nil || fs[0].LastSeen != day2 {
 		t.Errorf("favorites = %+v", fs)
 	}
-	if d := apiGet[APIListingDetail](t, h, key, "/api/v1/listings/zillow/z1"); !d.Favorite || d.Location == nil || !d.Location.Approx {
+	if d := apiGet[APIListingDetail](t, h, key, "/api/v1/listings/zillow/z1"); !d.Favorite || d.Location == nil || d.Location.Lat != 42.3911 {
 		t.Errorf("detail = favorite %v location %+v", d.Favorite, d.Location)
 	}
 	v := apiGet[APICollectionListings](t, h, key, "/api/v1/collections/somerville/listings")
@@ -363,7 +363,7 @@ func TestAPIMapPins(t *testing.T) {
 		t.Fatalf("no z1 pin in %+v", v.Pins)
 	}
 	g, ok := z1.Grades["somerville"]
-	if !z1.Approx || z1.PriceCents != 290000 || z1.Href != "/api/v1/listings/zillow/z1" || z1.Preview != "/api/v1/media/"+media.PhotoKey(photoURL) || !ok || g.Match != 87.5 {
+	if z1.Lat != 42.3911 || z1.PriceCents != 290000 || z1.Href != "/api/v1/listings/zillow/z1" || z1.Preview != "/api/v1/media/"+media.PhotoKey(photoURL) || !ok || g.Match != 87.5 {
 		t.Errorf("z1 = %+v", z1)
 	}
 	if v := apiGet[APIMapPins](t, h, key, "/api/v1/map/pins?from="+day2+"&to="+day1); v.From != day1 || v.To != day2 {

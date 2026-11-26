@@ -545,9 +545,8 @@ type APIListingDetail struct {
 }
 
 type APILocation struct {
-	Lat    float64 `json:"lat"`
-	Lng    float64 `json:"lng"`
-	Approx bool    `json:"approx,omitempty" doc:"Placed at the zip code's center because the listing has no coordinates"`
+	Lat float64 `json:"lat"`
+	Lng float64 `json:"lng"`
 }
 
 type APIPriceSighting struct {
@@ -593,8 +592,8 @@ func (a *App) apiListing(ctx context.Context, in *listingInput) (*struct{ Body A
 		AlsoListed: []APIListing{}, History: []APIPriceSighting{}, Grades: []APIListingGrade{}, Favorite: v.Favorite, Hidden: v.Hidden,
 		Gallery: mediaPaths(a.svc.StoredPhotos(ctx, v.Listing, 0)),
 	}
-	if loc, approx, ok := geo.Locate(v.Listing); ok {
-		out.Location = &APILocation{Lat: loc.Lat, Lng: loc.Lng, Approx: approx}
+	if geo.Placed(v.Listing) {
+		out.Location = &APILocation{Lat: v.Listing.Coordinates.Lat, Lng: v.Listing.Coordinates.Lng}
 	}
 	for _, l := range v.AlsoListed {
 		out.AlsoListed = append(out.AlsoListed, a.listing(ctx, l))

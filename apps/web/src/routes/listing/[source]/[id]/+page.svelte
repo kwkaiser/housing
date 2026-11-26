@@ -69,7 +69,7 @@
 
 {#if d.location}
 	<details class="section" bind:open={mapOpen} ontoggle={() => save('listingMapOpen', mapOpen)}>
-		<summary>Map{#if d.location.approx}<span class="muted sub">approximate, from the zip code</span>{/if}</summary>
+		<summary>Map</summary>
 		{#if mapOpen}<ListingMap config={data.config} location={d.location} {title} />{/if}
 	</details>
 {/if}

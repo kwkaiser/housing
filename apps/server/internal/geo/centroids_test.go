@@ -20,29 +20,35 @@ func TestZipCentroid(t *testing.T) {
 	}
 }
 
-func TestLocate(t *testing.T) {
-	somerville := listing.Coordinates{Lat: 42.4001, Lng: -71.1231}
-	exact := listing.Coordinates{Lat: 42.39, Lng: -71.1}
+func TestPostalCode(t *testing.T) {
 	for _, tc := range []struct {
-		name   string
-		l      listing.Listing
-		want   listing.Coordinates
-		approx bool
-		ok     bool
+		a    listing.Address
+		want string
 	}{
-		{"coordinates", listing.Listing{Coordinates: &exact, Address: listing.Address{PostalCode: "11211"}}, exact, false, true},
-		{"zero coordinates", listing.Listing{Coordinates: &listing.Coordinates{}, Address: listing.Address{PostalCode: "02144"}}, somerville, true, true},
-		{"postal code", listing.Listing{Address: listing.Address{PostalCode: "02144"}}, somerville, true, true},
-		{"zip+4", listing.Listing{Address: listing.Address{PostalCode: "02144-1234"}}, somerville, true, true},
-		{"formatted", listing.Listing{Address: listing.Address{Formatted: "7 Windom St, Somerville, MA 02144"}}, somerville, true, true},
-		{"formatted zip+4", listing.Listing{Address: listing.Address{Formatted: "7 Windom St, Somerville, MA 02144-1234"}}, somerville, true, true},
-		{"unknown zip", listing.Listing{Address: listing.Address{PostalCode: "00000"}}, listing.Coordinates{}, false, false},
-		{"street number only", listing.Listing{Address: listing.Address{Formatted: "12345 Main St"}}, listing.Coordinates{}, false, false},
-		{"nothing", listing.Listing{}, listing.Coordinates{}, false, false},
+		{listing.Address{PostalCode: "02144"}, "02144"},
+		{listing.Address{PostalCode: "02144-1234"}, "02144"},
+		{listing.Address{Formatted: "7 Windom St, Somerville, MA 02144"}, "02144"},
+		{listing.Address{Formatted: "7 Windom St, Somerville, MA 02144-1234"}, "02144"},
+		{listing.Address{Formatted: "12345 Main St"}, ""},
+		{listing.Address{}, ""},
 	} {
-		got, approx, ok := Locate(tc.l)
-		if got != tc.want || approx != tc.approx || ok != tc.ok {
-			t.Errorf("%s: Locate = %+v, %v, %v; want %+v, %v, %v", tc.name, got, approx, ok, tc.want, tc.approx, tc.ok)
+		if got := PostalCode(tc.a); got != tc.want {
+			t.Errorf("PostalCode(%+v) = %q, want %q", tc.a, got, tc.want)
+		}
+	}
+}
+
+func TestPlaced(t *testing.T) {
+	for _, tc := range []struct {
+		l    listing.Listing
+		want bool
+	}{
+		{listing.Listing{Coordinates: &listing.Coordinates{Lat: 42.39, Lng: -71.1}}, true},
+		{listing.Listing{Coordinates: &listing.Coordinates{}, Address: listing.Address{PostalCode: "02144"}}, false},
+		{listing.Listing{Address: listing.Address{PostalCode: "02144"}}, false},
+	} {
+		if got := Placed(tc.l); got != tc.want {
+			t.Errorf("Placed(%+v) = %v, want %v", tc.l, got, tc.want)
 		}
 	}
 }

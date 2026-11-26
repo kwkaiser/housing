@@ -108,6 +108,7 @@ func seededApp(t *testing.T) *App {
 
 	a1 := rental(listing.SourceZillow, "z1", "7 Windom St", 300000)
 	a1.Collages = []string{collageKey}
+	a1.Coordinates = &listing.Coordinates{Lat: 42.3911, Lng: -71.1105}
 	a1.Photos = []string{"https://photos.example.com/z1/never-fetched.jpg", photoURL}
 	b := rental(listing.SourceZillow, "z2", "31 Fairmount Ave", 310000)
 	b.Description = "<script>alert(1)</script> sunny"

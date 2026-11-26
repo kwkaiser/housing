@@ -111,7 +111,7 @@
 					lead: p.lead,
 					color: g ? colors[p.lead] : UNGRADED,
 					opacity: s,
-					fill: hollow ? 0 : (p.pin.approx ? 0.2 : 0.6) * s,
+					fill: hollow ? 0 : 0.6 * s,
 					radius: fading ? 4 + 5 * s : 7,
 					sort: s
 				},
@@ -123,11 +123,9 @@
 	let summary = $derived.by(() => {
 		const shown = (pins.pins ?? []).filter((p) => (p.collections ?? []).includes(selected));
 		const parts = [`${shown.length} listings placed`];
-		const approx = shown.filter((p) => p.approx).length;
 		const ungraded = shown.filter((p) => p.ungraded).length;
 		const dealbreakers = shown.filter((p) => p.grades[selected]?.dealbreakers?.length).length;
 		const hidden = shown.filter((p) => p.hidden).length;
-		if (approx) parts.push(`${approx} approximate from zip code`);
 		if (dealbreakers) parts.push(`${dealbreakers} with dealbreakers`);
 		if (hidden) parts.push(`${hidden} hidden`);
 		if (ungraded) parts.push(`${ungraded} ungraded`);

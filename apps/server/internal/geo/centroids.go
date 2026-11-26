@@ -50,7 +50,7 @@ func ZipCentroid(code string) (listing.Coordinates, bool) {
 
 var trailingZip = regexp.MustCompile(`\b(\d{5})(?:-\d{4})?\s*$`)
 
-func postalCode(a listing.Address) string {
+func PostalCode(a listing.Address) string {
 	if z := strings.TrimSpace(a.PostalCode); len(z) >= 5 {
 		return z[:5]
 	}
@@ -60,14 +60,6 @@ func postalCode(a listing.Address) string {
 	return ""
 }
 
-func Locate(l listing.Listing) (c listing.Coordinates, approx, ok bool) {
-	if l.Coordinates != nil && (l.Coordinates.Lat != 0 || l.Coordinates.Lng != 0) {
-		return *l.Coordinates, false, true
-	}
-	if z := postalCode(l.Address); z != "" {
-		if c, ok := ZipCentroid(z); ok {
-			return c, true, true
-		}
-	}
-	return listing.Coordinates{}, false, false
+func Placed(l listing.Listing) bool {
+	return l.Coordinates != nil && (l.Coordinates.Lat != 0 || l.Coordinates.Lng != 0)
 }
