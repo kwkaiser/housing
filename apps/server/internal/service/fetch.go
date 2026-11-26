@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/url"
 	"slices"
 	"strings"
@@ -63,8 +64,8 @@ func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (
 	defer func() { telemetry.End(span, err) }()
 	log = s.logger(log)
 	flog := log.With("stage", StageFetch)
-	if o.Search.Location == "" {
-		return res, fmt.Errorf("a location is required")
+	if o.Search.Location == "" && slices.ContainsFunc(o.Sources, func(src listing.Source) bool { return !o.Search.UsesRegions(src) }) {
+		return res, fmt.Errorf("a location is required for sources searched by radius")
 	}
 	if o.Search.Limit <= 0 {
 		return res, fmt.Errorf("the search limit must be positive")
@@ -236,6 +237,10 @@ func (s *Service) fetchOne(ctx context.Context, p listing.Provider, q listing.Qu
 	defer func() { telemetry.End(span, err) }()
 	sourceQuery := q
 	sourceQuery.Amenities, _ = SplitAmenities(q.Amenities, p.Capabilities(q.Offer).Searchable())
+	if ids := o.Search.Regions[p.Source()]; len(ids) > 0 {
+		sourceQuery.Area = listing.Area{Regions: ids}
+		log = log.With("regions", strings.Join(ids, ","))
+	}
 
 	listings, err := search(ctx, p, sourceQuery)
 	if err != nil {
@@ -297,6 +302,44 @@ func ValidateSources(sources []listing.Source) error {
 		}
 	}
 	return nil
+}
+
+func ValidateRegions(regions map[listing.Source][]string) error {
+	var errs []error
+	for _, src := range slices.Sorted(maps.Keys(regions)) {
+		ids := regions[src]
+		if len(ids) == 0 {
+			continue
+		}
+		p, err := NewProvider(src, nil)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		rs, ok := p.(listing.RegionSearcher)
+		if !ok {
+			errs = append(errs, fmt.Errorf("%s cannot search by region", src))
+			continue
+		}
+		known := rs.SearchRegions()
+		for _, id := range ids {
+			if !slices.ContainsFunc(known, func(r listing.Region) bool { return r.ID == id }) {
+				errs = append(errs, fmt.Errorf("%s has no region %q", src, id))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+func SourceRegions() map[listing.Source][]listing.Region {
+	out := map[listing.Source][]listing.Region{}
+	for _, src := range SupportedSources() {
+		p, _ := NewProvider(src, nil)
+		if rs, ok := p.(listing.RegionSearcher); ok {
+			out[src] = rs.SearchRegions()
+		}
+	}
+	return out
 }
 
 func SupportedSources() []listing.Source {

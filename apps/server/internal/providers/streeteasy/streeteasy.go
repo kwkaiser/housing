@@ -55,7 +55,14 @@ func New(runner apify.Runner, regions zillow.RegionResolver) *Provider {
 	return &Provider{Runner: runner, Regions: regions, Now: time.Now}
 }
 
-var _ listing.Provider = (*Provider)(nil)
+var (
+	_ listing.Provider       = (*Provider)(nil)
+	_ listing.RegionSearcher = (*Provider)(nil)
+)
+
+func (p *Provider) SearchRegions() []listing.Region {
+	return slices.Clone(regions)
+}
 
 func (p *Provider) Source() listing.Source {
 	return listing.SourceStreetEasy
@@ -77,17 +84,17 @@ type actorURL struct {
 }
 
 type searchArea struct {
-	center listing.Coordinates
-	radius float64
-	zips   []string
+	center  listing.Coordinates
+	radius  float64
+	filters []string
 }
 
 func (p *Provider) Search(ctx context.Context, q listing.Query) ([]listing.Listing, error) {
 	if q.Offer != listing.OfferRent && q.Offer != listing.OfferSale {
 		return nil, fmt.Errorf("%w: offer type %q", listing.ErrUnsupportedQuery, q.Offer)
 	}
-	if q.Area.Location == "" {
-		return nil, fmt.Errorf("%w: location is required", listing.ErrUnsupportedQuery)
+	if q.Area.Location == "" && len(q.Area.Regions) == 0 {
+		return nil, fmt.Errorf("%w: location or regions are required", listing.ErrUnsupportedQuery)
 	}
 	for _, a := range q.Amenities {
 		if _, ok := amenityFilters[a]; !ok {
@@ -103,14 +110,14 @@ func (p *Provider) Search(ctx context.Context, q listing.Query) ([]listing.Listi
 	if limit <= 0 {
 		limit = defaultLimit
 	}
-	perZip := int(math.Ceil(float64(limit) * overfetchFactor / float64(len(area.zips))))
+	perFilter := int(math.Ceil(float64(limit) * overfetchFactor / float64(len(area.filters))))
 
-	results := make([][]json.RawMessage, len(area.zips))
+	results := make([][]json.RawMessage, len(area.filters))
 	g, gctx := errgroup.WithContext(ctx)
-	for i, zip := range area.zips {
+	for i, filter := range area.filters {
 		g.Go(func() error {
-			input := actorInput{StartURLs: []actorURL{{URL: buildSearchURL(q, zip)}}, MaxItems: perZip}
-			items, err := p.Runner.Run(gctx, ActorID, apify.RunInput{Input: input, MaxItems: perZip})
+			input := actorInput{StartURLs: []actorURL{{URL: buildSearchURL(q, filter)}}, MaxItems: perFilter}
+			items, err := p.Runner.Run(gctx, ActorID, apify.RunInput{Input: input, MaxItems: perFilter})
 			results[i] = items
 			return err
 		})
@@ -146,9 +153,12 @@ func (p *Provider) Search(ctx context.Context, q listing.Query) ([]listing.Listi
 }
 
 func (p *Provider) resolve(ctx context.Context, a listing.Area) (searchArea, error) {
+	if len(a.Regions) > 0 {
+		return regionArea(a.Regions)
+	}
 	location := strings.TrimSpace(a.Location)
 	if zipPattern.MatchString(location) && a.RadiusMiles == 0 {
-		return searchArea{zips: []string{location}}, nil
+		return searchArea{filters: []string{"zip:" + location}}, nil
 	}
 
 	var center listing.Coordinates
@@ -176,13 +186,28 @@ func (p *Provider) resolve(ctx context.Context, a listing.Area) (searchArea, err
 	}
 	area := searchArea{center: center, radius: radius}
 	for _, z := range zips[:min(len(zips), maxZips)] {
-		area.zips = append(area.zips, z.Code)
+		area.filters = append(area.filters, "zip:"+z.Code)
 	}
 	return area, nil
 }
 
-func buildSearchURL(q listing.Query, zip string) string {
-	filters := []string{"zip:" + zip}
+func regionArea(ids []string) (searchArea, error) {
+	var unknown []string
+	for _, id := range ids {
+		if !slices.ContainsFunc(regions, func(r listing.Region) bool { return r.ID == id }) {
+			unknown = append(unknown, id)
+		}
+	}
+	if len(unknown) > 0 {
+		return searchArea{}, fmt.Errorf("%w: unknown streeteasy regions %s", listing.ErrUnsupportedQuery, strings.Join(unknown, ", "))
+	}
+	sorted := slices.Clone(ids)
+	slices.Sort(sorted)
+	return searchArea{filters: []string{"area:" + strings.Join(slices.Compact(sorted), ",")}}, nil
+}
+
+func buildSearchURL(q listing.Query, area string) string {
+	filters := []string{area}
 	if q.MinPrice != nil || q.MaxPrice != nil {
 		var lo, hi string
 		if q.MinPrice != nil {

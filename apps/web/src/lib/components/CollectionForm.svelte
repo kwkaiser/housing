@@ -4,6 +4,7 @@
 	import { ApiError } from '#lib/api/client.ts';
 	import XIcon from '@lucide/svelte/icons/x';
 	import Errors from './Errors.svelte';
+	import RegionSelect from './RegionSelect.svelte';
 	import { label } from '#lib/format.ts';
 
 	type Body = Schemas['APICreateCollection'];
@@ -25,6 +26,8 @@
 	let picked = $state<string[]>(initial?.profiles ?? []);
 	let location = $state(s?.location ?? '');
 	let radius = $state(num(s?.radius_miles));
+	let regions = $state<Record<string, string[]>>({ ...(s?.regions ?? {}) });
+	let byRegion = $state<Record<string, boolean>>(Object.fromEntries(Object.entries(s?.regions ?? {}).map(([src, ids]) => [src, ids.length > 0])));
 	let minPrice = $state(num(s?.min_price));
 	let maxPrice = $state(num(s?.max_price));
 	let minBeds = $state(s?.min_beds === undefined ? '' : String(s.min_beds));
@@ -63,6 +66,10 @@
 	let wants = $derived(profiles.filter((p) => p.kind !== 'avoid'));
 	let avoids = $derived(profiles.filter((p) => p.kind === 'avoid'));
 	let fields = $derived(error instanceof ApiError ? error.fields : {});
+	let regional = $derived(sources.filter((src) => (meta.regions?.[src]?.length ?? 0) > 0));
+	let searchedByRegion = $derived(sources.filter((src) => byRegion[src] && regional.includes(src)));
+	let emptyRegions = $derived(searchedByRegion.filter((src) => !regions[src]?.length));
+	let radiusUnused = $derived(sources.length > 0 && searchedByRegion.length === sources.length);
 
 	function toggle(list: string[], value: string, on: boolean): string[] {
 		return on ? [...list.filter((v) => v !== value), value] : list.filter((v) => v !== value);
@@ -84,8 +91,12 @@
 
 	async function onsubmit(e: SubmitEvent) {
 		e.preventDefault();
-		busy = true;
 		error = undefined;
+		if (emptyRegions.length) {
+			error = new Error(regional.length > 1 ? `Choose at least one region for ${emptyRegions.join(', ')}, or search by radius.` : 'Choose at least one region, or search by radius.');
+			return;
+		}
+		busy = true;
 		const body: Body = {
 			id: id.trim(),
 			mode: mode as Body['mode'],
@@ -93,6 +104,7 @@
 			profiles: picked,
 			location,
 			radius_miles: opt(radius) ?? 0,
+			regions: Object.fromEntries(searchedByRegion.map((src) => [src, regions[src]])),
 			min_price: opt(minPrice),
 			max_price: opt(maxPrice),
 			min_beds: opt(minBeds),
@@ -143,6 +155,19 @@
 				{/each}
 			</div>
 			{#if fields.sources}<p class="field-error">{fields.sources}</p>{/if}
+			{#each regional as src (src)}
+				<div class="regions" class:invalid={fields.regions || emptyRegions.includes(src)}>
+					{#if regional.length > 1}<span class="source">{src}</span>{/if}
+					<label class="toggle">
+						<input type="checkbox" aria-label="Search {src} by region instead of radius" bind:checked={() => byRegion[src] ?? false, (on) => (byRegion[src] = on)} />
+						Search by region instead of radius
+					</label>
+					{#if byRegion[src]}
+						<RegionSelect label="{src} regions" regions={meta.regions[src]} bind:selected={() => regions[src] ?? [], (ids) => (regions[src] = ids)} />
+					{/if}
+				</div>
+			{/each}
+			{#if fields.regions}<p class="field-error">{fields.regions}</p>{/if}
 		</div>
 		<div class="field" class:invalid={fields.profiles}>
 			<span class="label">Want profiles</span>
@@ -179,9 +204,10 @@
 		<div class="grid">
 			<div class="field" class:invalid={fields['search.location'] || fields.location}>
 				<label for="location">Location</label>
-				<input id="location" bind:value={location} placeholder="ZIP code or city" />
+				<input id="location" bind:value={location} placeholder="ZIP code or city" disabled={radiusUnused} />
+				{#if radiusUnused}<small>Not used: every source searches by region.</small>{:else if searchedByRegion.length}<small>Used by sources searched by radius.</small>{/if}
 			</div>
-			<div class="field"><label for="radius">Radius (miles)</label><input id="radius" inputmode="decimal" bind:value={radius} /></div>
+			<div class="field"><label for="radius">Radius (miles)</label><input id="radius" inputmode="decimal" bind:value={radius} disabled={radiusUnused} /></div>
 			<div class="field"><label for="min-price">Min price</label><input id="min-price" inputmode="numeric" bind:value={minPrice} /></div>
 			<div class="field"><label for="max-price">Max price</label><input id="max-price" inputmode="numeric" bind:value={maxPrice} /></div>
 			<div class="field"><label for="min-beds">Min beds</label><input id="min-beds" inputmode="numeric" bind:value={minBeds} /></div>
@@ -253,6 +279,36 @@
 </form>
 
 <style>
+	.regions {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-top: 0.5rem;
+		padding: 0.6rem 0.75rem;
+		border: 1px solid var(--line);
+		border-radius: var(--radius-sm);
+		background: var(--surface-2);
+	}
+
+	.regions.invalid {
+		border-color: var(--bad);
+	}
+
+	.source {
+		font: var(--label);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--muted);
+	}
+
+	.toggle {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.875rem;
+		cursor: pointer;
+	}
+
 	.with-clear {
 		display: flex;
 		gap: 0.25rem;

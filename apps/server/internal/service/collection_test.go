@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
@@ -68,5 +69,20 @@ func TestCreateAndSaveCollection(t *testing.T) {
 	walk(err)
 	if fields["sources"] != 1 || fields["profiles"] != 2 || fields["location"] != 1 || !errors.Is(err, profile.ErrNotFound) {
 		t.Errorf("field errors = %v from %v", fields, err)
+	}
+}
+
+func TestValidateRegions(t *testing.T) {
+	if err := ValidateRegions(map[listing.Source][]string{listing.SourceStreetEasy: {"302", "319"}, listing.SourceZillow: nil}); err != nil {
+		t.Errorf("valid regions: %v", err)
+	}
+	err := ValidateRegions(map[listing.Source][]string{listing.SourceStreetEasy: {"nope"}, listing.SourceZillow: {"1"}})
+	for _, want := range []string{`streeteasy has no region "nope"`, "zillow cannot search by region"} {
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("missing %q in %v", want, err)
+		}
+	}
+	if rs := SourceRegions(); len(rs[listing.SourceStreetEasy]) == 0 || len(rs) != 1 {
+		t.Errorf("SourceRegions() has %d sources", len(rs))
 	}
 }

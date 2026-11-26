@@ -903,6 +903,7 @@ type APIMeta struct {
 	Version      string                                                   `json:"version"`
 	Modes        []profile.Mode                                           `json:"modes"`
 	Sources      []listing.Source                                         `json:"sources" doc:"Listing sources this server can search"`
+	Regions      map[listing.Source][]listing.Region                      `json:"regions" doc:"Regions each source can search instead of a radius, keyed by source"`
 	Amenities    []listing.Amenity                                        `json:"amenities"`
 	RentalTerms  []listing.Amenity                                        `json:"rental_terms" doc:"Amenities that only apply to rent mode"`
 	Capabilities map[listing.Source]map[profile.Mode]listing.Capabilities `json:"capabilities" doc:"Per source and mode, how each amenity is filtered: search (by the source), results (checked against search results), enrich (checked against listing details). Missing amenities cannot be reported by that source."`
@@ -924,6 +925,7 @@ func (a *App) apiMeta(_ context.Context, _ *struct{}) (*struct{ Body APIMeta }, 
 		Version:      a.Version,
 		Modes:        []profile.Mode{profile.ModeRent, profile.ModeBuy},
 		Sources:      service.SupportedSources(),
+		Regions:      service.SourceRegions(),
 		Amenities:    listing.Amenities,
 		RentalTerms:  listing.RentalTerms,
 		Capabilities: service.SourceCapabilities(),

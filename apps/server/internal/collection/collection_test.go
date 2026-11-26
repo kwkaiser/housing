@@ -107,3 +107,22 @@ func TestNotifyThreshold(t *testing.T) {
 		t.Errorf("valid notify config rejected: %v", err)
 	}
 }
+
+func TestValidateRegionsReplaceLocation(t *testing.T) {
+	c := valid()
+	c.Sources = []listing.Source{listing.SourceStreetEasy}
+	c.Search.Location = ""
+	c.Search.Regions = map[listing.Source][]string{listing.SourceStreetEasy: {"302"}}
+	if err := c.Validate(); err != nil {
+		t.Errorf("regions-only collection: %v", err)
+	}
+	c.Sources = append(c.Sources, listing.SourceZillow)
+	if err := c.Validate(); err == nil || !strings.Contains(err.Error(), "location") {
+		t.Errorf("radius source without location = %v", err)
+	}
+	c.Sources = []listing.Source{listing.SourceZillow}
+	c.Search.Location = "Brooklyn, NY"
+	if err := c.Validate(); err == nil || !strings.Contains(err.Error(), "not a selected source") {
+		t.Errorf("regions for an unselected source = %v", err)
+	}
+}

@@ -86,8 +86,13 @@ func (c Collection) Validate() error {
 			field("profiles", fmt.Errorf("profile %q is listed more than once", id))
 		}
 	}
-	if c.Search.Location == "" {
-		field("location", fmt.Errorf("a search location is required"))
+	if c.Search.Location == "" && (len(c.Sources) == 0 || slices.ContainsFunc(c.Sources, func(src listing.Source) bool { return !c.Search.UsesRegions(src) })) {
+		field("location", fmt.Errorf("a search location is required for sources searched by radius"))
+	}
+	for src := range c.Search.Regions {
+		if !slices.Contains(c.Sources, src) {
+			field("regions", fmt.Errorf("regions are set for %s, which is not a selected source", src))
+		}
 	}
 	if c.MaxRunCostUSD < 0 {
 		field("max_run_cost_usd", fmt.Errorf("max run cost must not be negative"))

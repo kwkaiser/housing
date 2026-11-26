@@ -12,23 +12,24 @@ import (
 )
 
 type CollectionFields struct {
-	Mode           *string  `json:"mode,omitempty" enum:"rent,buy" jsonschema:"rent or buy" doc:"rent or buy"`
-	Sources        []string `json:"sources,omitempty" jsonschema:"listing sources to search, e.g. zillow, redfin, streeteasy, craigslist, facebook" doc:"Listing sources to search"`
-	Profiles       []string `json:"profiles,omitempty" jsonschema:"want profile ids, in priority order" doc:"Want profile ids, in priority order"`
-	Location       *string  `json:"location,omitempty" jsonschema:"search area, e.g. a ZIP code or city" doc:"Search area, e.g. a ZIP code or city"`
-	RadiusMiles    *float64 `json:"radius_miles,omitempty" minimum:"0"`
-	MinPrice       *int     `json:"min_price,omitempty" jsonschema:"whole dollars" doc:"Whole dollars"`
-	MaxPrice       *int     `json:"max_price,omitempty" jsonschema:"whole dollars" doc:"Whole dollars"`
-	MinBeds        *int     `json:"min_beds,omitempty"`
-	MaxBeds        *int     `json:"max_beds,omitempty"`
-	MaxAgeDays     *int     `json:"max_age_days,omitempty" jsonschema:"only listings posted within this many days; 0 means no limit" doc:"Only listings posted within this many days; 0 means no limit"`
-	Amenities      []string `json:"amenities,omitempty" jsonschema:"required amenities: in_unit_laundry, dishwasher, parking, air_conditioning, and for rent mode only furnished and short_term; an empty list clears them" doc:"Required amenities; furnished and short_term apply to rent mode only; an empty list clears them"`
-	Limit          *int     `json:"limit,omitempty" jsonschema:"maximum listings fetched per source; 0 means the default" doc:"Maximum listings fetched per source; 0 means the default"`
-	Model          *string  `json:"model,omitempty" jsonschema:"grading model; empty means the default" doc:"Grading model; empty means the default"`
-	MaxRunCostUSD  *float64 `json:"max_run_cost_usd,omitempty" jsonschema:"spending cap per run; 0 means the default" doc:"Spending cap per run; 0 means the default"`
-	Schedule       *string  `json:"schedule,omitempty" jsonschema:"daily run time, HH:MM server-local; empty to unschedule" doc:"Daily run time, HH:MM server-local; empty to unschedule"`
-	NotifyURL      *string  `json:"notify_url,omitempty" jsonschema:"ntfy topic URL for notifications; empty to turn them off" doc:"ntfy topic URL for notifications; empty to turn them off"`
-	NotifyMinScore *float64 `json:"notify_min_score,omitempty" jsonschema:"minimum match to notify about; 0 means the default" doc:"Minimum match to notify about; 0 means the default"`
+	Mode           *string             `json:"mode,omitempty" enum:"rent,buy" jsonschema:"rent or buy" doc:"rent or buy"`
+	Sources        []string            `json:"sources,omitempty" jsonschema:"listing sources to search, e.g. zillow, redfin, streeteasy, craigslist, facebook" doc:"Listing sources to search"`
+	Profiles       []string            `json:"profiles,omitempty" jsonschema:"want profile ids, in priority order" doc:"Want profile ids, in priority order"`
+	Location       *string             `json:"location,omitempty" jsonschema:"search area, e.g. a ZIP code or city" doc:"Search area, e.g. a ZIP code or city"`
+	RadiusMiles    *float64            `json:"radius_miles,omitempty" minimum:"0"`
+	Regions        map[string][]string `json:"regions,omitempty" jsonschema:"region ids to search per source, replacing the radius search for that source; an empty map clears them" doc:"Region ids to search per source, replacing the radius search for that source; an empty map clears them"`
+	MinPrice       *int                `json:"min_price,omitempty" jsonschema:"whole dollars" doc:"Whole dollars"`
+	MaxPrice       *int                `json:"max_price,omitempty" jsonschema:"whole dollars" doc:"Whole dollars"`
+	MinBeds        *int                `json:"min_beds,omitempty"`
+	MaxBeds        *int                `json:"max_beds,omitempty"`
+	MaxAgeDays     *int                `json:"max_age_days,omitempty" jsonschema:"only listings posted within this many days; 0 means no limit" doc:"Only listings posted within this many days; 0 means no limit"`
+	Amenities      []string            `json:"amenities,omitempty" jsonschema:"required amenities: in_unit_laundry, dishwasher, parking, air_conditioning, and for rent mode only furnished and short_term; an empty list clears them" doc:"Required amenities; furnished and short_term apply to rent mode only; an empty list clears them"`
+	Limit          *int                `json:"limit,omitempty" jsonschema:"maximum listings fetched per source; 0 means the default" doc:"Maximum listings fetched per source; 0 means the default"`
+	Model          *string             `json:"model,omitempty" jsonschema:"grading model; empty means the default" doc:"Grading model; empty means the default"`
+	MaxRunCostUSD  *float64            `json:"max_run_cost_usd,omitempty" jsonschema:"spending cap per run; 0 means the default" doc:"Spending cap per run; 0 means the default"`
+	Schedule       *string             `json:"schedule,omitempty" jsonschema:"daily run time, HH:MM server-local; empty to unschedule" doc:"Daily run time, HH:MM server-local; empty to unschedule"`
+	NotifyURL      *string             `json:"notify_url,omitempty" jsonschema:"ntfy topic URL for notifications; empty to turn them off" doc:"ntfy topic URL for notifications; empty to turn them off"`
+	NotifyMinScore *float64            `json:"notify_min_score,omitempty" jsonschema:"minimum match to notify about; 0 means the default" doc:"Minimum match to notify about; 0 means the default"`
 }
 
 func (f CollectionFields) apply(c *collection.Collection) {
@@ -57,6 +58,24 @@ func (f CollectionFields) apply(c *collection.Collection) {
 	set(&c.Search.Location, f.Location)
 	if f.RadiusMiles != nil {
 		c.Search.RadiusMiles = *f.RadiusMiles
+	}
+	if f.Regions != nil {
+		c.Search.Regions = nil
+		for src, ids := range f.Regions {
+			var clean []string
+			for _, id := range ids {
+				if id = strings.TrimSpace(id); id != "" && !slices.Contains(clean, id) {
+					clean = append(clean, id)
+				}
+			}
+			if len(clean) == 0 {
+				continue
+			}
+			if c.Search.Regions == nil {
+				c.Search.Regions = map[listing.Source][]string{}
+			}
+			c.Search.Regions[listing.Source(strings.TrimSpace(src))] = clean
+		}
 	}
 	setPtr(&c.Search.MinPrice, f.MinPrice)
 	setPtr(&c.Search.MaxPrice, f.MaxPrice)

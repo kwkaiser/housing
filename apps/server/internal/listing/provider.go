@@ -11,6 +11,13 @@ var ErrUnsupportedQuery = errors.New("query not supported by provider")
 type Area struct {
 	Location    string
 	RadiusMiles float64
+	Regions     []string
+}
+
+type Region struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Group string `json:"group,omitempty"`
 }
 
 type Query struct {
@@ -29,6 +36,10 @@ type Provider interface {
 	Source() Source
 	Capabilities(offer OfferType) Capabilities
 	Search(ctx context.Context, q Query) ([]Listing, error)
+}
+
+type RegionSearcher interface {
+	SearchRegions() []Region
 }
 
 type Lookup interface {

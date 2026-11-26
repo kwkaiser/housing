@@ -23,6 +23,7 @@ import (
 
 	"git.kwkaiser.io/kwkaiser/housing/internal/collection"
 	"git.kwkaiser.io/kwkaiser/housing/internal/jobs"
+	"git.kwkaiser.io/kwkaiser/housing/internal/listing"
 	"git.kwkaiser.io/kwkaiser/housing/internal/media"
 	"git.kwkaiser.io/kwkaiser/housing/internal/profile"
 	"git.kwkaiser.io/kwkaiser/housing/internal/store"
@@ -114,6 +115,34 @@ func TestAPICreateAndUpdateCollection(t *testing.T) {
 	}
 	if c := apiGet[APICollection](t, h, key, "/api/v1/collections/cambridge"); c.LastRun == nil || c.LastRun.Status != "queued" {
 		t.Errorf("last run = %+v", c.LastRun)
+	}
+}
+
+func TestAPICollectionRegions(t *testing.T) {
+	_, h, key := apiApp(t)
+
+	body := map[string]any{"id": "brooklyn", "mode": "rent", "sources": []string{"streeteasy"}, "profiles": []string{"loft"}, "regions": map[string][]string{"streeteasy": {" 319", "302", "319", ""}}}
+	res, b := apiSend(t, h, http.MethodPost, "/api/v1/collections", key, body)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create = %d\n%s", res.StatusCode, b)
+	}
+	if c := decode[APICollection](t, b); strings.Join(c.Search.Regions[listing.SourceStreetEasy], ",") != "319,302" || c.Search.Location != "" {
+		t.Errorf("created search = %+v", c.Search)
+	}
+
+	res, b = apiSend(t, h, http.MethodPatch, "/api/v1/collections/brooklyn", key, map[string]any{"sources": []string{"streeteasy", "zillow"}, "regions": map[string][]string{"streeteasy": {"nope"}, "zillow": {"1"}}})
+	fields := problemFields(t, b)
+	if res.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(fields["body.regions"], `no region "nope"`) || !strings.Contains(fields["body.regions"], "zillow cannot search by region") {
+		t.Errorf("bad regions = %d\n%s", res.StatusCode, b)
+	}
+
+	res, b = apiSend(t, h, http.MethodPatch, "/api/v1/collections/brooklyn", key, map[string]any{"location": "11211", "regions": map[string][]string{}})
+	if c := decode[APICollection](t, b); res.StatusCode != http.StatusOK || c.Search.Regions != nil {
+		t.Errorf("cleared = %d %+v", res.StatusCode, c.Search)
+	}
+
+	if m := apiGet[APIMeta](t, h, key, "/api/v1/meta"); len(m.Regions[listing.SourceStreetEasy]) == 0 || len(m.Regions[listing.SourceZillow]) != 0 {
+		t.Errorf("meta regions = %d sources", len(m.Regions))
 	}
 }
 

@@ -120,7 +120,7 @@ func TestBuildSearchURL(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		if got := buildSearchURL(tc.q, "11211"); got != tc.want {
+		if got := buildSearchURL(tc.q, "zip:11211"); got != tc.want {
 			t.Errorf("%s:\n got %s\nwant %s", tc.name, got, tc.want)
 		}
 	}
@@ -184,6 +184,53 @@ func TestSearchSingleZip(t *testing.T) {
 	}
 }
 
+func TestSearchRegions(t *testing.T) {
+	p, r, resolver := newProvider(fixture(t, "rent.json"), williamsburg)
+	got, err := p.Search(t.Context(), listing.Query{
+		Offer: listing.OfferRent,
+		Area:  listing.Area{Location: "Somewhere far away", RadiusMiles: 0.1, Regions: []string{"319", "302", "302"}},
+		Limit: 10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "https://streeteasy.com/for-rent/nyc/area:302,319?sort_by=listed_desc"
+	if urls := r.urls(); len(urls) != 1 || urls[0] != want || r.inputs[0].MaxItems != 15 {
+		t.Errorf("runs = %v %+v, want one run of %s", urls, r.inputs, want)
+	}
+	if resolver.query != "" {
+		t.Errorf("region search should not resolve the location, resolved %q", resolver.query)
+	}
+	if len(got) != 3 {
+		t.Errorf("got %d listings, want all 3 without a radius filter", len(got))
+	}
+}
+
+func TestSearchUnknownRegion(t *testing.T) {
+	p, r, _ := newProvider(nil, williamsburg)
+	_, err := p.Search(t.Context(), listing.Query{Offer: listing.OfferRent, Area: listing.Area{Regions: []string{"302", "nope"}}})
+	if !errors.Is(err, listing.ErrUnsupportedQuery) || !strings.Contains(err.Error(), "nope") || len(r.inputs) != 0 {
+		t.Errorf("err = %v, runs = %d", err, len(r.inputs))
+	}
+}
+
+func TestSearchRegionsGrouped(t *testing.T) {
+	seen := map[string]bool{}
+	groups := map[string]bool{}
+	for _, reg := range (&Provider{}).SearchRegions() {
+		if reg.ID == "" || reg.Name == "" || reg.Group == "" || seen[reg.ID] {
+			t.Errorf("bad or duplicate region %+v", reg)
+		}
+		seen[reg.ID] = true
+		groups[reg.Group] = true
+	}
+	for _, g := range []string{"Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island"} {
+		if !groups[g] {
+			t.Errorf("missing borough %s", g)
+		}
+	}
+}
+
 func TestSearchZipRadiusUsesTable(t *testing.T) {
 	p, r, regions := newProvider(nil, williamsburg)
 	if _, err := p.Search(t.Context(), listing.Query{Offer: listing.OfferSale, Area: listing.Area{Location: "11211", RadiusMiles: 1}}); err != nil {
@@ -227,7 +274,7 @@ func TestSearchRejects(t *testing.T) {
 		want   string
 	}{
 		{"offer", listing.Query{Offer: "lease", Area: listing.Area{Location: "11211"}}, williamsburg, "offer type"},
-		{"location", listing.Query{Offer: listing.OfferRent}, williamsburg, "location is required"},
+		{"location", listing.Query{Offer: listing.OfferRent}, williamsburg, "location or regions are required"},
 		{"amenity", listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "11211"}, Amenities: []listing.Amenity{listing.AmenityAirConditioning}}, williamsburg, "cannot filter by air_conditioning"},
 		{"outside nyc", listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "Somerville, MA", RadiusMiles: 2}}, boston, "only covers the New York City area"},
 		{"no radius for city", listing.Query{Offer: listing.OfferRent, Area: listing.Area{Location: "Brooklyn"}}, zillow.Region{Name: "Brooklyn", Type: "city", Center: williamsburg.Center}, "set a radius"},

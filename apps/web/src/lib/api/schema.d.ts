@@ -662,6 +662,10 @@ export interface components {
             profiles?: string[];
             /** Format: double */
             radius_miles?: number;
+            /** @description Region ids to search per source, replacing the radius search for that source; an empty map clears them */
+            regions?: {
+                [key: string]: string[];
+            };
             /** @description Daily run time, HH:MM server-local; empty to unschedule */
             schedule?: string;
             /** @description Listing sources to search */
@@ -987,6 +991,10 @@ export interface components {
             importances: string[];
             modes: string[];
             profile_kinds: string[];
+            /** @description Regions each source can search instead of a radius, keyed by source */
+            regions: {
+                [key: string]: components["schemas"]["Region"][];
+            };
             /** @description Amenities that only apply to rent mode */
             rental_terms: string[];
             /** @description Listing sources this server can search */
@@ -1164,6 +1172,10 @@ export interface components {
             profiles?: string[];
             /** Format: double */
             radius_miles?: number;
+            /** @description Region ids to search per source, replacing the radius search for that source; an empty map clears them */
+            regions?: {
+                [key: string]: string[];
+            };
             /** @description Daily run time, HH:MM server-local; empty to unschedule */
             schedule?: string;
             /** @description Listing sources to search */
@@ -1310,6 +1322,11 @@ export interface components {
             source_id: string;
             url: string;
         };
+        Region: {
+            group?: string;
+            id: string;
+            name: string;
+        };
         Search: {
             amenities?: string[];
             /** Format: int64 */
@@ -1327,6 +1344,9 @@ export interface components {
             min_price?: number;
             /** Format: double */
             radius_miles?: number;
+            regions?: {
+                [key: string]: string[];
+            };
         };
     };
     responses: never;

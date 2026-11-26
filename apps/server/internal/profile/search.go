@@ -32,15 +32,16 @@ func (m Mode) Offer() listing.OfferType {
 }
 
 type Search struct {
-	Location    string            `json:"location,omitempty"`
-	RadiusMiles float64           `json:"radius_miles,omitempty"`
-	MinPrice    *int              `json:"min_price,omitempty"`
-	MaxPrice    *int              `json:"max_price,omitempty"`
-	MinBeds     *int              `json:"min_beds,omitempty"`
-	MaxBeds     *int              `json:"max_beds,omitempty"`
-	MaxAgeDays  int               `json:"max_age_days,omitempty"`
-	Amenities   []listing.Amenity `json:"amenities,omitempty"`
-	Limit       int               `json:"limit,omitempty"`
+	Location    string                      `json:"location,omitempty"`
+	RadiusMiles float64                     `json:"radius_miles,omitempty"`
+	Regions     map[listing.Source][]string `json:"regions,omitempty"`
+	MinPrice    *int                        `json:"min_price,omitempty"`
+	MaxPrice    *int                        `json:"max_price,omitempty"`
+	MinBeds     *int                        `json:"min_beds,omitempty"`
+	MaxBeds     *int                        `json:"max_beds,omitempty"`
+	MaxAgeDays  int                         `json:"max_age_days,omitempty"`
+	Amenities   []listing.Amenity           `json:"amenities,omitempty"`
+	Limit       int                         `json:"limit,omitempty"`
 }
 
 func (s Search) Validate() error {
@@ -77,6 +78,10 @@ func (s Search) Validate() error {
 		field("limit", "result limit must not be negative")
 	}
 	return errors.Join(errs...)
+}
+
+func (s Search) UsesRegions(src listing.Source) bool {
+	return len(s.Regions[src]) > 0
 }
 
 func (s Search) Query(m Mode) listing.Query {

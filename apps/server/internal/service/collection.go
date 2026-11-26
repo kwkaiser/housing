@@ -65,6 +65,9 @@ func (s *Service) saveCollection(ctx context.Context, c collection.Collection, c
 	if err := ValidateSources(c.Sources); err != nil {
 		errs = append(errs, profile.FieldError{Field: "sources", Err: err})
 	}
+	if err := ValidateRegions(c.Search.Regions); err != nil {
+		errs = append(errs, profile.FieldError{Field: "regions", Err: err})
+	}
 	for _, id := range c.Profiles {
 		p, err := db.Profile(ctx, id)
 		switch {

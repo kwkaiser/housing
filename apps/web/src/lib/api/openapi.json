@@ -254,6 +254,16 @@
             "minimum": 0,
             "type": "number"
           },
+          "regions": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "Region ids to search per source, replacing the radius search for that source; an empty map clears them",
+            "type": "object"
+          },
           "schedule": {
             "description": "Daily run time, HH:MM server-local; empty to unschedule",
             "type": "string"
@@ -1232,6 +1242,16 @@
             },
             "type": "array"
           },
+          "regions": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/Region"
+              },
+              "type": "array"
+            },
+            "description": "Regions each source can search instead of a radius, keyed by source",
+            "type": "object"
+          },
           "rental_terms": {
             "description": "Amenities that only apply to rent mode",
             "items": {
@@ -1254,6 +1274,7 @@
           "version",
           "modes",
           "sources",
+          "regions",
           "amenities",
           "rental_terms",
           "capabilities",
@@ -1742,6 +1763,16 @@
             "minimum": 0,
             "type": "number"
           },
+          "regions": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "Region ids to search per source, replacing the radius search for that source; an empty map clears them",
+            "type": "object"
+          },
           "schedule": {
             "description": "Daily run time, HH:MM server-local; empty to unschedule",
             "type": "string"
@@ -2181,6 +2212,25 @@
         ],
         "type": "object"
       },
+      "Region": {
+        "additionalProperties": false,
+        "properties": {
+          "group": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "Search": {
         "additionalProperties": false,
         "properties": {
@@ -2220,6 +2270,15 @@
           "radius_miles": {
             "format": "double",
             "type": "number"
+          },
+          "regions": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object"
           }
         },
         "type": "object"
