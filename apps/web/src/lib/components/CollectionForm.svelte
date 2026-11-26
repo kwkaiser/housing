@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import type { Collection, Meta, ProfileItem, Schemas } from '#lib/api/client.ts';
 	import { ApiError } from '#lib/api/client.ts';
+	import XIcon from '@lucide/svelte/icons/x';
 	import Errors from './Errors.svelte';
 	import { label } from '#lib/format.ts';
 
@@ -34,6 +35,7 @@
 	let model = $state(initial?.model ?? '');
 	let budget = $state(num(initial?.max_run_cost_usd));
 	let schedule = $state(initial?.schedule ?? '');
+	let scheduleInput = $state<HTMLInputElement>();
 	let notifyURL = $state(initial?.notify_url ?? '');
 	let notifyMin = $state(num(initial?.notify_min_score));
 	let error = $state<unknown>();
@@ -52,6 +54,11 @@
 		const [x] = next.splice(i, 1);
 		next.splice(i + by, 0, x);
 		picked = next;
+	}
+
+	function clearSchedule() {
+		schedule = '';
+		if (scheduleInput) scheduleInput.value = '';
 	}
 
 	const opt = (v: string) => (v.trim() === '' ? undefined : Number(v));
@@ -180,7 +187,11 @@
 			<div class="field"><label for="budget">Max cost per run ($)</label><input id="budget" inputmode="decimal" bind:value={budget} placeholder={meta.defaults.collection_budget_usd.toFixed(2)} /></div>
 			<div class="field" class:invalid={fields.schedule}>
 				<label for="schedule">Daily run time</label>
-				<input id="schedule" type="time" bind:value={schedule} />
+				<div class="with-clear">
+					<input id="schedule" type="time" bind:this={scheduleInput} bind:value={schedule} />
+					<button type="button" class="ghost icon-button" aria-label="Clear daily run time" title="Don't run on a schedule" onclick={clearSchedule}><XIcon size={18} /></button>
+				</div>
+				<small>Leave empty for manual runs only.</small>
 				{#if fields.schedule}<p class="field-error">{fields.schedule}</p>{/if}
 			</div>
 		</div>
@@ -196,6 +207,16 @@
 </form>
 
 <style>
+	.with-clear {
+		display: flex;
+		gap: 0.25rem;
+	}
+
+	.with-clear input {
+		flex: 1;
+		min-width: 0;
+	}
+
 	.avoids {
 		margin: 0;
 		padding-left: 1rem;
