@@ -3,6 +3,7 @@ package craigslist
 import (
 	"context"
 	"fmt"
+	"maps"
 	"math"
 	"net/url"
 	"regexp"
@@ -36,6 +37,7 @@ var amenityParams = map[listing.Amenity][]string{
 	listing.AmenityInUnitLaundry:   {"laundry=1"},
 	listing.AmenityParking:         {"parking=1", "parking=2", "parking=3", "parking=4", "parking=6"},
 	listing.AmenityAirConditioning: {"airconditioning=1"},
+	listing.AmenityFurnished:       {"is_furnished=1"},
 }
 
 type subdomain struct {
@@ -84,16 +86,11 @@ func (p *Provider) Source() listing.Source {
 	return listing.SourceCraigslist
 }
 
-func (p *Provider) SupportedAmenities(offer listing.OfferType) []listing.Amenity {
+func (p *Provider) Capabilities(offer listing.OfferType) listing.Capabilities {
 	if offer != listing.OfferRent {
 		return nil
 	}
-	out := make([]listing.Amenity, 0, len(amenityParams))
-	for a := range amenityParams {
-		out = append(out, a)
-	}
-	slices.Sort(out)
-	return out
+	return listing.NewCapabilities(slices.Collect(maps.Keys(amenityParams)), listing.Amenities)
 }
 
 type actorInput struct {
@@ -121,7 +118,7 @@ func (p *Provider) Search(ctx context.Context, q listing.Query) ([]listing.Listi
 	if q.Area.Location == "" {
 		return nil, fmt.Errorf("%w: location is required", listing.ErrUnsupportedQuery)
 	}
-	supported := p.SupportedAmenities(q.Offer)
+	supported := p.Capabilities(q.Offer).Searchable()
 	for _, a := range q.Amenities {
 		if !slices.Contains(supported, a) {
 			return nil, fmt.Errorf("%w: craigslist cannot filter by %s", listing.ErrUnsupportedQuery, a)

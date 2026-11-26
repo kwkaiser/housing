@@ -20,6 +20,37 @@ func TestSplitAmenities(t *testing.T) {
 	}
 }
 
+func TestGroupBySupport(t *testing.T) {
+	caps := listing.NewCapabilities([]listing.Amenity{listing.AmenityParking}, []listing.Amenity{listing.AmenityDishwasher})
+	got := GroupBySupport([]listing.Amenity{listing.AmenityParking, listing.AmenityDishwasher, listing.AmenityFurnished}, caps)
+	if len(got[listing.SupportSearch]) != 1 || len(got[listing.SupportResults]) != 1 || len(got[""]) != 1 || got[""][0] != listing.AmenityFurnished {
+		t.Errorf("groups = %v", got)
+	}
+}
+
+func TestSourceCapabilities(t *testing.T) {
+	caps := SourceCapabilities()
+	if len(caps) != len(SupportedSources()) {
+		t.Fatalf("capabilities for %d sources, want %d", len(caps), len(SupportedSources()))
+	}
+	for src, byMode := range caps {
+		for a := range byMode[profile.ModeBuy] {
+			if a.RentOnly() {
+				t.Errorf("%s advertises %s for buy mode", src, a)
+			}
+		}
+	}
+	if got := caps[listing.SourceZillow][profile.ModeRent][listing.AmenityFurnished]; got != listing.SupportEnrich {
+		t.Errorf("zillow rent furnished = %q", got)
+	}
+	if got := caps[listing.SourceCraigslist][profile.ModeRent][listing.AmenityFurnished]; got != listing.SupportSearch {
+		t.Errorf("craigslist rent furnished = %q", got)
+	}
+	if got := caps[listing.SourceFacebook][profile.ModeBuy]; len(got) != 0 {
+		t.Errorf("facebook buy = %v", got)
+	}
+}
+
 func TestFetchValidates(t *testing.T) {
 	svc := openService(t, Config{DataDir: t.TempDir(), Keys: config.Config{ApifyToken: "x"}})
 	cases := map[string]FetchOptions{

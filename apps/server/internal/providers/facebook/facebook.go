@@ -54,8 +54,11 @@ func (p *Provider) Source() listing.Source {
 	return listing.SourceFacebook
 }
 
-func (p *Provider) SupportedAmenities(listing.OfferType) []listing.Amenity {
-	return nil
+func (p *Provider) Capabilities(offer listing.OfferType) listing.Capabilities {
+	if offer != listing.OfferRent {
+		return nil
+	}
+	return listing.NewCapabilities(nil, listing.Amenities)
 }
 
 type actorInput struct {

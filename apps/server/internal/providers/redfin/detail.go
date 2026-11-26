@@ -42,6 +42,13 @@ type detailItem struct {
 	} `json:"mediaBrowserInfo"`
 }
 
+func (p *Provider) Enriches(offer listing.OfferType) []listing.Amenity {
+	if offer != listing.OfferSale {
+		return nil
+	}
+	return listing.OfferAmenities(offer)
+}
+
 func (p *Provider) Enrich(ctx context.Context, listings []listing.Listing) ([]listing.Listing, error) {
 	var input detailInput
 	seen := map[string]bool{}

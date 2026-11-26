@@ -11,22 +11,25 @@ import (
 )
 
 type item struct {
-	ID          string  `json:"id"`
-	URLPath     string  `json:"urlPath"`
-	Price       float64 `json:"price"`
-	SaleType    *string `json:"saleType"`
-	Description string  `json:"description"`
-	OnMarketAt  string  `json:"onMarketAt"`
-	Street      string  `json:"street"`
-	Unit        string  `json:"unit"`
-	ZipCode     string  `json:"zipCode"`
-	LivingArea  int     `json:"livingAreaSize"`
+	ID          string   `json:"id"`
+	URLPath     string   `json:"urlPath"`
+	Price       float64  `json:"price"`
+	SaleType    *string  `json:"saleType"`
+	Description string   `json:"description"`
+	OnMarketAt  string   `json:"onMarketAt"`
+	Street      string   `json:"street"`
+	Unit        string   `json:"unit"`
+	ZipCode     string   `json:"zipCode"`
+	LivingArea  int      `json:"livingAreaSize"`
+	Furnished   bool     `json:"furnished"`
+	LeaseTerm   *float64 `json:"leaseTermMonths"`
 	GeoPoint    *struct {
 		Latitude  float64 `json:"latitude"`
 		Longitude float64 `json:"longitude"`
 	} `json:"geoPoint"`
 	Pricing struct {
-		Price float64 `json:"price"`
+		Price     float64  `json:"price"`
+		LeaseTerm *float64 `json:"leaseTermMonths"`
 	} `json:"pricing"`
 	Images []string `json:"images"`
 	Photos []struct {
@@ -164,6 +167,14 @@ func (it item) amenities() map[listing.Amenity]bool {
 	}
 	if len(it.Details.Amenities.ParkingTypes) > 0 {
 		found[listing.AmenityParking] = true
+	}
+	if it.Furnished {
+		found[listing.AmenityFurnished] = true
+	}
+	for _, months := range []*float64{it.LeaseTerm, it.Pricing.LeaseTerm} {
+		if months != nil && listing.ShortLease(int(math.Ceil(*months))) {
+			found[listing.AmenityShortTerm] = true
+		}
 	}
 	if len(found) == 0 {
 		return nil

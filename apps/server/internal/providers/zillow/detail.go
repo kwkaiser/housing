@@ -47,6 +47,7 @@ type detailItem struct {
 	} `json:"buildingAttributes"`
 	FloorPlans []struct {
 		Name       string   `json:"name"`
+		LeaseTerm  string   `json:"leaseTerm"`
 		Bedrooms   *float64 `json:"bedrooms"`
 		Bathrooms  *float64 `json:"bathrooms"`
 		LivingArea *float64 `json:"livingArea"`
@@ -189,6 +190,9 @@ func expandBuilding(base listing.Listing, d detailResult) []listing.Listing {
 		plan.Beds = intPtr(fp.Bedrooms)
 		plan.Baths = fp.Bathrooms
 		plan.SqFt = intPtr(fp.LivingArea)
+		if listing.ShortLeaseText(fp.LeaseTerm) {
+			plan.Amenities = mergeAmenities(plan.Amenities, map[listing.Amenity]bool{listing.AmenityShortTerm: true})
+		}
 
 		if len(fp.Units) == 0 {
 			if fp.MinPrice == nil {
@@ -238,8 +242,14 @@ func homeAmenities(it detailItem) map[listing.Amenity]bool {
 		out[listing.AmenityInUnitLaundry] = true
 	}
 	for _, f := range it.AtAGlanceFacts {
-		if f.Label == "Laundry" && strings.Contains(strings.ToLower(f.Value), "in unit") {
+		label, value := strings.ToLower(f.Label), strings.ToLower(f.Value)
+		switch {
+		case label == "laundry" && strings.Contains(value, "in unit"):
 			out[listing.AmenityInUnitLaundry] = true
+		case strings.Contains(label, "lease") && listing.ShortLeaseText(value):
+			out[listing.AmenityShortTerm] = true
+		case strings.Contains(label, "furnish") && value != "" && !strings.HasPrefix(value, "no") && !strings.HasPrefix(value, "un"):
+			out[listing.AmenityFurnished] = true
 		}
 	}
 	for _, c := range it.PropertyFeatures.Cooling {

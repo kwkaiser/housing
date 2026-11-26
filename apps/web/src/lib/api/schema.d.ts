@@ -609,7 +609,7 @@ export interface components {
             unlisted: number;
         };
         APICreateCollection: {
-            /** @description Required amenities; an empty list clears them */
+            /** @description Required amenities; furnished and short_term apply to rent mode only; an empty list clears them */
             amenities?: string[];
             /** @description Lowercase letters, digits and dashes */
             id: string;
@@ -979,10 +979,20 @@ export interface components {
         };
         APIMeta: {
             amenities: string[];
+            /** @description Per source and mode, how each amenity is filtered: search (by the source), results (checked against search results), enrich (checked against listing details). Missing amenities cannot be reported by that source. */
+            capabilities: {
+                [key: string]: {
+                    [key: string]: {
+                        [key: string]: string;
+                    };
+                };
+            };
             defaults: components["schemas"]["APIDefaults"];
             importances: string[];
             modes: string[];
             profile_kinds: string[];
+            /** @description Amenities that only apply to rent mode */
+            rental_terms: string[];
             /** @description Listing sources this server can search */
             sources: string[];
             version: string;
@@ -1105,7 +1115,7 @@ export interface components {
             url: string;
         };
         APIUpdateCollection: {
-            /** @description Required amenities; an empty list clears them */
+            /** @description Required amenities; furnished and short_term apply to rent mode only; an empty list clears them */
             amenities?: string[];
             /** @description Price and bed bounds to remove */
             clear?: ("min_price" | "max_price" | "min_beds" | "max_beds")[];

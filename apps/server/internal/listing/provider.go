@@ -27,7 +27,7 @@ type Query struct {
 
 type Provider interface {
 	Source() Source
-	SupportedAmenities(offer OfferType) []Amenity
+	Capabilities(offer OfferType) Capabilities
 	Search(ctx context.Context, q Query) ([]Listing, error)
 }
 
@@ -36,6 +36,7 @@ type Lookup interface {
 }
 
 type Enricher interface {
+	Enriches(offer OfferType) []Amenity
 	Enrich(ctx context.Context, listings []Listing) ([]Listing, error)
 }
 

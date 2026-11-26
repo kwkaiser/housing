@@ -86,16 +86,18 @@ func (s *Service) Fetch(ctx context.Context, o FetchOptions, log *slog.Logger) (
 		if err != nil {
 			return res, err
 		}
-		if _, deferred := SplitAmenities(q.Amenities, p.SupportedAmenities(q.Offer)); len(deferred) > 0 {
-			_, canEnrich := p.(listing.Enricher)
-			switch {
-			case canEnrich && !o.Enrich:
-				return res, fmt.Errorf("%s cannot filter %s listings by %s; enable enrichment to filter on listing details instead", source, o.Mode, joinAmenities(deferred))
-			case canEnrich:
-				flog.InfoContext(ctx, "amenities checked after enrichment", "source", source, "amenities", joinAmenities(deferred))
-			default:
-				flog.InfoContext(ctx, "amenities checked against search results", "source", source, "amenities", joinAmenities(deferred))
+		levels := GroupBySupport(q.Amenities, listing.CapabilitiesOf(p, q.Offer))
+		if as := levels[listing.SupportEnrich]; len(as) > 0 {
+			if !o.Enrich {
+				return res, fmt.Errorf("%s can only check %s for %s listings on listing details; enable enrichment to filter on them", source, joinAmenities(as), o.Mode)
 			}
+			flog.InfoContext(ctx, "amenities checked after enrichment", "source", source, "amenities", joinAmenities(as))
+		}
+		if as := levels[listing.SupportResults]; len(as) > 0 {
+			flog.InfoContext(ctx, "amenities checked against search results", "source", source, "amenities", joinAmenities(as))
+		}
+		if as := levels[""]; len(as) > 0 {
+			flog.WarnContext(ctx, "source cannot report amenities; none of its listings will match", "source", source, "amenities", joinAmenities(as))
 		}
 		providers[i] = p
 	}
@@ -228,7 +230,7 @@ func (s *Service) fetchOne(ctx context.Context, p listing.Provider, q listing.Qu
 	ctx, span := telemetry.Start(ctx, "service.fetchOne", attribute.String("source", string(p.Source())))
 	defer func() { telemetry.End(span, err) }()
 	sourceQuery := q
-	sourceQuery.Amenities, _ = SplitAmenities(q.Amenities, p.SupportedAmenities(q.Offer))
+	sourceQuery.Amenities, _ = SplitAmenities(q.Amenities, p.Capabilities(q.Offer).Searchable())
 
 	listings, err := search(ctx, p, sourceQuery)
 	if err != nil {
@@ -340,6 +342,29 @@ func SplitAmenities(want, supported []listing.Amenity) (filterable, deferred []l
 		}
 	}
 	return filterable, deferred
+}
+
+func GroupBySupport(want []listing.Amenity, caps listing.Capabilities) map[listing.Support][]listing.Amenity {
+	out := map[listing.Support][]listing.Amenity{}
+	for _, a := range want {
+		out[caps[a]] = append(out[caps[a]], a)
+	}
+	return out
+}
+
+func SourceCapabilities() map[listing.Source]map[profile.Mode]listing.Capabilities {
+	out := map[listing.Source]map[profile.Mode]listing.Capabilities{}
+	for _, src := range SupportedSources() {
+		p, err := NewProvider(src, nil)
+		if err != nil {
+			continue
+		}
+		out[src] = map[profile.Mode]listing.Capabilities{}
+		for _, m := range []profile.Mode{profile.ModeRent, profile.ModeBuy} {
+			out[src][m] = listing.CapabilitiesOf(p, m.Offer())
+		}
+	}
+	return out
 }
 
 func joinAmenities(as []listing.Amenity) string {

@@ -901,13 +901,15 @@ func (a *App) resized(p string, original []byte, size int) ([]byte, error) {
 }
 
 type APIMeta struct {
-	Version      string               `json:"version"`
-	Modes        []profile.Mode       `json:"modes"`
-	Sources      []listing.Source     `json:"sources" doc:"Listing sources this server can search"`
-	Amenities    []listing.Amenity    `json:"amenities"`
-	Importances  []profile.Importance `json:"importances"`
-	ProfileKinds []profile.Kind       `json:"profile_kinds"`
-	Defaults     APIDefaults          `json:"defaults"`
+	Version      string                                                   `json:"version"`
+	Modes        []profile.Mode                                           `json:"modes"`
+	Sources      []listing.Source                                         `json:"sources" doc:"Listing sources this server can search"`
+	Amenities    []listing.Amenity                                        `json:"amenities"`
+	RentalTerms  []listing.Amenity                                        `json:"rental_terms" doc:"Amenities that only apply to rent mode"`
+	Capabilities map[listing.Source]map[profile.Mode]listing.Capabilities `json:"capabilities" doc:"Per source and mode, how each amenity is filtered: search (by the source), results (checked against search results), enrich (checked against listing details). Missing amenities cannot be reported by that source."`
+	Importances  []profile.Importance                                     `json:"importances"`
+	ProfileKinds []profile.Kind                                           `json:"profile_kinds"`
+	Defaults     APIDefaults                                              `json:"defaults"`
 }
 
 type APIDefaults struct {
@@ -924,6 +926,8 @@ func (a *App) apiMeta(_ context.Context, _ *struct{}) (*struct{ Body APIMeta }, 
 		Modes:        []profile.Mode{profile.ModeRent, profile.ModeBuy},
 		Sources:      service.SupportedSources(),
 		Amenities:    listing.Amenities,
+		RentalTerms:  listing.RentalTerms,
+		Capabilities: service.SourceCapabilities(),
 		Importances:  profile.Importances,
 		ProfileKinds: []profile.Kind{profile.KindWant, profile.KindAvoid},
 		Defaults: APIDefaults{

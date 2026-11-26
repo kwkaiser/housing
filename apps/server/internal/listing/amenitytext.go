@@ -17,6 +17,11 @@ var amenityPhrases = map[Amenity][]string{
 		"off-street parking", "off street parking", "parking space", "parking spot", "deeded parking",
 		"garage parking", "assigned parking", "driveway parking", "private driveway", "parking included",
 	},
+	AmenityFurnished: {"furnished", "furniture included"},
+	AmenityShortTerm: {
+		"short term", "short-term", "month-to-month", "month to month", "sublet", "sublease",
+		"temporary housing", "corporate housing", "flexible lease", "flexible term",
+	},
 }
 
 var negation = regexp.MustCompile(`\b(no|not|without|lacks?|none)\b[^.,;!\n]{0,20}$`)
@@ -42,9 +47,17 @@ func mentionedAffirmatively(text, phrase string) bool {
 			return false
 		}
 		start := offset + i
-		if !negation.MatchString(text[max(0, start-30):start]) {
+		if !midWord(text, start) && !negation.MatchString(text[max(0, start-30):start]) {
 			return true
 		}
 		offset = start + len(phrase)
 	}
+}
+
+func midWord(text string, start int) bool {
+	if start == 0 {
+		return false
+	}
+	c := text[start-1]
+	return c >= 'a' && c <= 'z'
 }

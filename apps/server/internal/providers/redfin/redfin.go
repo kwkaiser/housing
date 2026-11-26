@@ -55,8 +55,8 @@ func (p *Provider) Source() listing.Source {
 	return listing.SourceRedfin
 }
 
-func (p *Provider) SupportedAmenities(listing.OfferType) []listing.Amenity {
-	return nil
+func (p *Provider) Capabilities(offer listing.OfferType) listing.Capabilities {
+	return listing.NewCapabilities(nil, listing.OfferAmenities(offer))
 }
 
 type actorInput struct {

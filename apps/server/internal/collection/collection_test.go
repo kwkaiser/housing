@@ -51,6 +51,19 @@ func TestValidateFields(t *testing.T) {
 	}
 }
 
+func TestValidateRentalTermsRentOnly(t *testing.T) {
+	c := valid()
+	c.Search.Amenities = []listing.Amenity{listing.AmenityFurnished, listing.AmenityParking}
+	c.Mode = profile.ModeRent
+	if err := c.Validate(); err != nil {
+		t.Fatalf("rent: %v", err)
+	}
+	c.Mode = profile.ModeBuy
+	if err := c.Validate(); err == nil || !strings.Contains(err.Error(), "furnished only applies to rentals") {
+		t.Errorf("buy: %v", err)
+	}
+}
+
 func ptr(n int) *int {
 	return &n
 }

@@ -105,6 +105,13 @@ func (c Collection) Validate() error {
 	if c.Notify.MinScore < 0 {
 		field("notify_min_score", fmt.Errorf("notification score must not be negative"))
 	}
+	if c.Mode == profile.ModeBuy {
+		for _, a := range c.Search.Amenities {
+			if a.RentOnly() {
+				field("amenities", fmt.Errorf("%s only applies to rentals", a))
+			}
+		}
+	}
 	if err := c.Search.Validate(); err != nil {
 		errs = append(errs, err)
 	}

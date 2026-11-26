@@ -22,7 +22,7 @@ type CollectionFields struct {
 	MinBeds        *int     `json:"min_beds,omitempty"`
 	MaxBeds        *int     `json:"max_beds,omitempty"`
 	MaxAgeDays     *int     `json:"max_age_days,omitempty" jsonschema:"only listings posted within this many days; 0 means no limit" doc:"Only listings posted within this many days; 0 means no limit"`
-	Amenities      []string `json:"amenities,omitempty" jsonschema:"required amenities; an empty list clears them" doc:"Required amenities; an empty list clears them"`
+	Amenities      []string `json:"amenities,omitempty" jsonschema:"required amenities: in_unit_laundry, dishwasher, parking, air_conditioning, and for rent mode only furnished and short_term; an empty list clears them" doc:"Required amenities; furnished and short_term apply to rent mode only; an empty list clears them"`
 	Limit          *int     `json:"limit,omitempty" jsonschema:"maximum listings fetched per source; 0 means the default" doc:"Maximum listings fetched per source; 0 means the default"`
 	Model          *string  `json:"model,omitempty" jsonschema:"grading model; empty means the default" doc:"Grading model; empty means the default"`
 	MaxRunCostUSD  *float64 `json:"max_run_cost_usd,omitempty" jsonschema:"spending cap per run; 0 means the default" doc:"Spending cap per run; 0 means the default"`

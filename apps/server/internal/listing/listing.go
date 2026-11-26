@@ -2,6 +2,7 @@ package listing
 
 import (
 	"encoding/json"
+	"slices"
 	"time"
 )
 
@@ -32,9 +33,19 @@ const (
 	AmenityDishwasher      Amenity = "dishwasher"
 	AmenityParking         Amenity = "parking"
 	AmenityAirConditioning Amenity = "air_conditioning"
+	AmenityFurnished       Amenity = "furnished"
+	AmenityShortTerm       Amenity = "short_term"
 )
 
-var Amenities = []Amenity{AmenityInUnitLaundry, AmenityDishwasher, AmenityParking, AmenityAirConditioning}
+var Amenities = []Amenity{AmenityInUnitLaundry, AmenityDishwasher, AmenityParking, AmenityAirConditioning, AmenityFurnished, AmenityShortTerm}
+
+var RentalTerms = []Amenity{AmenityFurnished, AmenityShortTerm}
+
+const ShortTermMaxMonths = 6
+
+func (a Amenity) RentOnly() bool {
+	return slices.Contains(RentalTerms, a)
+}
 
 type Money struct {
 	Cents    int64  `json:"cents"`

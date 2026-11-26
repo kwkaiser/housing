@@ -12,6 +12,9 @@ func TestAmenitiesFromText(t *testing.T) {
 		{"Sorry, no dishwasher. Laundry in basement. Street parking only.", nil},
 		{"Unit is without air conditioning but has a dishwasher.", []Amenity{AmenityDishwasher}},
 		{"Washer/dryer in unit!", []Amenity{AmenityInUnitLaundry}},
+		{"Fully furnished studio, available as a 3 month sublet.", []Amenity{AmenityFurnished, AmenityShortTerm}},
+		{"Unfurnished. Sorry, no short-term leases.", nil},
+		{"Month-to-month OK", []Amenity{AmenityShortTerm}},
 	}
 	for _, c := range cases {
 		got := AmenitiesFromText(c.text)

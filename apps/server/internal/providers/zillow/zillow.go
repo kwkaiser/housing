@@ -32,11 +32,16 @@ func (p *Provider) Source() listing.Source {
 	return listing.SourceZillow
 }
 
-func (p *Provider) SupportedAmenities(offer listing.OfferType) []listing.Amenity {
-	if offer != listing.OfferRent {
-		return nil
+func (p *Provider) Capabilities(offer listing.OfferType) listing.Capabilities {
+	var search []listing.Amenity
+	if offer == listing.OfferRent {
+		search = slices.Collect(maps.Keys(rentalAmenityFilters))
 	}
-	return slices.Sorted(maps.Keys(rentalAmenityFilters))
+	return listing.NewCapabilities(search, []listing.Amenity{listing.AmenityAirConditioning})
+}
+
+func (p *Provider) Enriches(offer listing.OfferType) []listing.Amenity {
+	return listing.OfferAmenities(offer)
 }
 
 func (p *Provider) Search(ctx context.Context, q listing.Query) ([]listing.Listing, error) {
@@ -93,7 +98,7 @@ func (p *Provider) validate(q listing.Query) error {
 			return fmt.Errorf("%w: currency %q", listing.ErrUnsupportedQuery, m.Currency)
 		}
 	}
-	supported := p.SupportedAmenities(q.Offer)
+	supported := p.Capabilities(q.Offer).Searchable()
 	for _, a := range q.Amenities {
 		if !slices.Contains(supported, a) {
 			return fmt.Errorf("%w: zillow cannot filter %s listings by %s", listing.ErrUnsupportedQuery, q.Offer, a)

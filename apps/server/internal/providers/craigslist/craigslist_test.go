@@ -195,9 +195,38 @@ func TestToListingSkipsUnpriced(t *testing.T) {
 	}
 }
 
-func TestSupportedAmenitiesRentOnly(t *testing.T) {
+func TestCapabilitiesRentOnly(t *testing.T) {
 	p, _ := newProvider(nil, zip02144)
-	if len(p.SupportedAmenities(listing.OfferRent)) != 3 || p.SupportedAmenities(listing.OfferSale) != nil {
-		t.Errorf("rent=%v sale=%v", p.SupportedAmenities(listing.OfferRent), p.SupportedAmenities(listing.OfferSale))
+	rent := p.Capabilities(listing.OfferRent)
+	if len(rent.Searchable()) != 4 || rent[listing.AmenityFurnished] != listing.SupportSearch || rent[listing.AmenityShortTerm] != listing.SupportResults {
+		t.Errorf("rent = %v", rent)
+	}
+	if sale := p.Capabilities(listing.OfferSale); sale != nil {
+		t.Errorf("sale = %v", sale)
+	}
+}
+
+func TestToListingRentPeriod(t *testing.T) {
+	cases := []struct {
+		raw       string
+		cents     int64
+		shortTerm bool
+	}{
+		{`{"id":"x","url":"u","price":"$3,000","amenities":["monthly","furnished"]}`, 300000, false},
+		{`{"id":"x","url":"u","price":"$700","amenities":["weekly"]}`, 303333, true},
+		{`{"id":"x","url":"u","price":"$100","rentPeriod":"daily"}`, 304167, true},
+	}
+	for _, c := range cases {
+		l, ok, err := toListing(json.RawMessage(c.raw), now)
+		if err != nil || !ok {
+			t.Fatalf("%s: ok=%v err=%v", c.raw, ok, err)
+		}
+		if l.Price.Cents != c.cents || l.Amenities[listing.AmenityShortTerm] != c.shortTerm {
+			t.Errorf("%s: price=%d amenities=%v", c.raw, l.Price.Cents, l.Amenities)
+		}
+	}
+	l, _, _ := toListing(json.RawMessage(cases[0].raw), now)
+	if !l.Amenities[listing.AmenityFurnished] {
+		t.Errorf("furnished not parsed: %v", l.Amenities)
 	}
 }

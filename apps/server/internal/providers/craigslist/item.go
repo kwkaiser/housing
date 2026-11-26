@@ -21,21 +21,22 @@ var (
 )
 
 type item struct {
-	ID        string   `json:"id"`
-	URL       string   `json:"url"`
-	Title     string   `json:"title"`
-	Datetime  string   `json:"datetime"`
-	Location  string   `json:"location"`
-	Price     string   `json:"price"`
-	Latitude  string   `json:"latitude"`
-	Longitude string   `json:"longitude"`
-	Post      string   `json:"post"`
-	Pics      []string `json:"pics"`
-	Amenities []string `json:"amenities"`
-	Bedrooms  string   `json:"bedrooms"`
-	Bathrooms string   `json:"bathrooms"`
-	Space     string   `json:"space"`
-	Address   struct {
+	ID         string   `json:"id"`
+	URL        string   `json:"url"`
+	Title      string   `json:"title"`
+	Datetime   string   `json:"datetime"`
+	Location   string   `json:"location"`
+	Price      string   `json:"price"`
+	Latitude   string   `json:"latitude"`
+	Longitude  string   `json:"longitude"`
+	Post       string   `json:"post"`
+	Pics       []string `json:"pics"`
+	Amenities  []string `json:"amenities"`
+	Bedrooms   string   `json:"bedrooms"`
+	Bathrooms  string   `json:"bathrooms"`
+	Space      string   `json:"space"`
+	RentPeriod string   `json:"rentPeriod"`
+	Address    struct {
 		PostalCode string `json:"postalCode"`
 		Street     string `json:"street"`
 		City       string `json:"city"`
@@ -52,6 +53,8 @@ func toListing(raw json.RawMessage, now time.Time) (listing.Listing, bool, error
 	if it.ID == "" || it.URL == "" || !ok || cents == 0 {
 		return listing.Listing{}, false, nil
 	}
+	period := rentPeriod(it)
+	cents = int64(math.Round(float64(cents) * periodsPerMonth[period]))
 
 	observed := now
 	if !it.ScrapedAt.IsZero() {
@@ -82,6 +85,12 @@ func toListing(raw json.RawMessage, now time.Time) (listing.Listing, bool, error
 		l.ListedAt = &t
 	}
 	l.Amenities = amenities(it)
+	if period != "monthly" {
+		if l.Amenities == nil {
+			l.Amenities = map[listing.Amenity]bool{}
+		}
+		l.Amenities[listing.AmenityShortTerm] = true
+	}
 	return l, true, nil
 }
 
@@ -128,6 +137,8 @@ func amenities(it item) map[listing.Amenity]bool {
 			found[listing.AmenityInUnitLaundry] = true
 		case a == "air conditioning":
 			found[listing.AmenityAirConditioning] = true
+		case a == "furnished":
+			found[listing.AmenityFurnished] = true
 		case containsFold(parkingYes, a):
 			found[listing.AmenityParking] = true
 		}
@@ -136,6 +147,22 @@ func amenities(it item) map[listing.Amenity]bool {
 		return nil
 	}
 	return found
+}
+
+var periodsPerMonth = map[string]float64{
+	"daily":   365.0 / 12,
+	"weekly":  52.0 / 12,
+	"monthly": 1,
+}
+
+func rentPeriod(it item) string {
+	for _, p := range append([]string{it.RentPeriod}, it.Amenities...) {
+		p = strings.ToLower(strings.TrimSpace(p))
+		if _, ok := periodsPerMonth[p]; ok {
+			return p
+		}
+	}
+	return "monthly"
 }
 
 func parseDollars(s string) (int64, bool) {

@@ -61,6 +61,10 @@ func TestEnrich(t *testing.T) {
 		}
 	}
 
+	if unit.Amenities[listing.AmenityShortTerm] {
+		t.Error("12 month floor plan marked short term")
+	}
+
 	var raw struct {
 		BuildingZPID string `json:"buildingZpid"`
 		FloorPlan    struct {
@@ -159,5 +163,26 @@ func TestEnrichSmallBuildingUnits(t *testing.T) {
 	}
 	if !ids["464622964"] || !ids["465235055"] {
 		t.Errorf("unit ids = %v", ids)
+	}
+}
+
+func TestEnrichShortLeaseFloorPlan(t *testing.T) {
+	building := loadFixture(t, "detail_building.json")
+	for i, raw := range building {
+		building[i] = json.RawMessage(strings.ReplaceAll(string(raw), `"leaseTerm": "12 Months"`, `"leaseTerm": "3 Months"`))
+	}
+	p := New(&fakeRunner{items: building}, fakeRegions{austin})
+	in := []listing.Listing{{Source: listing.SourceZillow, SourceID: "b#0", URL: buildingURL, Offer: listing.OfferRent}}
+	got, err := p.Enrich(t.Context(), in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) == 0 {
+		t.Fatal("no units")
+	}
+	for _, l := range got {
+		if !l.Amenities[listing.AmenityShortTerm] {
+			t.Fatalf("%s not marked short term: %v", l.SourceID, l.Amenities)
+		}
 	}
 }

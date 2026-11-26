@@ -174,7 +174,7 @@
         "additionalProperties": false,
         "properties": {
           "amenities": {
-            "description": "Required amenities; an empty list clears them",
+            "description": "Required amenities; furnished and short_term apply to rent mode only; an empty list clears them",
             "items": {
               "type": "string"
             },
@@ -1206,6 +1206,19 @@
             },
             "type": "array"
           },
+          "capabilities": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              "type": "object"
+            },
+            "description": "Per source and mode, how each amenity is filtered: search (by the source), results (checked against search results), enrich (checked against listing details). Missing amenities cannot be reported by that source.",
+            "type": "object"
+          },
           "defaults": {
             "$ref": "#/components/schemas/APIDefaults"
           },
@@ -1227,6 +1240,13 @@
             },
             "type": "array"
           },
+          "rental_terms": {
+            "description": "Amenities that only apply to rent mode",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "sources": {
             "description": "Listing sources this server can search",
             "items": {
@@ -1243,6 +1263,8 @@
           "modes",
           "sources",
           "amenities",
+          "rental_terms",
+          "capabilities",
           "importances",
           "profile_kinds",
           "defaults"
@@ -1639,7 +1661,7 @@
         "additionalProperties": false,
         "properties": {
           "amenities": {
-            "description": "Required amenities; an empty list clears them",
+            "description": "Required amenities; furnished and short_term apply to rent mode only; an empty list clears them",
             "items": {
               "type": "string"
             },

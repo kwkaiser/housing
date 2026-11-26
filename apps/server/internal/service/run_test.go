@@ -71,8 +71,8 @@ type fakeProvider struct {
 	err      error
 }
 
-func (p fakeProvider) Source() listing.Source                                 { return p.source }
-func (p fakeProvider) SupportedAmenities(listing.OfferType) []listing.Amenity { return nil }
+func (p fakeProvider) Source() listing.Source                              { return p.source }
+func (p fakeProvider) Capabilities(listing.OfferType) listing.Capabilities { return nil }
 func (p fakeProvider) Search(context.Context, listing.Query) ([]listing.Listing, error) {
 	return slices.Clone(p.listings), p.err
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"slices"
 	"strings"
@@ -272,6 +273,28 @@ func TestToListingRental(t *testing.T) {
 	}
 	if !strings.HasPrefix(l.Description, "Super bright") || len(l.Raw) == 0 {
 		t.Errorf("description = %q", l.Description)
+	}
+}
+
+func TestToListingRentalTerms(t *testing.T) {
+	base := `{"id":"1","urlPath":"/building/x/1","price":3000,%s}`
+	cases := []struct {
+		fields          string
+		furnished, term bool
+	}{
+		{`"furnished":false,"leaseTermMonths":null`, false, false},
+		{`"furnished":true,"leaseTermMonths":12`, true, false},
+		{`"furnished":false,"pricing":{"price":3000,"leaseTermMonths":3}`, false, true},
+		{`"furnished":true,"leaseTermMonths":1`, true, true},
+	}
+	for _, c := range cases {
+		l, ok, err := toListing(json.RawMessage(fmt.Sprintf(base, c.fields)), listing.OfferRent, now)
+		if err != nil || !ok {
+			t.Fatalf("%s: ok=%v err=%v", c.fields, ok, err)
+		}
+		if l.Amenities[listing.AmenityFurnished] != c.furnished || l.Amenities[listing.AmenityShortTerm] != c.term {
+			t.Errorf("%s: amenities = %v", c.fields, l.Amenities)
+		}
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"math"
 	"regexp"
 	"slices"
@@ -60,13 +61,8 @@ func (p *Provider) Source() listing.Source {
 	return listing.SourceStreetEasy
 }
 
-func (p *Provider) SupportedAmenities(listing.OfferType) []listing.Amenity {
-	out := make([]listing.Amenity, 0, len(amenityFilters))
-	for a := range amenityFilters {
-		out = append(out, a)
-	}
-	slices.Sort(out)
-	return out
+func (p *Provider) Capabilities(offer listing.OfferType) listing.Capabilities {
+	return listing.NewCapabilities(slices.Collect(maps.Keys(amenityFilters)), listing.OfferAmenities(offer))
 }
 
 type actorInput struct {

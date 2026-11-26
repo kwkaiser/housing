@@ -41,6 +41,25 @@
 	let error = $state<unknown>();
 	let busy = $state(false);
 
+	let rentalTerms = $derived(meta.rental_terms ?? []);
+	let general = $derived((meta.amenities ?? []).filter((a) => !rentalTerms.includes(a)));
+	let groups = $derived([
+		{ title: 'Required amenities', items: general },
+		...(mode === 'rent' ? [{ title: 'Rental terms', items: rentalTerms }] : [])
+	]);
+	let wanted = $derived(amenities.filter((a) => mode === 'rent' || !rentalTerms.includes(a)));
+
+	const levels: Record<string, { text: string; tone: string; title: string }> = {
+		search: { text: 'search', tone: 'good', title: 'The source filters on this when searching' },
+		results: { text: 'results', tone: 'accent', title: 'Checked against what search results report' },
+		enrich: { text: 'details', tone: 'warn', title: 'Only known after fetching listing details' },
+		'': { text: 'none', tone: 'bad', title: 'This source never reports it, so none of its listings will match' }
+	};
+	const support = (src: string, am: string) => levels[meta.capabilities?.[src]?.[mode]?.[am] ?? ''];
+	let blocked = $derived(
+		wanted.flatMap((am) => sources.filter((src) => support(src, am) === levels['']).map((src) => `${src} cannot report ${label(am)}`))
+	);
+
 	let wants = $derived(profiles.filter((p) => p.kind !== 'avoid'));
 	let avoids = $derived(profiles.filter((p) => p.kind === 'avoid'));
 	let fields = $derived(error instanceof ApiError ? error.fields : {});
@@ -79,7 +98,7 @@
 			min_beds: opt(minBeds),
 			max_beds: opt(maxBeds),
 			max_age_days: opt(maxAge) ?? 0,
-			amenities,
+			amenities: wanted,
 			limit: opt(limit) ?? 0,
 			model,
 			max_run_cost_usd: opt(budget) ?? 0,
@@ -170,14 +189,41 @@
 			<div class="field"><label for="max-age">Max listing age (days)</label><input id="max-age" inputmode="numeric" bind:value={maxAge} /></div>
 			<div class="field"><label for="limit">Result limit per source</label><input id="limit" inputmode="numeric" bind:value={limit} /></div>
 		</div>
-		<div class="field">
-			<span class="label">Required amenities</span>
-			<div class="chips">
-				{#each meta.amenities ?? [] as am (am)}
-					<label><input type="checkbox" checked={amenities.includes(am)} onchange={(e) => (amenities = toggle(amenities, am, e.currentTarget.checked))} /> {label(am)}</label>
-				{/each}
+		{#each groups as group, gi (group.title)}
+			<div class="field" class:invalid={gi === 0 && fields.amenities}>
+				<span class="label">{group.title}</span>
+				<div class="chips">
+					{#each group.items as am (am)}
+						<label><input type="checkbox" checked={amenities.includes(am)} onchange={(e) => (amenities = toggle(amenities, am, e.currentTarget.checked))} /> {label(am)}</label>
+					{/each}
+				</div>
+				{#if sources.length}
+					<div class="support">
+						<table>
+							<thead>
+								<tr><th scope="col"><span class="sr-only">Filter</span></th>{#each sources as src (src)}<th scope="col">{src}</th>{/each}</tr>
+							</thead>
+							<tbody>
+								{#each group.items as am (am)}
+									<tr class:off={!wanted.includes(am)}>
+										<th scope="row">{label(am)}</th>
+										{#each sources as src (src)}
+											{@const lv = support(src, am)}
+											<td><span class="pill {lv.tone}" title={lv.title}>{lv.text}</span></td>
+										{/each}
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				{/if}
+				{#if gi === 0 && fields.amenities}<p class="field-error">{fields.amenities}</p>{/if}
 			</div>
-		</div>
+		{/each}
+		{#if blocked.length}
+			<p class="warning">Listings from these sources will all be dropped: {blocked.join('; ')}.</p>
+		{/if}
+		<small>Filters marked <strong>details</strong> cost more: each listing's page is fetched before it is checked.</small>
 	</fieldset>
 
 	<fieldset>
@@ -215,6 +261,41 @@
 	.with-clear input {
 		flex: 1;
 		min-width: 0;
+	}
+
+	.support {
+		overflow-x: auto;
+		margin-top: 0.5rem;
+	}
+
+	.support table {
+		border-collapse: collapse;
+		font-size: 0.85rem;
+	}
+
+	.support th,
+	.support td {
+		padding: 0.2rem 0.6rem 0.2rem 0;
+		text-align: left;
+		white-space: nowrap;
+	}
+
+	.support thead th {
+		color: var(--muted);
+		font-weight: 600;
+	}
+
+	.support tbody th {
+		font-weight: 500;
+	}
+
+	.support tr.off {
+		opacity: 0.55;
+	}
+
+	.warning {
+		margin: 0;
+		color: var(--warn);
 	}
 
 	.avoids {
